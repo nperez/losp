@@ -86,7 +86,7 @@ The `▲X` inside Expression is not resolved until `▶Expression ◆` executes.
 ▽X first ◆
 ▲Expression         # NOW △X resolves → "first"
 ▽X second ◆
-▲Expression         # NOW △X resolves → "second"
+▲Expression         # NOW △X resolves → "second", but ▲Expression still has "first" since retrieving the expression parses it and immediate operators are consumed each each parse.
 ```
 
 Without `◯`, the `△X` would resolve at parse time and the expression would always return whatever X was when the line was parsed.

@@ -82,4 +82,54 @@ Not so bad, huh? Its an s-exp-kinda language that is lisp-like, but also very no
 
 Everything is an "expression". A string is really just another expression that doesn't do anything other than hold concepts. The operators and their arguments are expressions. And everything is parsed in stream. There is no lexical scoping. Everything accesses a global namespace (the dictionary in FORTH speak). Each stored expression has a name (that first word after the operator) and everything is compiled/backed by some kind of store (SQLite in the current implementation). 
 
-There are two different timings on the operators. You'll notice I've not talked about the immediate operators yet. You can think of these like lisp macros or C preprocessor in that at parse time they are immediately evaluated/executed and their results return back to the parse stream. Okay, yeah, that's cool I guess, I hear you say, but here is the novel bit. They are ephemeral. Once they are parsed and evaluated, they are forever gone. With this ability you can build latches, write-once expressions for "constants", metaprogramming and more. 
+### Parse-time vs. Execution-time
+
+There are two different timings on the operators. You'll notice I've not talked about the immediate operators yet. You can think of these like lisp macros or C preprocessor in that at parse time they are immediately evaluated/executed and their results return back to the parse stream. Okay, yeah, that's cool I guess, I hear you say, but here is the novel bit. They are ephemeral. Once they are parsed and evaluated, they are forever gone. With this ability you can build latches, run-once expressions for "constants", metaprogramming and more.
+
+Wait, wut? Yeah, ephemeral. Anytime the stream is parsed, immediate operators fire and replace that part of the stream with their output. And then those expressions are simply consumed, gone. Here is an example:
+
+```losp
+▽X
+    first
+◆
+▽Snapshot △X ◆    # △X resolves NOW to "first", stored in Snapshot
+▽X
+    second
+◆
+▲Snapshot         # → "first" (captured at parse time)
+▲X                # → "second" (current value)
+```
+
+Let's walk through how this is interpreted. `▽X` is encountered, it is an immediate operator that is storing. And `first` is stored under the name `X`. The result of an immediate store operation is the EMPTY expression so nothing ends up in the parse stream, but `X` has been set at parse time. Next, `▽Snapshot` is encountered, and it does the same thing as above, then we get to the expressions to be stored and we notice an immediate load: `△X`! `X` is now returned to the parse stream verbatim which is just `first`. So now `Snapshot` holds `first`. We do one more immediate store to `X` with `second`.
+
+So now `Snapshot` has `first` and `X` has `second`. Finally, we retrieve those expressions and return them verbatim.
+
+But what if we don't want the immediate operators to fire at definition, but instead at execution? You're in luck, because I thought of that:
+
+#### The Defer Operator
+
+`◯` prevents parse-time resolution. It's analogous to Lisp's quote:
+
+```losp
+▽Snapshot ◯△X ◆ ◆   # Stores the Snapshot △X itself, not its value
+▽X first ◆
+▲Snapshot         # NOW △X resolves → `first`
+▽X second ◆
+▲Snapshot         # NOW △X resolves → `second` but we've already exhausted all of the immediate operators in Snapshot and Snapshot still has `first`. 
+```
+
+Without `◯`, the `△X` would resolve at parse time and the expression would always return whatever X was when the line was parsed.
+
+You can nest these! And they are consumed much like the immediate operators on each parse. On each parse (and parse-time happens when retrieving or executing), the immediate operators and defer operators are processed and consumed. 
+
+### ... But why?!
+
+Well, think about it a bit if you really wanted to model thinking. Thoughts are ephemeral and are consumed. And I wanted semantics for enabling setting a starting condition and then the system evolving from that point, never to return.
+
+## What now?
+
+Well, this is the end of the README. If this crazy ass idea resonates with you for building structured metacognition workflows, take a look at PRIMER.md for the language specification that was used to vibe code this whole damn thing. And also look at CLAUDE.md for what additional instructions you need to feed the LLMs in order to get them to "understand" losp and write it cogently. 
+
+If you want to make a new implementation of losp, snag the language PRIMER.md and the conformance tests (stand alone losp programs run with a bash harness that uses whatever binary you want) and let your favorite robots get to work building. 
+
+
