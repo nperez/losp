@@ -1,0 +1,4 @@
+# EXPECTED: one one
+▼Outer □x ▶Inner one ◆ ▲x ◆
+▼Inner □x ▲x ◆
+▶Outer two ◆

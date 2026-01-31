@@ -1,0 +1,11 @@
+▼Status active ◆
+
+▼ShowActive
+    The system is active.
+◆
+
+▼ShowInactive
+    The system is inactive.
+◆
+
+▶SAY ▶IF ▶COMPARE ▲Status active ◆ ▲ShowActive ▲ShowInactive ◆ ◆

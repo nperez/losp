@@ -1,0 +1,4 @@
+# EXPECTED: value
+▽name var ◆
+▽▲name value ◆
+▲var

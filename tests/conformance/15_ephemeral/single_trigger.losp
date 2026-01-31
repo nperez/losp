@@ -1,0 +1,5 @@
+# EXPECTED: triggered
+▼OnLoad ◯▽flag triggered ◆ ◆ ◆
+▶OnLoad ◆
+▲flag
+▶OnLoad ◆

@@ -1,0 +1,10 @@
+# EXPECTED: inner-yes
+▶IF
+TRUE
+▶IF
+TRUE
+inner-yes
+inner-no
+◆
+outer-no
+◆

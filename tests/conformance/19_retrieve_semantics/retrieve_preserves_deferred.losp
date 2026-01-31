@@ -1,0 +1,3 @@
+# EXPECTED: ▶SAY hello ◆
+▼_expr ▶SAY hello ◆ ◆
+▲_expr

@@ -1,0 +1,9 @@
+# EXPECTED: ▶COMPARE
+# EXPECTED: hello
+# EXPECTED: hello
+# EXPECTED: ◆
+▼Expr ▶COMPARE
+hello
+hello
+◆ ◆
+▲Expr

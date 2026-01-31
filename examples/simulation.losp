@@ -1,0 +1,803 @@
+▼_Sim_PromptFailed
+    ▶SAY
+
+============================================
+SIMULATION HALTED: LLM Provider Error
+============================================
+The language model failed to respond after retry.
+This may be due to:
+- Rate limiting from the provider
+- Network connectivity issues
+- Provider service outage
+
+Please wait a moment and restart the simulation.
+============================================
+ ◆
+◆
+
+▼_Sim_ReturnResult
+    ▶_retry_result ◆
+◆
+
+▼_Sim_DoRetry
+    ▶SAY [Retrying prompt...] ◆
+    ▶PROMPT ▶▲_retry_pname ◆ ◆
+◆
+
+▼_Sim_RetryCheck
+    □_src_result □_src_pname
+    ▼_retry_result ▲_src_result ◆
+    ▼_retry_pname ▲_src_pname ◆
+    ▶▶IF ▶COMPARE ▲_src_result ▲EMPTY ◆
+        _Sim_DoRetry
+        _Sim_ReturnResult
+    ◆ ◆
+◆
+
+▼_Sim_FinalCheck
+    □_fc_result
+    ▶▶IF ▶COMPARE ▲_fc_result ▲EMPTY ◆
+        _Sim_PromptFailed
+        _Sim_DoNothing
+    ◆ ◆
+    ▲_fc_result
+◆
+
+▼_Sim_PromptWithRetry
+    □_spwr_pname
+    ▶_Sim_FinalCheck ▶_Sim_RetryCheck ▶PROMPT ▶▲_spwr_pname ◆ ◆ ▲_spwr_pname ◆ ◆
+◆
+
+▼Sim_PromptByName
+    □_spbn_name
+    ▶_Sim_PromptWithRetry ▲_spbn_name ◆
+◆
+
+▼Sim_Init
+    ▶LOAD Sim_Char_Name ◆
+    ▶▶IF ▶COMPARE ▲Sim_Char_Name ▲EMPTY ◆
+        Sim_NewSession
+        Sim_ContinueSession
+    ◆ ◆
+◆
+
+▼Sim_NewSession
+    ▶SAY === Character Simulation === ◆
+    ▶SAY Creating a new character... ◆
+    ▶Sim_GetUserInputs ◆
+    ▶Sim_GenerateCharacter ◆
+    ▶Sim_GenerateEnvironment ◆
+    ▶Sim_InitializeState ◆
+    ▶Sim_DescribeScene ◆
+    ▶Sim_ShowInstructions ◆
+    ▶Sim_MainLoop ◆
+◆
+
+▼Sim_ShowInstructions
+    ▶SAY
+---
+HOW TO INTERACT:
+
+You are interacting with ▶Sim_Char_Name ◆ in a simulated environment.
+The character has their own personality, memories, and inner life.
+
+ACTIONS: Describe what you do in second person.
+  Examples: "I sit down across from them" / "I offer a handshake"
+
+DIALOGUE: Write what you say in quotes.
+  Examples: "Hello, how are you?" / I smile and say "Nice to meet you"
+
+ENVIRONMENT: You can examine, interact with, or modify objects.
+  Examples: "I look around the room" / "I pick up the coffee mug"
+
+SPECIAL COMMANDS:
+  - Say "analysis mode" to inspect simulation state
+  - Say "exit analysis" to return to normal interaction
+
+The character will react authentically based on their personality,
+current mood, and your relationship with them.
+--- ◆
+◆
+
+▼Sim_ContinueSession
+    ▶SAY === Continuing Session === ◆
+    ▶Sim_LoadState ◆
+    ▶Sim_MainLoop ◆
+◆
+
+▼Sim_GetUserInputs
+    ▶SAY
+Please provide details for your character:
+ ◆
+    ▶Sim_StoreEthnicity ▶READ Ethnicity: ◆ ◆
+    ▶Sim_StoreAge ▶READ Age (child/adolescent/adult/elder): ◆ ◆
+    ▶Sim_StoreGender ▶READ Gender identity: ◆ ◆
+    ▶SAY
+Archetypes: Artist, Academic, Caregiver, Veteran, Corporate,
+Tradesperson, Activist, Recluse, Performer, Wanderer, Mystic, Survivor
+(or enter your own) ◆
+    ▶Sim_StoreArchetype ▶READ Archetype: ◆ ◆
+◆
+
+▼Sim_StoreEthnicity □_sse_v ▼Sim_Char_Ethnicity ▲_sse_v ◆ ◆
+▼Sim_StoreAge □_ssa_v ▼Sim_Char_Age ▲_ssa_v ◆ ◆
+▼Sim_StoreGender □_ssg_v ▼Sim_Char_Gender ▲_ssg_v ◆ ◆
+▼Sim_StoreArchetype □_ssarch_v ▼Sim_Char_Archetype ▲_ssarch_v ◆ ◆
+▼Sim_StoreFeelings □_ssf_v ▼Sim_Char_Feelings ▲_ssf_v ◆ ◆
+▼Sim_StoreMonologue □_ssm_v ▼Sim_Char_Monologue ▲_ssm_v ◆ ◆
+▼Sim_StoreMood □_ssmood_v ▼Sim_Char_Mood ▲_ssmood_v ◆ ◆
+▼Sim_StorePhysical □_ssp_v ▼Sim_Char_Physical ▲_ssp_v ◆ ◆
+▼Sim_StorePosition □_sspos_v ▼Sim_Char_Position ▲_sspos_v ◆ ◆
+▼Sim_StoreConvSummary □_sscs_v ▼Sim_Conv_Summary ▲_sscs_v ◆ ◆
+▼Sim_StoreConvRecent □_sscr_v ▼Sim_Conv_Recent ▲_sscr_v ◆ ◆
+
+▼Sim_GenerateCharacter
+    ▶SAY Generating character... ◆
+    ▼_sgc_prompt
+You are a character generator for an interactive simulation. Create a detailed, psychologically rich character profile.
+
+Generate a character with these parameters:
+- Ethnicity: ▶Sim_Char_Ethnicity ◆
+- Age category: ▶Sim_Char_Age ◆
+- Gender: ▶Sim_Char_Gender ◆
+- Background archetype: ▶Sim_Char_Archetype ◆
+
+Respond with EXACTLY this format (use these exact labels):
+NAME: [culturally appropriate full name]
+TRAITS: [5-7 personality traits, comma-separated]
+BELIEFS: [3-5 beliefs/values, prefix immutable ones with CORE:]
+GOALS: [2-3 current life goals]
+MOOD: [starting mood]
+BACKSTORY_SUMMARY: [2-3 sentence summary]
+BACKSTORY_FULL: [detailed backstory - 2-3 paragraphs]
+    ◆
+    ▶Sim_ParseCharacter ▶Sim_PromptByName _sgc_prompt ◆ ◆
+◆
+
+▼Sim_ParseCharacter
+    □_spc_raw
+    ▼Sim_Char_Name ▶EXTRACT NAME ▲_spc_raw ◆ ◆
+    ▼Sim_Char_Traits ▶EXTRACT TRAITS ▲_spc_raw ◆ ◆
+    ▼Sim_Char_Beliefs ▶EXTRACT BELIEFS ▲_spc_raw ◆ ◆
+    ▼Sim_Char_Goals ▶EXTRACT GOALS ▲_spc_raw ◆ ◆
+    ▼Sim_Char_Mood ▶EXTRACT MOOD ▲_spc_raw ◆ ◆
+    ▼Sim_Char_Backstory_Summary ▶EXTRACT BACKSTORY_SUMMARY ▲_spc_raw ◆ ◆
+    ▼Sim_Char_Backstory_Full ▶EXTRACT BACKSTORY_FULL ▲_spc_raw ◆ ◆
+    ▼Sim_Char_Feelings neutral, attentive ◆
+    ▼Sim_Char_Physical alert, comfortable ◆
+    ▼Sim_Char_Monologue ◆
+    ▼Sim_Char_Rel_Familiarity stranger ◆
+    ▼Sim_Char_Rel_Valence neutral ◆
+    ▼Sim_Char_Position seated in the armchair ◆
+    ▶SAY Character created: ▶Sim_Char_Name ◆ ◆
+◆
+
+▼Sim_GenerateEnvironment
+    ▶SAY Generating environment... ◆
+    ▼_sge_prompt
+Generate 10 objects for a cozy therapy-style office space. Mix furniture with small personal items and clutter.
+
+Format each object on its own line as:
+NAME|LOCATION|CONDITION|PHYSICAL_STATE|SIGNIFICANCE
+
+Generate exactly 10 objects with varied types.
+    ◆
+    ▶Sim_StoreEnvObjects ▶Sim_PromptByName _sge_prompt ◆ ◆
+    ▼Sim_Env_Events ◆
+    ▼Sim_Env_Time afternoon, session just beginning ◆
+◆
+
+▼Sim_StoreEnvObjects □_sseo_v ▼Sim_Env_Objects ▲_sseo_v ◆ ◆
+
+▼Sim_InitializeState
+    ▼Sim_Conv_Recent ◆
+    ▼Sim_Conv_Summary ◆
+    ▼Sim_Mode_Current normal ◆
+◆
+
+▼Sim_DescribeScene
+    ▼_sds_prompt
+You are narrating the opening of an interactive character simulation.
+
+CHARACTER:
+Name: ▶Sim_Char_Name ◆
+Background: ▶Sim_Char_Backstory_Summary ◆
+Traits: ▶Sim_Char_Traits ◆
+Current mood: ▶Sim_Char_Mood ◆
+Position: ▶Sim_Char_Position ◆
+
+ENVIRONMENT OBJECTS:
+▶Sim_Env_Objects ◆
+
+TIME: ▲Sim_Env_Time
+
+Write a brief opening scene description (2-3 paragraphs) in neutral third-person.
+Do NOT include dialogue. Just set the scene.
+    ◆
+    ▶SAY ▶Sim_PromptByName _sds_prompt ◆ ◆
+◆
+
+▼_Sim_ExitEOF
+    ▶SAY [End of input - session saved] ◆
+◆
+
+▼Sim_MainLoop
+    ▶Sim_MainLoopWithInput ▶READ > ◆ ◆
+◆
+
+▼Sim_MainLoopWithInput
+    □_smli_input
+    ▶▶IF ▶COMPARE ▲_smli_input ▲EMPTY ◆
+        _Sim_ExitEOF
+        Sim_MainLoopContinue
+    ◆ ◆
+◆
+
+▼Sim_MainLoopContinue
+    ▶Sim_ProcessTurn ▲_smli_input ◆
+    ▶Sim_SaveState ◆
+    ▶Sim_MainLoop ◆
+◆
+
+▼_ExecWithArg □_ewa_name □_ewa_arg ▶▲_ewa_name ▲_ewa_arg ◆ ◆
+
+
+▼Sim_ProcessTurn
+    □_spt_input
+    ▶_ExecWithArg ▶IF ▶COMPARE ▲Sim_Mode_Current analysis ◆
+        Sim_ProcessAnalysisTurn
+        _Sim_ProcessTurnNonAnalysis
+    ◆ ▲_spt_input ◆
+◆
+
+▼_Sim_ProcessTurnNonAnalysis
+    □_sptna_input
+    ▶_ExecWithArg ▶IF ▶COMPARE ▲Sim_Mode_Current incapacitated ◆
+        Sim_ProcessIncapacitated
+        Sim_ProcessNormalTurn
+    ◆ ▲_sptna_input ◆
+◆
+
+▼Sim_ProcessAnalysisTurn
+    □_spat_input
+    ▶Sim_CheckExitAnalysis ▲_spat_input ◆
+    ▶_ExecWithArg ▶IF ▶COMPARE ▲Sim_Mode_Current analysis ◆
+        Sim_ProcessAnalysis
+        _Sim_DoNothing
+    ◆ ▲_spat_input ◆
+◆
+
+▼Sim_CheckEnterAnalysis
+    □_scea_input
+    ▼_scea_prompt
+You are a command parser for an interactive character simulation.
+ANALYSIS mode lets users inspect internal simulation state (character psychology, hidden variables, etc.)
+
+User input: ▲_scea_input
+
+Is this user explicitly requesting to enter ANALYSIS mode?
+Look for phrases like: "analysis mode", "analysis", "inspect state", "show internals", "debug mode"
+Regular in-character actions, dialogue, or questions about the scene are NOT analysis requests.
+
+Respond with ONLY one word: YES or NO
+    ◆
+    ▶Sim_HandleEnterCheck ▶Sim_PromptByName _scea_prompt ◆ ◆
+◆
+
+▼Sim_HandleEnterCheck
+    □_shec_result
+    ▶▶IF ▶COMPARE ▶UPPER ▲_shec_result ◆ YES ◆
+        _Sim_EnterAnalysis
+        _Sim_DoNothing
+    ◆ ◆
+◆
+
+▼Sim_CheckExitAnalysis
+    □_scxa_input
+    ▼_scxa_prompt
+You are a command parser for an interactive character simulation currently in ANALYSIS mode.
+In ANALYSIS mode, users can ask questions about internal simulation state.
+They can return to normal roleplay interaction by exiting analysis mode.
+
+User input: ▲_scxa_input
+
+Is this user explicitly requesting to EXIT analysis mode and return to normal interaction?
+Look for phrases like: "exit analysis", "exit", "return", "back to normal", "leave analysis"
+Questions about simulation state (mood, thoughts, relationships) are NOT exit requests - they are valid analysis queries.
+
+Respond with ONLY one word: YES or NO
+    ◆
+    ▶Sim_HandleExitCheck ▶Sim_PromptByName _scxa_prompt ◆ ◆
+◆
+
+▼Sim_HandleExitCheck
+    □_shxc_result
+    ▶▶IF ▶COMPARE ▶UPPER ▲_shxc_result ◆ YES ◆
+        _Sim_ExitAnalysis
+        _Sim_DoNothing
+    ◆ ◆
+◆
+
+▼_Sim_EnterAnalysis
+    ▼Sim_Mode_Current analysis ◆
+    ▶SAY [Entering ANALYSIS mode - ask questions about the simulation state] ◆
+◆
+
+▼_Sim_ExitAnalysis
+    ▼Sim_Mode_Current normal ◆
+    ▶SAY [Exiting ANALYSIS mode] ◆
+◆
+
+▼_Sim_DoNothing ◆
+
+▼Sim_ProcessNormalTurn
+    □_spnt_input
+    ▶Sim_CheckEnterAnalysis ▲_spnt_input ◆
+    ▶_ExecWithArg ▶IF ▶COMPARE ▲Sim_Mode_Current normal ◆
+        Sim_ProcessConscious
+        _Sim_DoNothing
+    ◆ ▲_spnt_input ◆
+◆
+
+▼Sim_ProcessConscious
+    □_spc2_input
+    ▼_spc2_prompt
+You are simulating a psychologically complex character in an interactive scene.
+Write vivid, immersive third-person narration that brings the scene to life.
+
+CHARACTER:
+Name: ▶Sim_Char_Name ◆
+Background: ▶Sim_Char_Backstory_Summary ◆
+Traits: ▶Sim_Char_Traits ◆
+Beliefs: ▶Sim_Char_Beliefs ◆
+Goals: ▶Sim_Char_Goals ◆
+Mood: ▶Sim_Char_Mood ◆
+Feelings: ▶Sim_Char_Feelings ◆
+Physical: ▶Sim_Char_Physical ◆
+Position: ▶Sim_Char_Position ◆
+
+RELATIONSHIP WITH USER:
+Familiarity: ▲Sim_Char_Rel_Familiarity
+Valence: ▲Sim_Char_Rel_Valence
+
+ENVIRONMENT OBJECTS (format: NAME|LOCATION|CONDITION|PHYSICAL_STATE|SIGNIFICANCE):
+▶Sim_Env_Objects ◆
+Recent Events: ▲Sim_Env_Events
+Time: ▲Sim_Env_Time
+
+CONVERSATION SUMMARY: ▶Sim_Conv_Summary ◆
+
+RECENT EXCHANGES:
+▶Sim_Conv_Recent ◆
+
+USER INPUT (accept as truth):
+▲_spc2_input
+
+NARRATION GUIDELINES:
+- For SENSORY QUERIES (looking around, examining, listening): Describe what the character perceives in detail. Include relevant objects from the environment list, filtered by what's visible from their position. Note lighting, sounds, smells, atmosphere.
+- For DIALOGUE: Show the character's verbal and non-verbal reactions. Include body language, tone, facial expressions.
+- For ACTIONS: Describe both the user's action and the character's authentic response based on their personality and current state.
+- For OBJECT INTERACTIONS: Describe the object's current state and how the interaction affects it.
+- Always ground descriptions in the character's subjective experience - what they notice depends on their mood, interests, and current focus.
+
+Respond with EXACTLY this format (no markdown, no code blocks):
+NARRATION: [third-person narration with dialogue in quotes - be vivid and detailed, especially for perceptual queries]
+INNER_MONOLOGUE: [character's private thoughts]
+NEW_FEELINGS: [updated feelings]
+MOOD_SHIFT: [new mood, or --- if unchanged]
+PHYSICAL_UPDATE: [new state, or --- if unchanged]
+POSITION_UPDATE: [new position, or --- if unchanged]
+ENV_CHANGES: [For significant events, list each affected object. Format: "ObjectName: new condition". Write --- if nothing changed.]
+TIME_ELAPSED: [seconds/minutes/hours]
+FAMILIARITY_CHANGE: [slight_increase/slight_decrease/---]
+VALENCE_CHANGE: [toward_positive/toward_negative/---]
+ALERT_STATUS: [conscious/unconscious/incapacitated]
+    ◆
+    ▶Sim_HandleResponse ▲_spc2_input ▶Sim_PromptByName _spc2_prompt ◆ ◆
+◆
+
+▼Sim_HandleResponse
+    □_shr_input □_shr_raw
+    ▶SAY ▶EXTRACT NARRATION ▲_shr_raw ◆ ◆
+    ▶Sim_UpdateState ▲_shr_raw ◆
+    ▶Sim_UpdateHistory ▲_shr_input ▲_shr_raw ◆
+◆
+
+▼Sim_ProcessIncapacitated
+    □_spi_input
+    ▼_spi_prompt
+The character is incapacitated and cannot act or think. Narrate only environmental changes.
+
+ENVIRONMENT OBJECTS (format: NAME|LOCATION|CONDITION|PHYSICAL_STATE|SIGNIFICANCE):
+▶Sim_Env_Objects ◆
+Events: ▲Sim_Env_Events
+Character position: ▶Sim_Char_Position ◆
+
+USER INPUT: ▲_spi_input
+
+Respond with (no markdown, no code blocks):
+NARRATION: [environmental changes only, no character thoughts or actions]
+ENV_CHANGES: [For ANY significant event (explosions, fires, water damage, etc.), assess EVERY object and describe how it was affected. List each affected object with its new state. Use format: "ObjectName: new condition". Write --- only if truly nothing changed.]
+TIME_ELAPSED: [time passed]
+ALERT_STATUS: [conscious if waking, else incapacitated]
+    ◆
+    ▶Sim_HandleIncapResponse ▶Sim_PromptByName _spi_prompt ◆ ◆
+◆
+
+▼Sim_HandleIncapResponse
+    □_shir_raw
+    ▶SAY ▶EXTRACT NARRATION ▲_shir_raw ◆ ◆
+    ▶Sim_CheckWakeUp ▶EXTRACT ALERT_STATUS ▲_shir_raw ◆ ◆
+    ▶Sim_MaybeApplyEnvChanges ▶EXTRACT ENV_CHANGES ▲_shir_raw ◆ ◆
+◆
+
+▼_Sim_SetModeNormal ▼Sim_Mode_Current normal ◆ ◆
+
+▼Sim_CheckWakeUp
+    □_scwu_alert
+    ▶▶IF ▶COMPARE ▶LOWER ▲_scwu_alert ◆ conscious ◆
+        _Sim_SetModeNormal
+        _Sim_DoNothing
+    ◆ ◆
+◆
+
+▼Sim_MaybeApplyEnvChanges
+    □_smaec_env
+    ▶_ExecWithArg ▶IF ▶COMPARE ▲_smaec_env --- ◆
+        _Sim_DoNothing
+        Sim_ApplyEnvChanges
+    ◆ ▲_smaec_env ◆
+◆
+
+▼Sim_UpdateState
+    □_sus_raw
+    ▶Sim_StoreFeelings ▶EXTRACT NEW_FEELINGS ▲_sus_raw ◆ ◆
+    ▶Sim_StoreMonologue ▶EXTRACT INNER_MONOLOGUE ▲_sus_raw ◆ ◆
+    ▶Sim_MaybeUpdateMood ▶EXTRACT MOOD_SHIFT ▲_sus_raw ◆ ▶Sim_Char_Mood ◆ ◆
+    ▶Sim_MaybeUpdatePhysical ▶EXTRACT PHYSICAL_UPDATE ▲_sus_raw ◆ ▶Sim_Char_Physical ◆ ◆
+    ▶Sim_MaybeUpdatePosition ▶EXTRACT POSITION_UPDATE ▲_sus_raw ◆ ▶Sim_Char_Position ◆ ◆
+    ▶Sim_MaybeApplyEnvChanges ▶EXTRACT ENV_CHANGES ▲_sus_raw ◆ ◆
+    ▶Sim_UpdateRelationship ▲_sus_raw ◆
+    ▶Sim_CheckAlertStatus ▶EXTRACT ALERT_STATUS ▲_sus_raw ◆ ◆
+◆
+
+▼_Sim_KeepIfUnchanged
+    □_kiu_new □_kiu_old
+    ▶IF ▶COMPARE ▲_kiu_new --- ◆ ▲_kiu_old ▲_kiu_new ◆
+◆
+
+▼Sim_MaybeUpdateMood
+    □_smum_new □_smum_old
+    ▼Sim_Char_Mood ◆
+    ▶APPEND
+Sim_Char_Mood
+▶_Sim_KeepIfUnchanged ▲_smum_new ▲_smum_old ◆
+    ◆
+◆
+
+▼Sim_MaybeUpdatePhysical
+    □_smup_new □_smup_old
+    ▼Sim_Char_Physical ◆
+    ▶APPEND
+Sim_Char_Physical
+▶_Sim_KeepIfUnchanged ▲_smup_new ▲_smup_old ◆
+    ◆
+◆
+
+▼Sim_MaybeUpdatePosition
+    □_smupos_new □_smupos_old
+    ▼Sim_Char_Position ◆
+    ▶APPEND
+Sim_Char_Position
+▶_Sim_KeepIfUnchanged ▲_smupos_new ▲_smupos_old ◆
+    ◆
+◆
+
+▼_Sim_SetModeIncapacitated ▼Sim_Mode_Current incapacitated ◆ ◆
+
+▼Sim_CheckAlertStatus
+    □_scas_alert
+    ▶▶IF ▶COMPARE ▶LOWER ▲_scas_alert ◆ conscious ◆
+        _Sim_DoNothing
+        _Sim_SetModeIncapacitated
+    ◆ ◆
+◆
+
+▼Sim_ApplyEnvChanges
+    □_saec_changes
+    ▼_saec_prompt
+Apply environment changes to the object list. For each change listed, update the corresponding object's CONDITION and PHYSICAL_STATE fields. If an object was destroyed, mark it as "destroyed" or "rubble". If damaged, describe the damage. Consider cascading effects (e.g., explosion damages nearby objects, fire spreads, water soaks things).
+
+CURRENT OBJECTS (format: NAME|LOCATION|CONDITION|PHYSICAL_STATE|SIGNIFICANCE):
+▶Sim_Env_Objects ◆
+
+CHANGES TO APPLY:
+▲_saec_changes
+
+Output the complete updated object list in the same pipe-delimited format. Every object must appear in output, updated as needed.
+    ◆
+    ▶Sim_StoreEnvObjects ▶Sim_PromptByName _saec_prompt ◆ ◆
+◆
+
+▼Sim_UpdateRelationship
+    □_sur_raw
+    ▶Sim_MaybeIncreaseFamiliarity ▶EXTRACT FAMILIARITY_CHANGE ▲_sur_raw ◆ ◆
+    ▶Sim_HandleValenceChange ▶EXTRACT VALENCE_CHANGE ▲_sur_raw ◆ ◆
+◆
+
+▼Sim_MaybeIncreaseFamiliarity
+    □_smif_fam
+    ▶▶IF ▶COMPARE ▶LOWER ▲_smif_fam ◆ slight_increase ◆
+        Sim_IncreaseFamiliarity
+        _Sim_DoNothing
+    ◆ ◆
+◆
+
+▼Sim_HandleValenceChange
+    □_shvc_val
+    ▶▶IF ▶COMPARE ▶LOWER ▲_shvc_val ◆ toward_positive ◆
+        Sim_IncreaseValence
+        _Sim_DoNothing
+    ◆ ◆
+    ▶▶IF ▶COMPARE ▶LOWER ▲_shvc_val ◆ toward_negative ◆
+        Sim_DecreaseValence
+        _Sim_DoNothing
+    ◆ ◆
+◆
+
+▼_Sim_SetFamAcquaintance ▼Sim_Char_Rel_Familiarity acquaintance ◆ ◆
+▼_Sim_SetFamFamiliar ▼Sim_Char_Rel_Familiarity familiar ◆ ◆
+▼_Sim_SetFamIntimate ▼Sim_Char_Rel_Familiarity intimate ◆ ◆
+
+▼Sim_IncreaseFamiliarity
+    ▶▶IF ▶COMPARE ▲Sim_Char_Rel_Familiarity stranger ◆
+        _Sim_SetFamAcquaintance
+        _Sim_DoNothing
+    ◆ ◆
+    ▶▶IF ▶COMPARE ▲Sim_Char_Rel_Familiarity acquaintance ◆
+        _Sim_SetFamFamiliar
+        _Sim_DoNothing
+    ◆ ◆
+    ▶▶IF ▶COMPARE ▲Sim_Char_Rel_Familiarity familiar ◆
+        _Sim_SetFamIntimate
+        _Sim_DoNothing
+    ◆ ◆
+◆
+
+▼_Sim_SetValNegative ▼Sim_Char_Rel_Valence negative ◆ ◆
+▼_Sim_SetValNeutral ▼Sim_Char_Rel_Valence neutral ◆ ◆
+▼_Sim_SetValPositive ▼Sim_Char_Rel_Valence positive ◆ ◆
+▼_Sim_SetValDevoted ▼Sim_Char_Rel_Valence devoted ◆ ◆
+▼_Sim_SetValHostile ▼Sim_Char_Rel_Valence hostile ◆ ◆
+
+▼Sim_IncreaseValence
+    ▶▶IF ▶COMPARE ▲Sim_Char_Rel_Valence hostile ◆
+        _Sim_SetValNegative
+        _Sim_DoNothing
+    ◆ ◆
+    ▶▶IF ▶COMPARE ▲Sim_Char_Rel_Valence negative ◆
+        _Sim_SetValNeutral
+        _Sim_DoNothing
+    ◆ ◆
+    ▶▶IF ▶COMPARE ▲Sim_Char_Rel_Valence neutral ◆
+        _Sim_SetValPositive
+        _Sim_DoNothing
+    ◆ ◆
+    ▶▶IF ▶COMPARE ▲Sim_Char_Rel_Valence positive ◆
+        _Sim_SetValDevoted
+        _Sim_DoNothing
+    ◆ ◆
+◆
+
+▼Sim_DecreaseValence
+    ▶▶IF ▶COMPARE ▲Sim_Char_Rel_Valence devoted ◆
+        _Sim_SetValPositive
+        _Sim_DoNothing
+    ◆ ◆
+    ▶▶IF ▶COMPARE ▲Sim_Char_Rel_Valence positive ◆
+        _Sim_SetValNeutral
+        _Sim_DoNothing
+    ◆ ◆
+    ▶▶IF ▶COMPARE ▲Sim_Char_Rel_Valence neutral ◆
+        _Sim_SetValNegative
+        _Sim_DoNothing
+    ◆ ◆
+    ▶▶IF ▶COMPARE ▲Sim_Char_Rel_Valence negative ◆
+        _Sim_SetValHostile
+        _Sim_DoNothing
+    ◆ ◆
+◆
+
+▼Sim_UpdateHistory
+    □_suh_input □_suh_response
+    ▶APPEND
+Sim_Conv_Recent
+User: ▲_suh_input - Response: ▶EXTRACT NARRATION ▲_suh_response ◆
+    ◆
+    ▶Sim_MaybeCompactHistory ◆
+◆
+
+▼Sim_MaybeCompactHistory
+    ▼_smch_prompt
+Analyze conversation history. Compact ONLY if there are more than 5 exchanges.
+
+ENTRY COUNT: ▶COUNT ▶Sim_Conv_Recent ◆ ◆
+SUMMARY: ▶Sim_Conv_Summary ◆
+RECENT: ▶Sim_Conv_Recent ◆
+
+IMPORTANT: If ENTRY COUNT is 5 or less, respond with NEEDS_COMPACTION: no
+Only compact if there are MORE than 5 entries.
+
+Respond with:
+NEEDS_COMPACTION: yes or no
+NEW_SUMMARY: [updated summary if compacting, otherwise ---]
+NEW_RECENT: [last 4-5 exchanges if compacting, otherwise ---]
+    ◆
+    ▶Sim_ApplyCompaction ▶Sim_PromptByName _smch_prompt ◆ ◆
+◆
+
+▼Sim_ApplyCompaction
+    □_sac_raw
+    ▶Sim_DoCompaction ▲_sac_raw ▶EXTRACT NEEDS_COMPACTION ▲_sac_raw ◆ ◆
+◆
+
+▼_Sim_SetConvSummary
+    □_sscs_val
+    ▼Sim_Conv_Summary ◆
+    ▶APPEND
+Sim_Conv_Summary
+▲_sscs_val
+    ◆
+◆
+
+▼_Sim_SetConvRecent
+    □_sscr_val
+    ▼Sim_Conv_Recent ◆
+    ▶APPEND
+Sim_Conv_Recent
+▲_sscr_val
+    ◆
+◆
+
+▼Sim_DoCompaction
+    □_sdc_raw □_sdc_needs
+    ▶Sim_DoCompactionCheck ▲_sdc_raw ▲_sdc_needs ▶EXTRACT NEW_RECENT ▲_sdc_raw ◆ ◆
+◆
+
+▼Sim_DoCompactionCheck
+    □_sdcc_raw □_sdcc_needs □_sdcc_new_recent
+    ▶▶IF ▶COMPARE ▶LOWER ▲_sdcc_needs ◆ yes ◆
+        Sim_DoCompactionIfValid
+        _Sim_DoNothing
+    ◆ ◆
+◆
+
+▼Sim_DoCompactionIfValid
+    ▶▶IF ▶COMPARE ▲_sdcc_new_recent ▲EMPTY ◆
+        _Sim_DoNothing
+        Sim_ApplyCompactionNow
+    ◆ ◆
+◆
+
+▼Sim_ApplyCompactionNow
+    ▶_Sim_SetConvSummary ▶EXTRACT NEW_SUMMARY ▲_sdcc_raw ◆ ◆
+    ▶_Sim_SetConvRecent ▲_sdcc_new_recent ◆
+◆
+
+▼Sim_ProcessAnalysis
+    □_spa_query
+    ▼_spa_prompt
+You are a SIMULATION INSPECTOR analyzing simulation state. Use third person only.
+
+CRITICAL: Answer ONLY using data provided below. Do NOT invent, infer, or confabulate details not explicitly stated in the data. If information is not available, say "not specified in simulation data."
+
+QUESTION: ▲_spa_query
+
+=== CHARACTER ===
+▶Sim_Char_Name ◆ (▶Sim_Char_Age ◆ ▶Sim_Char_Gender ◆, ▶Sim_Char_Archetype ◆)
+Traits: ▶Sim_Char_Traits ◆
+Beliefs: ▶Sim_Char_Beliefs ◆
+Goals: ▶Sim_Char_Goals ◆
+Mood: ▶Sim_Char_Mood ◆ | Feelings: ▶Sim_Char_Feelings ◆
+Physical: ▶Sim_Char_Physical ◆ | Position: ▶Sim_Char_Position ◆
+Inner thoughts: ▶Sim_Char_Monologue ◆
+Relationship: ▲Sim_Char_Rel_Familiarity, ▲Sim_Char_Rel_Valence
+
+=== BACKSTORY ===
+▶Sim_Char_Backstory_Full ◆
+
+=== ENVIRONMENT (▲Sim_Env_Time) ===
+Objects: ▶Sim_Env_Objects ◆
+Events: ▲Sim_Env_Events
+
+=== CONVERSATION ===
+Summary: ▶Sim_Conv_Summary ◆
+Recent: ▶Sim_Conv_Recent ◆
+===
+    ◆
+    ▶SAY [ANALYSIS] ▶Sim_PromptByName _spa_prompt ◆ ◆
+◆
+
+▼Sim_SaveState
+    ▶PERSIST Sim_Char_Name ◆
+    ▶PERSIST Sim_Char_Ethnicity ◆
+    ▶PERSIST Sim_Char_Age ◆
+    ▶PERSIST Sim_Char_Gender ◆
+    ▶PERSIST Sim_Char_Archetype ◆
+    ▶PERSIST Sim_Char_Backstory_Full ◆
+    ▶PERSIST Sim_Char_Backstory_Summary ◆
+    ▶PERSIST Sim_Char_Traits ◆
+    ▶PERSIST Sim_Char_Beliefs ◆
+    ▶PERSIST Sim_Char_Goals ◆
+    ▶PERSIST Sim_Char_Mood ◆
+    ▶PERSIST Sim_Char_Feelings ◆
+    ▶PERSIST Sim_Char_Physical ◆
+    ▶PERSIST Sim_Char_Monologue ◆
+    ▶PERSIST Sim_Char_Position ◆
+    ▶PERSIST Sim_Char_Rel_Familiarity ◆
+    ▶PERSIST Sim_Char_Rel_Valence ◆
+    ▶PERSIST Sim_Env_Objects ◆
+    ▶PERSIST Sim_Env_Events ◆
+    ▶PERSIST Sim_Env_Time ◆
+    ▶PERSIST Sim_Conv_Recent ◆
+    ▶PERSIST Sim_Conv_Summary ◆
+    ▶PERSIST Sim_Mode_Current ◆
+    ▶PERSIST _spc_raw ◆
+    ▶PERSIST _sse_v ◆
+    ▶PERSIST _ssa_v ◆
+    ▶PERSIST _ssg_v ◆
+    ▶PERSIST _ssarch_v ◆
+    ▶PERSIST _ssf_v ◆
+    ▶PERSIST _ssm_v ◆
+    ▶PERSIST _ssmood_v ◆
+    ▶PERSIST _ssp_v ◆
+    ▶PERSIST _sspos_v ◆
+    ▶PERSIST _sseo_v ◆
+    ▶PERSIST _sscs_v ◆
+    ▶PERSIST _sscr_v ◆
+◆
+
+▼Sim_LoadState
+    ▶LOAD Sim_Char_Name ◆
+    ▶LOAD Sim_Char_Ethnicity ◆
+    ▶LOAD Sim_Char_Age ◆
+    ▶LOAD Sim_Char_Gender ◆
+    ▶LOAD Sim_Char_Archetype ◆
+    ▶LOAD Sim_Char_Backstory_Full ◆
+    ▶LOAD Sim_Char_Backstory_Summary ◆
+    ▶LOAD Sim_Char_Traits ◆
+    ▶LOAD Sim_Char_Beliefs ◆
+    ▶LOAD Sim_Char_Goals ◆
+    ▶LOAD Sim_Char_Mood ◆
+    ▶LOAD Sim_Char_Feelings ◆
+    ▶LOAD Sim_Char_Physical ◆
+    ▶LOAD Sim_Char_Monologue ◆
+    ▶LOAD Sim_Char_Position ◆
+    ▶LOAD Sim_Char_Rel_Familiarity ◆
+    ▶LOAD Sim_Char_Rel_Valence ◆
+    ▶LOAD Sim_Env_Objects ◆
+    ▶LOAD Sim_Env_Events ◆
+    ▶LOAD Sim_Env_Time ◆
+    ▶LOAD Sim_Conv_Recent ◆
+    ▶LOAD Sim_Conv_Summary ◆
+    ▶LOAD Sim_Mode_Current
+        normal
+    ◆
+    ▶LOAD _spc_raw ◆
+    ▶LOAD _sse_v ◆
+    ▶LOAD _ssa_v ◆
+    ▶LOAD _ssg_v ◆
+    ▶LOAD _ssarch_v ◆
+    ▶LOAD _ssf_v ◆
+    ▶LOAD _ssm_v ◆
+    ▶LOAD _ssmood_v ◆
+    ▶LOAD _ssp_v ◆
+    ▶LOAD _sspos_v ◆
+    ▶LOAD _sseo_v ◆
+    ▶LOAD _sscs_v ◆
+    ▶LOAD _sscr_v ◆
+◆
+
+▼__startup__
+    ▶Sim_Init ◆
+◆

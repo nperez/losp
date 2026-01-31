@@ -1,0 +1,7 @@
+# EXPECTED: first
+# EXPECTED: second
+▼T ▲X ◆
+▽X first ◆
+▶T ◆
+▽X second ◆
+▶T ◆

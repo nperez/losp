@@ -1,0 +1,6 @@
+# EXPECTED: Result: TRUE
+▼Process □data Result: ▲data ◆
+▶Process ▶COMPARE
+hello
+hello
+◆ ◆

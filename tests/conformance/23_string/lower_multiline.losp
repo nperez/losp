@@ -1,0 +1,6 @@
+# EXPECTED: hello
+# EXPECTED: world
+▶LOWER
+HELLO
+WORLD
+◆

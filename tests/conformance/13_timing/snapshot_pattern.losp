@@ -1,0 +1,5 @@
+# EXPECTED: first
+▽X first ◆
+▽Snapshot △X ◆
+▽X second ◆
+▲Snapshot

@@ -1,0 +1,5 @@
+# EXPECTED: world
+▶EXTRACT hello
+hello: world
+foo: bar
+◆

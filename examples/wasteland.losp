@@ -1,0 +1,672 @@
+▼_WL_DoNothing ◆
+
+▼_WL_ExitEOF
+    ▶SAY
+
+=== SESSION SAVED ===
+Your progress has been saved. Run again to continue your journey.
+ ◆
+◆
+
+▼_WL_PromptFailed
+    ▶SAY
+
+============================================
+SYSTEM ERROR: LLM Provider Failure
+============================================
+The language model failed to respond.
+Please wait a moment and restart.
+============================================
+ ◆
+◆
+
+▼_WL_ReturnResult
+    ▶_wl_retry_result ◆
+◆
+
+▼_WL_DoRetry
+    ▶PROMPT ▶▲_wl_retry_pname ◆ ◆
+◆
+
+▼_WL_RetryCheck
+    □_wlrc_result □_wlrc_pname
+    ▼_wl_retry_result ▲_wlrc_result ◆
+    ▼_wl_retry_pname ▲_wlrc_pname ◆
+    ▶▶IF ▶COMPARE ▲_wlrc_result ▲EMPTY ◆
+        _WL_DoRetry
+        _WL_ReturnResult
+    ◆ ◆
+◆
+
+▼_WL_FinalCheck
+    □_wlfc_result
+    ▶▶IF ▶COMPARE ▲_wlfc_result ▲EMPTY ◆
+        _WL_PromptFailed
+        _WL_DoNothing
+    ◆ ◆
+    ▲_wlfc_result
+◆
+
+▼_WL_PromptWithRetry
+    □_wlpwr_pname
+    ▶_WL_FinalCheck ▶_WL_RetryCheck ▶PROMPT ▶▲_wlpwr_pname ◆ ◆ ▲_wlpwr_pname ◆ ◆
+◆
+
+▼WL_PromptByName
+    □_wlpbn_name
+    ▶_WL_PromptWithRetry ▲_wlpbn_name ◆
+◆
+
+▼_WL_StoreDay □_wlsd_v ▼WL_Day ◆ ▶APPEND
+WL_Day
+▲_wlsd_v
+◆ ◆
+▼_WL_StoreTimeOfDay □_wlstod_v ▼WL_TimeOfDay ◆ ▶APPEND
+WL_TimeOfDay
+▲_wlstod_v
+◆ ◆
+▼_WL_StoreBattery □_wlsb_v ▼WL_Battery ◆ ▶APPEND
+WL_Battery
+▲_wlsb_v
+◆ ◆
+▼_WL_StoreCondition □_wlsc_v ▼WL_Condition ◆ ▶APPEND
+WL_Condition
+▲_wlsc_v
+◆ ◆
+▼_WL_StoreLandmarks □_wlsl_v ▼WL_Landmarks ◆ ▶APPEND
+WL_Landmarks
+▲_wlsl_v
+◆ ◆
+▼_WL_StoreTurnCount □_wlstc_v ▼WL_TurnCount ◆ ▶APPEND
+WL_TurnCount
+▲_wlstc_v
+◆ ◆
+
+▼_WL_ClearInventory ▼WL_Inventory ◆ ◆
+▼_WL_ClearHistoryRecent ▼WL_History_Recent ◆ ◆
+▼_WL_ClearHistorySummary ▼WL_History_Summary ◆ ◆
+
+▼WL_Init
+    ▶LOAD WL_Day ◆
+    ▶▶IF ▶COMPARE ▲WL_Day ▲EMPTY ◆
+        WL_NewGame
+        WL_ContinueGame
+    ◆ ◆
+◆
+
+▼WL_NewGame
+    ▶SAY
+=== WASTELAND: LONELY ROBOT ===
+
+Initializing new unit...
+ ◆
+    ▶WL_GenerateStartingState ◆
+    ▶WL_ShowInstructions ◆
+    ▶WL_MainLoop ◆
+◆
+
+▼WL_ShowInstructions
+    ▶SAY
+---
+HOW TO PLAY:
+
+You are a robot that has just awakened in a post-apocalyptic wasteland.
+Your goal: survive as many days as possible.
+
+ACTIONS: Describe what you want to do in natural language.
+  Examples: "search the area for supplies"
+            "approach the tower cautiously"
+            "try to repair myself with the toolkit"
+
+QUESTIONS: Ask about your status without advancing time.
+  Examples: "what is my battery level?"
+            "what do I have in my inventory?"
+            "what landmarks are nearby?"
+
+Your battery and physical condition determine your survival.
+When either is depleted, the game ends.
+
+Good luck, robot.
+---
+ ◆
+◆
+
+▼WL_GenerateStartingState
+    ▼_wlgss_prompt
+You are initializing a post-apocalyptic robot survival game.
+
+Generate a random starting state for a robot just awakening in a wasteland.
+
+Consider variety: different awakening situations (crater, bunker, factory, vehicle wreck, etc.)
+
+Respond with EXACTLY this format (use these exact labels):
+BATTERY: [one of: fully charged, moderate, low - never critical]
+CONDITION: [one of: pristine, functional, damaged - never critical]
+INVENTORY: [3-5 random scavenged items, one per line - basic survival gear, junk, maybe something useful]
+LANDMARKS: [2-3 landmarks at varying distances, format: "Name - distance" where distance is near/close/distant/far, one per line]
+TIME_OF_DAY: [hour 0-23]
+SITUATION: [2-3 paragraphs describing the robot's awakening in second person - where you are, what you see, your immediate surroundings. Make it atmospheric and intriguing.]
+    ◆
+    ▶WL_ParseStartingState ▶WL_PromptByName _wlgss_prompt ◆ ◆
+◆
+
+▼WL_ParseStartingState
+    □_wlpss_raw
+    ▶_WL_StoreBattery ▶EXTRACT BATTERY ▲_wlpss_raw ◆ ◆
+    ▶_WL_StoreCondition ▶EXTRACT CONDITION ▲_wlpss_raw ◆ ◆
+    ▶_WL_StoreLandmarks ▶EXTRACT LANDMARKS ▲_wlpss_raw ◆ ◆
+    ▶_WL_StoreTimeOfDay ▶EXTRACT TIME_OF_DAY ▲_wlpss_raw ◆ ◆
+    ▶_WL_ClearInventory ◆
+    ▶APPEND
+WL_Inventory
+▶EXTRACT INVENTORY ▲_wlpss_raw ◆
+◆
+    ▶_WL_StoreDay 1 ◆
+    ▶_WL_StoreTurnCount 0 ◆
+    ▶_WL_ClearHistoryRecent ◆
+    ▶_WL_ClearHistorySummary ◆
+    ▶SAY
+
+▶EXTRACT SITUATION ▲_wlpss_raw ◆
+
+ ◆
+    ▶WL_ShowStatus ◆
+◆
+
+▼WL_ShowStatus
+    ▶SAY [Day ▶TRIM ▶WL_Day ◆ ◆ | Battery: ▶TRIM ▶WL_Battery ◆ ◆ | Condition: ▶TRIM ▶WL_Condition ◆ ◆] ◆
+◆
+
+▼WL_ContinueGame
+    ▶SAY === Resuming Wasteland === ◆
+    ▶WL_LoadState ◆
+    ▶WL_GenerateRecap ◆
+    ▶WL_MainLoop ◆
+◆
+
+▼WL_GenerateRecap
+    ▼_wlgr_prompt
+You are narrating the resume of a post-apocalyptic robot survival game.
+
+CURRENT STATE:
+Day: ▶WL_Day ◆
+Time: ▶WL_TimeOfDay ◆:00
+Battery: ▶WL_Battery ◆
+Condition: ▶WL_Condition ◆
+Inventory: ▶WL_Inventory ◆
+Nearby landmarks: ▶WL_Landmarks ◆
+
+HISTORY SUMMARY:
+▶WL_History_Summary ◆
+
+RECENT EVENTS:
+▶WL_History_Recent ◆
+
+Write a brief recap (1-2 paragraphs) in second person, reminding the player where they are and what's happening. End with the current situation that invites action.
+    ◆
+    ▶SAY
+
+▶WL_PromptByName _wlgr_prompt ◆
+
+ ◆
+    ▶WL_ShowStatus ◆
+◆
+
+▼WL_MainLoop
+    ▶WL_MainLoopWithInput ▶READ > ◆ ◆
+◆
+
+▼WL_MainLoopWithInput
+    □_wlmli_input
+    ▶▶IF ▶COMPARE ▲_wlmli_input ▲EMPTY ◆
+        _WL_ExitEOF
+        WL_ProcessInput
+    ◆ ◆
+◆
+
+▼WL_ProcessInput
+    ▶WL_ClassifyInput ▲_wlmli_input ◆
+◆
+
+▼WL_ClassifyInput
+    □_wlci_input
+    ▼_wlci_prompt
+You are classifying player input for a post-apocalyptic robot survival game.
+
+Player input: ▲_wlci_input
+
+Classify as:
+- QUESTION: The player is asking about the game state, their status, inventory, surroundings, or seeking information. Questions do NOT advance time.
+- ACTION: The player is describing what they want the robot to do. Actions advance time and have consequences.
+
+Respond with EXACTLY one word: QUESTION or ACTION
+    ◆
+    ▶WL_RouteInput ▲_wlci_input ▶UPPER ▶TRIM ▶WL_PromptByName _wlci_prompt ◆ ◆ ◆ ◆
+◆
+
+▼WL_RouteInput
+    □_wlri_input □_wlri_type
+    ▶▶IF ▶COMPARE ▲_wlri_type QUESTION ◆
+        WL_HandleQuestion
+        WL_HandleAction
+    ◆ ◆
+◆
+
+▼WL_HandleQuestion
+    ▶WL_AnswerQuestion ▲_wlri_input ◆
+    ▶WL_MainLoop ◆
+◆
+
+▼WL_AnswerQuestion
+    □_wlaq_input
+    ▼_wlaq_prompt
+You are answering a question about the robot's current state in a post-apocalyptic survival game.
+Answer in second person. Be concise but helpful.
+
+CURRENT STATE:
+Day: ▶WL_Day ◆
+Time: ▶WL_TimeOfDay ◆:00
+Battery: ▶WL_Battery ◆
+Condition: ▶WL_Condition ◆
+Inventory: ▶WL_Inventory ◆
+Nearby landmarks: ▶WL_Landmarks ◆
+
+RECENT EVENTS:
+▶WL_History_Recent ◆
+
+QUESTION: ▲_wlaq_input
+
+Answer the question based on the current state. If asking about something not tracked, make a reasonable inference from context.
+    ◆
+    ▶SAY
+
+▶WL_PromptByName _wlaq_prompt ◆
+
+ ◆
+◆
+
+▼WL_HandleAction
+    ▶WL_ProcessAction ▲_wlri_input ◆
+◆
+
+▼WL_ProcessAction
+    □_wlpa_input
+    ▶WL_CheckEncounter ▲_wlpa_input ◆
+◆
+
+▼WL_CheckEncounter
+    □_wlce_input
+    ▼_wlce_prompt
+You are determining if a random encounter occurs in a post-apocalyptic wasteland.
+
+CURRENT STATE:
+Day: ▶WL_Day ◆
+Time: ▶WL_TimeOfDay ◆:00 (night is 20:00-06:00)
+Battery: ▶WL_Battery ◆
+Condition: ▶WL_Condition ◆
+Location context: ▶WL_Landmarks ◆
+
+RECENT EVENTS:
+▶WL_History_Recent ◆
+
+PLAYER ACTION: ▲_wlce_input
+
+Consider:
+- Time of day (night is more dangerous)
+- Robot condition (damaged robots attract scavengers)
+- The type of action (exploring ruins riskier than resting)
+- Recent activity patterns
+- Random chance (sometimes things just happen)
+
+Encounters should occur roughly 30-40% of the time, varying by context.
+
+Respond with EXACTLY this format:
+ENCOUNTER: YES or NO
+TYPE: [if YES: one of combat/scavenging/environmental/social/weird - otherwise NONE]
+SETUP: [if YES: 1-2 sentences setting up the encounter to incorporate into the action resolution - otherwise NONE]
+    ◆
+    ▶WL_ResolveWithEncounter ▲_wlce_input ▶WL_PromptByName _wlce_prompt ◆ ◆
+◆
+
+▼WL_ResolveWithEncounter
+    □_wlrwe_input □_wlrwe_encounter
+    ▶WL_ResolveAction ▲_wlrwe_input ▶EXTRACT SETUP ▲_wlrwe_encounter ◆ ◆
+◆
+
+▼WL_ResolveAction
+    □_wlra_input □_wlra_encounter
+    ▼_wlra_prompt
+You are the narrator of a post-apocalyptic robot survival game.
+
+CURRENT STATE:
+Day: ▶WL_Day ◆
+Time: ▶WL_TimeOfDay ◆:00
+Battery: ▶WL_Battery ◆
+Physical Condition: ▶WL_Condition ◆
+Inventory: ▶WL_Inventory ◆
+Nearby Landmarks: ▶WL_Landmarks ◆
+
+HISTORY SUMMARY:
+▶WL_History_Summary ◆
+
+RECENT EVENTS:
+▶WL_History_Recent ◆
+
+ENCOUNTER CONTEXT:
+▲_wlra_encounter
+
+PLAYER ACTION:
+▲_wlra_input
+
+INSTRUCTIONS:
+1. Consider the probability of success based on the robot's state, inventory, and the difficulty of the action
+2. Embed probability hints naturally in the narrative (don't state odds explicitly)
+3. Resolve the action with appropriate success or failure based on likelihood
+4. Narrate what happens in second person ("You attempt to...")
+5. If there's an encounter, weave it into the action resolution
+6. Determine consequences for battery, condition, inventory, and landmarks
+
+Battery changes: Actions drain battery. Combat/heavy work drains more. Finding power sources can restore.
+Condition changes: Combat and hazards cause damage. Repairs with proper tools can restore.
+Inventory: Items can be found, used, lost, or destroyed.
+Landmarks: Distances change as robot moves. New landmarks may be discovered.
+
+Respond with EXACTLY this format (no markdown):
+NARRATIVE: [2-3 paragraphs describing what happens, with probability embedded in the prose]
+BATTERY: [new status: fully charged/moderate/low/critical/depleted]
+CONDITION: [new status: pristine/functional/damaged/critical/destroyed]
+INVENTORY_ADD: [items gained, one per line, or NONE]
+INVENTORY_REMOVE: [items consumed or lost, one per line, or NONE]
+LANDMARKS: [updated landmark list with new distances, or UNCHANGED]
+HOURS_PASSED: [number 1-8]
+    ◆
+    ▶WL_HandleActionResult ▲_wlra_input ▶WL_PromptByName _wlra_prompt ◆ ◆
+◆
+
+▼WL_HandleActionResult
+    □_wlhar_input □_wlhar_raw
+    ▶SAY
+
+▶EXTRACT NARRATIVE ▲_wlhar_raw ◆
+
+ ◆
+    ▶WL_UpdateState ▲_wlhar_raw ◆
+    ▶WL_UpdateHistory ▲_wlhar_input ▲_wlhar_raw ◆
+    ▶WL_AdvanceTime ▶EXTRACT HOURS_PASSED ▲_wlhar_raw ◆ ◆
+    ▶WL_CheckGameOver ◆
+◆
+
+▼WL_UpdateState
+    □_wlus_raw
+    ▶_WL_StoreBattery ▶EXTRACT BATTERY ▲_wlus_raw ◆ ◆
+    ▶_WL_StoreCondition ▶EXTRACT CONDITION ▲_wlus_raw ◆ ◆
+    ▶WL_UpdateInventory ▲_wlus_raw ◆
+    ▶WL_UpdateLandmarks ▶EXTRACT LANDMARKS ▲_wlus_raw ◆ ◆
+◆
+
+▼WL_UpdateInventory
+    □_wlui_raw
+    ▶WL_RemoveItems ▶EXTRACT INVENTORY_REMOVE ▲_wlui_raw ◆ ◆
+    ▶WL_AddItems ▶EXTRACT INVENTORY_ADD ▲_wlui_raw ◆ ◆
+◆
+
+▼WL_RemoveItems
+    □_wlri_items
+    ▶▶IF ▶COMPARE ▲_wlri_items NONE ◆
+        _WL_DoNothing
+        WL_DoRemoveItems
+    ◆ ◆
+◆
+
+▼WL_DoRemoveItems
+    ▼_wldri_prompt
+Remove items from an inventory list. Return only the remaining items.
+
+CURRENT INVENTORY:
+▶WL_Inventory ◆
+
+ITEMS TO REMOVE:
+▲_wlri_items
+
+Return ONLY the remaining inventory items, one per line. If all items are removed, respond with EMPTY.
+    ◆
+    ▶_WL_SetInventory ▶WL_PromptByName _wldri_prompt ◆ ◆
+◆
+
+▼_WL_SetInventory
+    □_wlsi_inv
+    ▶_WL_ClearInventory ◆
+    ▶▶IF ▶COMPARE ▲_wlsi_inv EMPTY ◆
+        _WL_DoNothing
+        _WL_AppendInventory
+    ◆ ◆
+◆
+
+▼_WL_AppendInventory
+    ▶APPEND
+WL_Inventory
+▲_wlsi_inv
+◆
+◆
+
+▼WL_AddItems
+    □_wlai_items
+    ▶▶IF ▶COMPARE ▲_wlai_items NONE ◆
+        _WL_DoNothing
+        WL_DoAddItems
+    ◆ ◆
+◆
+
+▼WL_DoAddItems
+    ▶APPEND
+WL_Inventory
+▲_wlai_items
+◆
+◆
+
+▼WL_UpdateLandmarks
+    □_wlul_landmarks
+    ▶▶IF ▶COMPARE ▲_wlul_landmarks UNCHANGED ◆
+        _WL_DoNothing
+        WL_DoUpdateLandmarks
+    ◆ ◆
+◆
+
+▼WL_DoUpdateLandmarks
+    ▶_WL_StoreLandmarks ▲_wlul_landmarks ◆
+◆
+
+▼WL_AdvanceTime
+    □_wlat_hours
+    ▼_wlat_prompt
+Calculate new time of day and day number.
+
+Current day: ▶WL_Day ◆
+Current hour: ▶WL_TimeOfDay ◆
+Hours to add: ▲_wlat_hours
+
+Add the hours to current time. If it exceeds 24, increment the day and wrap the hour.
+
+Respond with EXACTLY:
+NEW_DAY: [day number]
+NEW_HOUR: [hour 0-23]
+    ◆
+    ▶WL_ApplyTimeAdvance ▶WL_PromptByName _wlat_prompt ◆ ◆
+◆
+
+▼WL_ApplyTimeAdvance
+    □_wlata_raw
+    ▶_WL_StoreDay ▶EXTRACT NEW_DAY ▲_wlata_raw ◆ ◆
+    ▶_WL_StoreTimeOfDay ▶EXTRACT NEW_HOUR ▲_wlata_raw ◆ ◆
+    ▶WL_ShowStatus ◆
+◆
+
+▼WL_UpdateHistory
+    □_wluh_input □_wluh_response
+    ▶WL_IncrementTurn ◆
+    ▶APPEND
+WL_History_Recent
+Turn ▶WL_TurnCount ◆: ▲_wluh_input
+◆
+    ▶WL_MaybeCompactHistory ◆
+◆
+
+▼WL_IncrementTurn
+    ▼_wlit_prompt
+Add 1 to this number: ▶WL_TurnCount ◆
+Respond with ONLY the new number.
+    ◆
+    ▶_WL_StoreTurnCount ▶TRIM ▶WL_PromptByName _wlit_prompt ◆ ◆ ◆
+◆
+
+▼WL_MaybeCompactHistory
+    ▼_wlmch_prompt
+Determine if conversation history needs compaction.
+
+ENTRY COUNT: ▶COUNT ▶WL_History_Recent ◆ ◆
+
+CURRENT SUMMARY:
+▶WL_History_Summary ◆
+
+RECENT HISTORY:
+▶WL_History_Recent ◆
+
+RULES:
+- If ENTRY COUNT is 3 or less, respond with NEEDS_COMPACTION: NO
+- If ENTRY COUNT is more than 3, compact the oldest entries into the summary
+
+Respond with:
+NEEDS_COMPACTION: YES or NO
+NEW_SUMMARY: [if YES: updated summary incorporating old events, otherwise ---]
+NEW_RECENT: [if YES: only the last 3 entries, otherwise ---]
+    ◆
+    ▶WL_ApplyCompaction ▶WL_PromptByName _wlmch_prompt ◆ ◆
+◆
+
+▼WL_ApplyCompaction
+    □_wlac_raw
+    ▶▶IF ▶COMPARE ▶UPPER ▶EXTRACT NEEDS_COMPACTION ▲_wlac_raw ◆ ◆ YES ◆
+        WL_DoCompaction
+        _WL_DoNothing
+    ◆ ◆
+◆
+
+▼WL_DoCompaction
+    ▶_WL_ClearHistorySummary ◆
+    ▶APPEND
+WL_History_Summary
+▶EXTRACT NEW_SUMMARY ▲_wlac_raw ◆
+◆
+    ▶_WL_ClearHistoryRecent ◆
+    ▶APPEND
+WL_History_Recent
+▶EXTRACT NEW_RECENT ▲_wlac_raw ◆
+◆
+◆
+
+▼WL_CheckGameOver
+    ▶WL_CheckBatteryDepleted ◆
+    ▶WL_CheckConditionDestroyed ◆
+    ▶WL_ContinueIfAlive ◆
+◆
+
+▼WL_CheckBatteryDepleted
+    ▶▶IF ▶COMPARE ▶LOWER ▶WL_Battery ◆ ◆ depleted ◆
+        WL_GameOver
+        _WL_DoNothing
+    ◆ ◆
+◆
+
+▼WL_CheckConditionDestroyed
+    ▶▶IF ▶COMPARE ▶LOWER ▶WL_Condition ◆ ◆ destroyed ◆
+        WL_GameOver
+        _WL_DoNothing
+    ◆ ◆
+◆
+
+▼WL_ContinueIfAlive
+    ▶▶IF ▶COMPARE ▲WL_GameEnded TRUE ◆
+        _WL_DoNothing
+        WL_SaveAndContinue
+    ◆ ◆
+◆
+
+▼WL_SaveAndContinue
+    ▶WL_SaveState ◆
+    ▶WL_MainLoop ◆
+◆
+
+▼WL_GameOver
+    ▼WL_GameEnded TRUE ◆
+    ▶WL_GenerateGameOverSummary ◆
+◆
+
+▼WL_GenerateGameOverSummary
+    ▼_wlggos_prompt
+You are generating the ending for a post-apocalyptic robot survival game.
+
+FINAL STATE:
+Days Survived: ▶WL_Day ◆
+Final Battery: ▶WL_Battery ◆
+Final Condition: ▶WL_Condition ◆
+
+HISTORY SUMMARY:
+▶WL_History_Summary ◆
+
+RECENT EVENTS:
+▶WL_History_Recent ◆
+
+Write a poignant game over sequence:
+1. A brief narrative of the robot's final moments (1 paragraph, second person)
+2. A summary of key moments from the journey
+3. A final reflective line
+
+Be atmospheric and meaningful. This robot's journey has ended.
+    ◆
+    ▶SAY
+
+=== SHUTDOWN ===
+
+▶WL_PromptByName _wlggos_prompt ◆
+
+DAYS SURVIVED: ▶WL_Day ◆
+
+ ◆
+    ▶WL_ClearSaveData ◆
+◆
+
+▼WL_ClearSaveData
+    ▼WL_Day ◆
+    ▶PERSIST WL_Day ◆
+◆
+
+▼WL_SaveState
+    ▶PERSIST WL_Day ◆
+    ▶PERSIST WL_TimeOfDay ◆
+    ▶PERSIST WL_Battery ◆
+    ▶PERSIST WL_Condition ◆
+    ▶PERSIST WL_Inventory ◆
+    ▶PERSIST WL_Landmarks ◆
+    ▶PERSIST WL_History_Recent ◆
+    ▶PERSIST WL_History_Summary ◆
+    ▶PERSIST WL_TurnCount ◆
+◆
+
+▼WL_LoadState
+    ▶LOAD WL_Day ◆
+    ▶LOAD WL_TimeOfDay ◆
+    ▶LOAD WL_Battery ◆
+    ▶LOAD WL_Condition ◆
+    ▶LOAD WL_Inventory ◆
+    ▶LOAD WL_Landmarks ◆
+    ▶LOAD WL_History_Recent ◆
+    ▶LOAD WL_History_Summary ◆
+    ▶LOAD WL_TurnCount
+        0
+    ◆
+    ▼WL_GameEnded FALSE ◆
+◆
+
+▼__startup__
+    ▶WL_Init ◆
+◆

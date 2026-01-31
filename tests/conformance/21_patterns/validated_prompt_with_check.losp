@@ -1,0 +1,30 @@
+# EXPECTED: input:user-says-hi result:llm-response
+▼_Mock_CheckFormat
+    □_mcf_response
+    ▽_mcf_check_result check-ran ◆
+    TRUE
+◆
+
+▼_Mock_ValidatedPrompt
+    □_mvp_content
+    ▽_mvp_result llm-response ◆
+    ▶▶IF ▶COMPARE ▶_Mock_CheckFormat ▲_mvp_result ◆ TRUE ◆
+        _Mock_ReturnResult
+        _Mock_Retry
+    ◆ ◆
+◆
+
+▼_Mock_ReturnResult ▲_mvp_result ◆
+▼_Mock_Retry retry-result ◆
+
+▼Handler
+    □_h_input □_h_raw
+    input:▲_h_input result:▲_h_raw
+◆
+
+▼Process
+    □_p_input
+    ▶Handler ▲_p_input ▶_Mock_ValidatedPrompt the-prompt ◆ ◆
+◆
+
+▶Process user-says-hi ◆

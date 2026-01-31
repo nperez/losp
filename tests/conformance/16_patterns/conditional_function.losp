@@ -1,0 +1,12 @@
+# EXPECTED: yes
+▼IsHello □val
+▶IF
+▶COMPARE
+▲val
+hello
+◆
+yes
+no
+◆
+◆
+▶IsHello hello ◆

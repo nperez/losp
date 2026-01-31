@@ -1,0 +1,5 @@
+# EXPECTED: default-value
+▶LOAD
+nonexistent
+default-value
+◆▲nonexistent

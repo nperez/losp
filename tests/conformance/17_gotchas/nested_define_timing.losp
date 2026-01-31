@@ -1,0 +1,8 @@
+# EXPECTED: at-define-time
+▽val at-define-time ◆
+▼Outer
+    ▽inner △val ◆
+◆
+▽val at-execute-time ◆
+▶Outer ◆
+▲inner

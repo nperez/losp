@@ -1,0 +1,8 @@
+# EXPECTED: then-effect
+# EXPECTED: then-value
+▼ThenBranch ▶SAY then-effect ◆ then-value ◆
+▼ElseBranch ▶SAY else-effect ◆ else-value ◆
+▶▶IF TRUE
+    ThenBranch
+    ElseBranch
+◆ ◆

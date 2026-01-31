@@ -1,0 +1,3 @@
+# EXPECTED: Alice Alice
+▼Greet □name ▲name ◆
+▶Greet Alice ◆ ▲name

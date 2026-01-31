@@ -1,0 +1,26 @@
+# EXPECTED: input:test-input result:first-result
+▼_Mock_CheckFormat □_mcf_response TRUE ◆
+
+▼_Mock_ValidatedPrompt
+    □_mvp_content
+    ▽_mvp_result first-result ◆
+    ▶▶IF ▶COMPARE ▶_Mock_CheckFormat ▲_mvp_result ◆ TRUE ◆
+        _Mock_ReturnResult
+        _Mock_Retry
+    ◆ ◆
+◆
+
+▼_Mock_ReturnResult ▲_mvp_result ◆
+▼_Mock_Retry second-result ◆
+
+▼Handler
+    □_h_input □_h_raw
+    input:▲_h_input result:▲_h_raw
+◆
+
+▼Process
+    □_p_input
+    ▶Handler ▲_p_input ▶_Mock_ValidatedPrompt prompt-content ◆ ◆
+◆
+
+▶Process test-input ◆

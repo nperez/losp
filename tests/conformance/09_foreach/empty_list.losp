@@ -1,0 +1,7 @@
+# EXPECTED:
+▼ShowItem □item [▲item] ◆
+▼Items ◆
+▶FOREACH
+▲Items
+▲ShowItem
+◆

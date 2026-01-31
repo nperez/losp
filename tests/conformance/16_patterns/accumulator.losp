@@ -1,0 +1,14 @@
+# EXPECTED: [ a ]
+# EXPECTED: [ b ]
+# EXPECTED: [ c ]
+▽acc ◆
+▼Add □item
+▶APPEND
+acc
+[▲item]
+◆
+◆
+▶Add a ◆
+▶Add b ◆
+▶Add c ◆
+▲acc

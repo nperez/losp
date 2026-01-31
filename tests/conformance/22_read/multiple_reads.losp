@@ -1,0 +1,11 @@
+# EXPECTED: one
+# EXPECTED: |
+# EXPECTED: two
+# EXPECTED: |
+# EXPECTED: three
+# INPUT: one\ntwo\nthree
+▶SAY ▶READ ◆ ◆
+▶SAY | ◆
+▶SAY ▶READ ◆ ◆
+▶SAY | ◆
+▶SAY ▶READ ◆ ◆

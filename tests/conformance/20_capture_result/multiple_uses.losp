@@ -1,0 +1,12 @@
+# EXPECTED: First: TRUE
+# EXPECTED: Second: TRUE
+# EXPECTED: Third: TRUE
+▼UseMultiple □input
+First: ▲input
+Second: ▲input
+Third: ▲input
+◆
+▶UseMultiple ▶COMPARE
+hello
+hello
+◆ ◆

@@ -1,0 +1,7 @@
+# EXPECTED: value1
+# EXPECTED: value2
+▼Repeatable ▲X ◆
+▽X value1 ◆
+▶Repeatable ◆
+▽X value2 ◆
+▶Repeatable ◆

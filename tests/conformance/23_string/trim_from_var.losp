@@ -1,0 +1,3 @@
+# EXPECTED: hello world
+▽msg    hello world    ◆
+▶TRIM ▲msg ◆

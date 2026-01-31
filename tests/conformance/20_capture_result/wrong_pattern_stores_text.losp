@@ -1,0 +1,7 @@
+# EXPECTED: ▶_temp ◆
+▼_temp ▶COMPARE
+hello
+hello
+◆ ◆
+▼result ▶_temp ◆ ◆
+▲result

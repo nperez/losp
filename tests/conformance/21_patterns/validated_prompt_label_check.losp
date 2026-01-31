@@ -1,0 +1,14 @@
+# EXPECTED: good-result
+▼_Mock_ValidatedPrompt
+    □_mvp_content
+    ▽_mvp_result NARRATION: good-result ◆
+    ▶▶IF ▶COMPARE ▶EXTRACT NARRATION ▲_mvp_result ◆ ▶EMPTY ◆ ◆
+        _Mock_Retry
+        _Mock_ReturnResult
+    ◆ ◆
+◆
+
+▼_Mock_ReturnResult ▶EXTRACT NARRATION ▲_mvp_result ◆ ◆
+▼_Mock_Retry retry-result ◆
+
+▶_Mock_ValidatedPrompt prompt-content ◆

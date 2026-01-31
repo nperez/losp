@@ -1,0 +1,10 @@
+# EXPECTED: TRUE
+▼StoreValue □name □value ▼▲name ▲value ◆ ◆
+▶StoreValue
+MyResult
+▶COMPARE
+hello
+hello
+◆
+◆
+▶MyResult ◆

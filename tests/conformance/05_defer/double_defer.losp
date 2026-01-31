@@ -1,0 +1,7 @@
+# EXPECTED: third
+▽X first ◆
+▽Template ◯◯△X ◆ ◆ ◆
+▽X second ◆
+▽Inner ▲Template ◆
+▽X third ◆
+▲Inner

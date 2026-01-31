@@ -1,0 +1,7 @@
+# EXPECTED: hello
+# EXPECTED:  empty
+▼Expr ◯▽X hello ◆ ◆ ◆
+▶Expr ◆
+▲X
+▶Expr ◆
+▲X2 empty

@@ -1,0 +1,6 @@
+# EXPECTED: yes
+▶IF
+TRUE
+yes
+no
+◆

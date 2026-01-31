@@ -1,0 +1,8 @@
+# EXPECTED: a
+# EXPECTED: b
+▽List a ◆
+▶APPEND
+List
+b
+◆
+▲List

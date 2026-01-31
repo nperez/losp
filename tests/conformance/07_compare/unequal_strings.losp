@@ -1,0 +1,5 @@
+# EXPECTED: FALSE
+▶COMPARE
+hello
+world
+◆

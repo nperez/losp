@@ -1,0 +1,6 @@
+# EXPECTED: TRUE
+▼Expr ▶COMPARE
+hello
+hello
+◆ ◆
+▶Expr ◆

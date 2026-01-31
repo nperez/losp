@@ -1,0 +1,7 @@
+# EXPECTED: first
+# EXPECTED: second
+▼Outer ▼Inner ▲X ◆▶Inner ◆ ◆
+▽X first ◆
+▶Outer ◆
+▽X second ◆
+▶Outer ◆

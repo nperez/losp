@@ -1,0 +1,7 @@
+# EXPECTED: ThenName
+▼ThenName then-value ◆
+▼ElseName else-value ◆
+▶IF TRUE
+    ThenName
+    ElseName
+◆

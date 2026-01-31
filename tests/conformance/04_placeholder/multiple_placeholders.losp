@@ -1,0 +1,7 @@
+# EXPECTED: a-b-c
+▼Three □a □b □c ▲a-▲b-▲c ◆
+▶Three
+a
+b
+c
+◆

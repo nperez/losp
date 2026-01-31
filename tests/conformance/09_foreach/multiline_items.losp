@@ -1,0 +1,11 @@
+# EXPECTED: [one]
+# EXPECTED: [two]
+▼ShowItem □item [▲item] ◆
+▼Items
+one
+two
+◆
+▶FOREACH
+▲Items
+▲ShowItem
+◆

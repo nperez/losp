@@ -1,0 +1,2 @@
+# EXPECTED: Error: unexpected EOF while scanning body
+▽X hello

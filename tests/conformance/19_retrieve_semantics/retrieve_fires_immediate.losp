@@ -1,0 +1,4 @@
+# EXPECTED: world
+▽_val world ◆
+▼_expr ◯△_val ◆ ◆
+▲_expr

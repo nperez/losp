@@ -1,0 +1,4 @@
+# EXPECTED: hello
+▽target X ◆
+▽X hello ◆
+▲▲target

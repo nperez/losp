@@ -1,0 +1,9 @@
+# EXPECTED: LINE ONE
+# EXPECTED: LINE TWO
+# EXPECTED: LINE THREE
+▽lines
+line one
+line two
+line three
+◆
+▶UPPER ▲lines ◆

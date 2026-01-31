@@ -1,0 +1,603 @@
+package eval
+
+import (
+	"fmt"
+	"strings"
+	"unicode"
+
+	"nickandperla.net/losp/internal/expr"
+	"nickandperla.net/losp/internal/token"
+)
+
+// BuiltinFunc is the signature for builtin functions.
+type BuiltinFunc func(e *Evaluator, argsRaw string) (expr.Expr, error)
+
+// getBuiltin returns the builtin function for the given name, or nil if not found.
+func getBuiltin(name string) BuiltinFunc {
+	switch name {
+	case "TRUE":
+		return builtinTrue
+	case "FALSE":
+		return builtinFalse
+	case "EMPTY":
+		return builtinEmpty
+	case "IF":
+		return builtinIf
+	case "COMPARE":
+		return builtinCompare
+	case "FOREACH":
+		return builtinForeach
+	case "SAY":
+		return builtinSay
+	case "READ":
+		return builtinRead
+	case "COUNT":
+		return builtinCount
+	case "APPEND":
+		return builtinAppend
+	case "PERSIST":
+		return builtinPersist
+	case "LOAD":
+		return builtinLoad
+	case "PROMPT":
+		return builtinPrompt
+	case "EXTRACT":
+		return builtinExtract
+	case "SYSTEM":
+		return builtinSystem
+	case "UPPER":
+		return builtinUpper
+	case "LOWER":
+		return builtinLower
+	case "TRIM":
+		return builtinTrim
+	}
+	return nil
+}
+
+func builtinTrue(e *Evaluator, argsRaw string) (expr.Expr, error) {
+	return expr.Text{Value: "TRUE"}, nil
+}
+
+func builtinFalse(e *Evaluator, argsRaw string) (expr.Expr, error) {
+	return expr.Text{Value: "FALSE"}, nil
+}
+
+func builtinEmpty(e *Evaluator, argsRaw string) (expr.Expr, error) {
+	return expr.Empty{}, nil
+}
+
+func builtinIf(e *Evaluator, argsRaw string) (expr.Expr, error) {
+	// IF condition then-expr [else-expr]
+	// Parse: first arg is condition, second is then, third is else
+	args, err := e.parseArgs(argsRaw)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(args) < 2 {
+		return expr.Empty{}, nil
+	}
+
+	condition := args[0]
+	thenExpr := args[1]
+	elseExpr := ""
+	if len(args) >= 3 {
+		elseExpr = args[2]
+	}
+
+	// Evaluate condition
+	condResult := strings.TrimSpace(condition)
+
+	if condResult == "TRUE" {
+		// Return then-expr as text (use dynamic execute to evaluate if needed)
+		return expr.Text{Value: thenExpr}, nil
+	} else {
+		// Return else-expr as text
+		if elseExpr == "" {
+			return expr.Empty{}, nil
+		}
+		return expr.Text{Value: elseExpr}, nil
+	}
+}
+
+func builtinCompare(e *Evaluator, argsRaw string) (expr.Expr, error) {
+	// COMPARE expects exactly two arguments (expressions)
+	args, err := e.parseArgs(argsRaw)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(args) < 2 {
+		return expr.Text{Value: "FALSE"}, nil
+	}
+
+	if args[0] == args[1] {
+		return expr.Text{Value: "TRUE"}, nil
+	}
+	return expr.Text{Value: "FALSE"}, nil
+}
+
+func builtinForeach(e *Evaluator, argsRaw string) (expr.Expr, error) {
+	// FOREACH item1 item2 ... body
+	// Last arg is body expression (typically ▲BodyName), preceding are items
+	// We need to extract the body name from the last ▲ or △ before parsing
+
+	argsRaw = strings.TrimSpace(argsRaw)
+	if argsRaw == "" {
+		return expr.Empty{}, nil
+	}
+
+	// Find the last RETRIEVE (▲) in the args to get the body name
+	lastRetrieve := strings.LastIndex(argsRaw, string(token.RuneRetrieve))
+	if lastRetrieve == -1 {
+		lastRetrieve = strings.LastIndex(argsRaw, string(token.RuneImmRetrieve))
+	}
+
+	var bodyName string
+	var itemsRaw string
+
+	if lastRetrieve != -1 {
+		// Extract body name from the retrieve
+		itemsRaw = strings.TrimSpace(argsRaw[:lastRetrieve])
+		bodyPart := argsRaw[lastRetrieve+len(string(token.RuneRetrieve)):]
+		bodyName = strings.TrimSpace(strings.Fields(bodyPart)[0])
+	} else {
+		// No retrieve - assume last word is body name
+		parts := strings.Fields(argsRaw)
+		if len(parts) < 2 {
+			return expr.Empty{}, nil
+		}
+		bodyName = parts[len(parts)-1]
+		itemsRaw = strings.Join(parts[:len(parts)-1], " ")
+	}
+
+	// Parse items
+	args, err := e.parseArgs(itemsRaw)
+	if err != nil {
+		return nil, err
+	}
+
+	// FOREACH iterates over expressions - newlines and operators delimit expressions
+	// Each arg from parseArgs might contain multiple expressions (e.g., if a RETRIEVE
+	// returns "▲foo\n▲bar"), so we re-parse each arg to expand expressions
+	var items []string
+	for _, arg := range args {
+		// Re-parse the arg to expand any expressions within it
+		subItems, err := e.parseArgs(arg)
+		if err != nil {
+			// If parsing fails, just use the arg as-is
+			if s := strings.TrimSpace(arg); s != "" {
+				items = append(items, s)
+			}
+		} else if len(subItems) > 0 {
+			items = append(items, subItems...)
+		} else {
+			// No sub-items parsed, use arg as-is
+			if s := strings.TrimSpace(arg); s != "" {
+				items = append(items, s)
+			}
+		}
+	}
+
+	if len(items) == 0 {
+		return expr.Empty{}, nil
+	}
+
+	// Get the body expression
+	stored := e.namespace.Get(bodyName)
+	if stored.IsEmpty() {
+		return expr.Empty{}, nil
+	}
+
+	var results []string
+	for _, item := range items {
+		if s, ok := stored.(expr.Stored); ok {
+			// Bind item to first parameter
+			if len(s.Params) > 0 {
+				e.namespace.Set(s.Params[0], expr.Text{Value: item})
+			}
+			result := mustEval(e, s.Body.String())
+			results = append(results, result)
+		}
+	}
+
+	return expr.Text{Value: strings.Join(results, "\n")}, nil
+}
+
+func builtinSay(e *Evaluator, argsRaw string) (expr.Expr, error) {
+	// Evaluate args
+	result, err := e.Eval(argsRaw)
+	if err != nil {
+		return nil, err
+	}
+
+	text := strings.TrimSpace(result)
+	if e.outputWriter != nil {
+		e.outputWriter(text + "\n")
+	}
+
+	// Return empty - output already happened via outputWriter
+	return expr.Empty{}, nil
+}
+
+func builtinRead(e *Evaluator, argsRaw string) (expr.Expr, error) {
+	prompt := strings.TrimSpace(argsRaw)
+
+	if e.inputReader == nil {
+		return expr.Empty{}, nil
+	}
+
+	input, err := e.inputReader(prompt)
+	if err != nil {
+		return nil, err
+	}
+
+	return expr.Text{Value: strings.TrimSpace(input)}, nil
+}
+
+func builtinCount(e *Evaluator, argsRaw string) (expr.Expr, error) {
+	// Evaluate the expression
+	result, err := e.Eval(argsRaw)
+	if err != nil {
+		return nil, err
+	}
+
+	text := strings.TrimSpace(result)
+	if text == "" {
+		return expr.Text{Value: "0"}, nil
+	}
+
+	lines := strings.Split(text, "\n")
+	return expr.Text{Value: fmt.Sprintf("%d", len(lines))}, nil
+}
+
+func builtinAppend(e *Evaluator, argsRaw string) (expr.Expr, error) {
+	args, err := e.parseArgs(argsRaw)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(args) < 2 {
+		return expr.Empty{}, nil
+	}
+
+	name := args[0]
+	content := strings.Join(args[1:], " ")
+
+	// Get existing value
+	existing := e.namespace.Get(name)
+	var newValue string
+	if !existing.IsEmpty() {
+		newValue = existing.String() + "\n" + content
+	} else {
+		newValue = content
+	}
+
+	e.namespace.Set(name, expr.Text{Value: newValue})
+	return expr.Empty{}, nil
+}
+
+// formatAsDefinition generates the full losp source for an expression.
+// For Stored expressions: ▼name □param1 □param2 body ◆
+// For Text expressions: just the text value
+// For other expressions: their String() representation
+func formatAsDefinition(name string, val expr.Expr) string {
+	if val == nil || val.IsEmpty() {
+		return ""
+	}
+
+	stored, ok := val.(expr.Stored)
+	if !ok {
+		// Not a stored expression, just return the value
+		return val.String()
+	}
+
+	// Build the full definition: ▼name □param1 □param2 body ◆
+	var sb strings.Builder
+	sb.WriteRune(token.RuneStore) // ▼
+	sb.WriteString(name)
+	sb.WriteString(" ")
+
+	// Add placeholders
+	for _, param := range stored.Params {
+		sb.WriteRune(token.RunePlaceholder) // □
+		sb.WriteString(param)
+		sb.WriteString(" ")
+	}
+
+	// Add body
+	if stored.Body != nil {
+		sb.WriteString(stored.Body.String())
+	}
+
+	sb.WriteString(" ")
+	sb.WriteRune(token.RuneTerminator) // ◆
+
+	return sb.String()
+}
+
+func builtinPersist(e *Evaluator, argsRaw string) (expr.Expr, error) {
+	// In NEVER mode, PERSIST is a no-op
+	if e.PersistMode() == PersistNever {
+		return expr.Empty{}, nil
+	}
+
+	args, err := e.parseArgs(argsRaw)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(args) < 1 {
+		return expr.Empty{}, nil
+	}
+
+	name := args[0]
+
+	if e.store == nil {
+		return expr.Empty{}, nil
+	}
+
+	val := e.namespace.Get(name)
+
+	// Format as full definition so we can reconstruct on LOAD
+	fullDef := formatAsDefinition(name, val)
+	if err := e.store.Put(name, expr.Text{Value: fullDef}); err != nil {
+		return nil, err
+	}
+
+	return expr.Empty{}, nil
+}
+
+func builtinLoad(e *Evaluator, argsRaw string) (expr.Expr, error) {
+	// LOAD name [default]
+	// Loads name from store. If not found/empty and default provided, uses default.
+	// If the stored value is a full definition (starts with ▼), re-evals it to
+	// reconstruct the Stored expression with its parameters.
+	args, err := e.parseArgs(argsRaw)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(args) < 1 {
+		return expr.Empty{}, nil
+	}
+
+	name := args[0]
+	var defaultVal string
+	if len(args) >= 2 {
+		defaultVal = args[1]
+	}
+
+	// Try loading from store
+	var val expr.Expr
+	if e.store != nil {
+		val, err = e.store.Get(name)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// If we got a value from store, process it
+	if val != nil && !val.IsEmpty() {
+		text := val.String()
+
+		// Check if it's a full definition (starts with ▼)
+		// If so, re-eval to reconstruct the Stored expression
+		trimmed := strings.TrimSpace(text)
+		runes := []rune(trimmed)
+		if len(runes) > 0 && runes[0] == token.RuneStore {
+			// Re-eval the definition - this will store it in namespace
+			_, err := e.Eval(text)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			// Plain text value, just set it directly
+			e.namespace.Set(name, expr.Text{Value: text})
+		}
+		return expr.Empty{}, nil
+	}
+
+	// Otherwise use default if provided
+	if defaultVal != "" {
+		e.namespace.Set(name, expr.Text{Value: defaultVal})
+	}
+
+	return expr.Empty{}, nil
+}
+
+func builtinExtract(e *Evaluator, argsRaw string) (expr.Expr, error) {
+	// EXTRACT label source
+	// Parses source for "LABEL: value" format and returns the value
+	args, err := e.parseArgs(argsRaw)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(args) < 2 {
+		return expr.Empty{}, nil
+	}
+
+	label := strings.ToUpper(strings.TrimSpace(args[0]))
+	source := args[1]
+
+	// Parse line by line looking for LABEL: value
+	lines := strings.Split(source, "\n")
+	var result strings.Builder
+	capturing := false
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+
+		// Check if this line starts a new label
+		if colonIdx := strings.Index(trimmed, ":"); colonIdx > 0 {
+			potentialLabel := strings.ToUpper(strings.TrimSpace(trimmed[:colonIdx]))
+			// Check if it looks like a label (alphanumeric/underscore only)
+			isLabel := true
+			for _, r := range potentialLabel {
+				if !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '_' {
+					isLabel = false
+					break
+				}
+			}
+
+			if isLabel {
+				if potentialLabel == label {
+					// Found our label, start capturing
+					capturing = true
+					value := strings.TrimSpace(trimmed[colonIdx+1:])
+					if value != "" {
+						result.WriteString(value)
+					}
+					continue
+				} else if capturing {
+					// Hit a different label, stop capturing
+					break
+				}
+			}
+		}
+
+		// If we're capturing, append this line (it's a continuation)
+		if capturing {
+			if result.Len() > 0 {
+				result.WriteString("\n")
+			}
+			result.WriteString(trimmed)
+		}
+	}
+
+	extracted := strings.TrimSpace(result.String())
+	if extracted == "" {
+		return expr.Empty{}, nil
+	}
+	return expr.Text{Value: extracted}, nil
+}
+
+func builtinPrompt(e *Evaluator, argsRaw string) (expr.Expr, error) {
+	if e.provider == nil {
+		return expr.Empty{}, nil
+	}
+
+	// Evaluate args to resolve any operators (like ▲)
+	evaluated, err := e.Eval(argsRaw)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse args: system-prompt user-prompt
+	// Split on double newline or use first line as system
+	text := strings.TrimSpace(evaluated)
+
+	parts := strings.SplitN(text, "\n", 2)
+
+	var system, user string
+	if len(parts) == 1 {
+		user = parts[0]
+	} else {
+		system = strings.TrimSpace(parts[0])
+		user = strings.TrimSpace(parts[1])
+	}
+
+	response, err := e.provider.Prompt(system, user)
+	if err != nil {
+		return nil, err
+	}
+
+	return expr.Text{Value: response}, nil
+}
+
+func builtinSystem(e *Evaluator, argsRaw string) (expr.Expr, error) {
+	// SYSTEM setting [value]
+	// With one arg: returns current value
+	// With two args: sets new value
+	args, err := e.parseArgs(argsRaw)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(args) < 1 {
+		return expr.Empty{}, nil
+	}
+
+	setting := strings.ToUpper(args[0])
+
+	switch setting {
+	case "PERSIST_MODE":
+		if len(args) >= 2 {
+			// Set mode
+			mode, ok := ParsePersistMode(args[1])
+			if !ok {
+				return expr.Text{Value: "UNKNOWN"}, nil
+			}
+			e.SetPersistMode(mode)
+			return expr.Empty{}, nil
+		}
+		// Get mode
+		return expr.Text{Value: e.PersistMode().String()}, nil
+
+	default:
+		return expr.Text{Value: "UNKNOWN_SETTING"}, nil
+	}
+}
+
+func builtinUpper(e *Evaluator, argsRaw string) (expr.Expr, error) {
+	args, err := e.parseArgs(argsRaw)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(args) == 0 {
+		return expr.Empty{}, nil
+	}
+
+	var results []string
+	for _, arg := range args {
+		results = append(results, strings.ToUpper(arg))
+	}
+
+	return expr.Text{Value: strings.Join(results, "\n")}, nil
+}
+
+func builtinLower(e *Evaluator, argsRaw string) (expr.Expr, error) {
+	args, err := e.parseArgs(argsRaw)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(args) == 0 {
+		return expr.Empty{}, nil
+	}
+
+	var results []string
+	for _, arg := range args {
+		results = append(results, strings.ToLower(arg))
+	}
+
+	return expr.Text{Value: strings.Join(results, "\n")}, nil
+}
+
+func builtinTrim(e *Evaluator, argsRaw string) (expr.Expr, error) {
+	args, err := e.parseArgs(argsRaw)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(args) == 0 {
+		return expr.Empty{}, nil
+	}
+
+	var results []string
+	for _, arg := range args {
+		trimmed := strings.TrimSpace(arg)
+		if trimmed != "" {
+			results = append(results, trimmed)
+		}
+	}
+
+	if len(results) == 0 {
+		return expr.Empty{}, nil
+	}
+
+	return expr.Text{Value: strings.Join(results, "\n")}, nil
+}

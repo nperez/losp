@@ -1,0 +1,9 @@
+# EXPECTED: match
+▶IF
+▷COMPARE
+hello
+hello
+◆
+match
+nomatch
+◆

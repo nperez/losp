@@ -1,0 +1,9 @@
+# EXPECTED: second
+# EXPECTED:  empty
+▽X first ◆
+▼Expr ◯▽result △X ◆ ◆ ◆
+▽X second ◆
+▶Expr ◆
+▲result
+▶Expr ◆
+▲result2 empty

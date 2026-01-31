@@ -1,0 +1,7 @@
+▼Greet
+    □name
+    Hello, ▲name!
+◆
+
+▶SAY ▶Greet Alice ◆ ◆
+▶SAY ▶Greet Bob ◆ ◆

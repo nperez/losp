@@ -1,0 +1,4 @@
+# EXPECTED: result
+▽funcName MyFunc ◆
+▼MyFunc result ◆
+▶▲funcName ◆

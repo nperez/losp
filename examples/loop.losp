@@ -1,0 +1,11 @@
+▼ShowItem
+    □item
+    - ▲item
+◆
+
+▶SAY ▶FOREACH
+    apple
+    banana
+    cherry
+    ▲ShowItem
+◆ ◆

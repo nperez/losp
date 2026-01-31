@@ -1,0 +1,4 @@
+# EXPECTED: computed computed
+▽computed_value computed ◆
+▼GetValue ▲computed_value ◆
+▶GetValue ◆ ▶GetValue ◆

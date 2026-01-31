@@ -1,0 +1,25 @@
+# EXPECTED: The narration text here
+▼_Sim_ValidatedPrompt
+    □_svp_content
+    ▽_svp_result NARRATION: The narration text here
+INNER_MONOLOGUE: Some thoughts ◆
+    ▶▶IF ▶COMPARE ▶EXTRACT NARRATION ▲_svp_result ◆ ▶EMPTY ◆ ◆
+        _Sim_RetrySVP
+        _Sim_ReturnSVPResult
+    ◆ ◆
+◆
+
+▼_Sim_ReturnSVPResult ▲_svp_result ◆
+▼_Sim_RetrySVP retry-response ◆
+
+▼Sim_HandleResponse
+    □_shr_input □_shr_raw
+    ▶EXTRACT NARRATION ▲_shr_raw ◆
+◆
+
+▼Sim_ProcessConscious
+    □_spc2_input
+    ▶Sim_HandleResponse ▲_spc2_input ▶_Sim_ValidatedPrompt prompt-content ◆ ◆
+◆
+
+▶Sim_ProcessConscious user-input ◆
