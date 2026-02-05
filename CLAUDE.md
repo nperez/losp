@@ -87,7 +87,7 @@ Deferred operators (`▲`, `▶`, `▼`) are NOT consumed - they execute each ti
 
 ## Project Overview
 
-losp is a streaming template language using Unicode operators instead of parentheses. It is designed for LLM metacognition workflows where templates accumulate context and invoke language models. This repository is a clean room reimplementation specified by SECOND_SYSTEM.md.
+losp is a streaming template language using Unicode operators instead of parentheses. It is designed for LLM metacognition workflows where templates accumulate context and invoke language models.
 
 **losp has no comment syntax.** All text is meaningful. The `#` character has no special meaning—it's just text like any other character and will appear in output.
 
@@ -345,7 +345,7 @@ three
 
 **Global Namespace:** All variables share a single flat namespace. Placeholders write to globals, which can cause clobbering in nested calls.
 
-**Builtins:** IF, COMPARE, FOREACH, PROMPT, SAY, READ, PERSIST, LOAD, COUNT, APPEND, TRUE, FALSE, EMPTY, GENERATE
+**Builtins:** IF, COMPARE, FOREACH, PROMPT, SAY, READ, PERSIST, LOAD, COUNT, APPEND, EXTRACT, SYSTEM, UPPER, LOWER, TRIM, TRUE, FALSE, EMPTY, GENERATE
 
 ## GENERATE and Executing Generated Code
 
@@ -366,10 +366,10 @@ How this works:
 
 **Why `▶▶GENERATE` does NOT work:** The inner `▶GENERATE` returns a multi-line code block as text. The outer `▶` tries to use that entire text blob as an expression name to look up in the namespace — which doesn't exist. The `▶▶` (double execute) pattern only works when the inner expression returns a short name (like `▶▶IF` returning `_ThenBranch`).
 
-## Deliverables (per SECOND_SYSTEM.md)
+## Deliverables
 
 1. **Library** - Programmatic API for embedding losp
-2. **CLI** - Standalone executable with flags: `-e`, `-f`, `-db`, `-provider`, `-model`, `-stream`, `-no-prompt`, `-ollama`
+2. **CLI** - Standalone executable with flags: `-e`, `-f`, `-db`, `-provider`, `-model`, `-stream`, `-no-prompt`, `-no-stdlib`, `-ollama`, `-persist-mode`, `-compile`
 3. **REPL** - Interactive mode when invoked without arguments
 
 ## Architecture Notes
@@ -413,7 +413,7 @@ Place exploration documents in a sensible location (e.g., alongside the plan fil
 ◆
 ```
 
-The `npc.losp` example uses flat structure with all functions at top level. The `adventure.losp` uses nested structure inside `▼TextAdventure` which complicates operator timing. When writing new losp modules, prefer the flat pattern from `npc.losp`.
+When writing new losp modules, prefer the flat pattern.
 
 ## Capturing Execution Results
 
