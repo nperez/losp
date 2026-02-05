@@ -125,6 +125,11 @@ func WithPersistMode(mode PersistMode) Option {
 	return func(e *Evaluator) { e.persistMode = mode }
 }
 
+// SetInputReader changes the input reader for READ builtin.
+func (e *Evaluator) SetInputReader(r InputReader) {
+	e.inputReader = r
+}
+
 // New creates a new Evaluator with the given options.
 func New(opts ...Option) *Evaluator {
 	e := &Evaluator{
@@ -328,7 +333,16 @@ func (e *Evaluator) evalStream(scan *scanner.Scanner, stopAtTerminator bool) (ex
 				if err != nil {
 					return nil, err
 				}
-				results = append(results, result)
+				// For immediate execute (▷), re-evaluate result to splice losp operators into stream
+				if item.Token == token.IMM_EXECUTE {
+					evaluated, err := e.Eval(result.String())
+					if err != nil {
+						return nil, err
+					}
+					results = append(results, expr.Text{Value: evaluated})
+				} else {
+					results = append(results, result)
+				}
 			} else {
 				// Deferred - return the operator itself
 				results = append(results, expr.Operator{
@@ -502,7 +516,12 @@ func (e *Evaluator) evalBodyForDeferredStore(scan *scanner.Scanner, opName strin
 				if err != nil {
 					return "", nil, err
 				}
-				parts = append(parts, result.String())
+				// Re-evaluate result to splice any losp operators into the stream
+				evaluated, err := e.Eval(result.String())
+				if err != nil {
+					return "", nil, err
+				}
+				parts = append(parts, evaluated)
 			} else {
 				// Inside ◯, preserve as text (including any dynamic name operators)
 				nameText, err := e.scanNamePreservingOperators(scan)
@@ -801,7 +820,12 @@ func (e *Evaluator) parseBodyImmediateOnly(body string) (string, error) {
 				if err != nil {
 					return "", err
 				}
-				parts = append(parts, result.String())
+				// Re-evaluate result to splice any losp operators into the stream
+				evaluated, err := e.Eval(result.String())
+				if err != nil {
+					return "", err
+				}
+				parts = append(parts, evaluated)
 			} else {
 				// Inside ◯, preserve as text (including any dynamic name operators)
 				nameText, _ := e.scanNamePreservingOperators(scan)

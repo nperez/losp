@@ -118,3 +118,9 @@ func (r *Runtime) Close() error {
 	}
 	return nil
 }
+
+// SetInputReader changes the input reader for READ builtin.
+func (r *Runtime) SetInputReader(reader func(prompt string) (string, error)) {
+	r.inputReader = reader
+	r.evaluator.SetInputReader(reader)
+}
