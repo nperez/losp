@@ -54,9 +54,11 @@ func NewOllama(opts ...OllamaOption) *Ollama {
 }
 
 type ollamaRequest struct {
-	Model    string          `json:"model"`
-	Messages []ollamaMessage `json:"messages"`
-	Stream   bool            `json:"stream"`
+	Model     string            `json:"model"`
+	Messages  []ollamaMessage   `json:"messages"`
+	Stream    bool              `json:"stream"`
+	Options   map[string]int    `json:"options,omitempty"`
+	KeepAlive string            `json:"keep_alive,omitempty"`
 }
 
 type ollamaMessage struct {
@@ -78,9 +80,11 @@ func (o *Ollama) Prompt(system, user string) (string, error) {
 	messages = append(messages, ollamaMessage{Role: "user", Content: user})
 
 	reqBody := ollamaRequest{
-		Model:    o.Model,
-		Messages: messages,
-		Stream:   o.StreamCb != nil,
+		Model:     o.Model,
+		Messages:  messages,
+		Stream:    o.StreamCb != nil,
+		Options:   map[string]int{"num_ctx": 16384},
+		KeepAlive: "5m",
 	}
 
 	jsonBody, err := json.Marshal(reqBody)

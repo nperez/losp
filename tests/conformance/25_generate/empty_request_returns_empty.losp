@@ -1,0 +1,4 @@
+# EXPECTED: TRUE
+▼__startup__
+    ▶COMPARE ▶GENERATE ◆ ▶EMPTY ◆◆
+◆

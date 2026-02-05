@@ -48,10 +48,10 @@ run_test() {
         # Use file-based execution with separate stdin for READ
         local tmpcode=$(mktemp)
         echo "$code" > "$tmpcode"
-        actual=$(echo "$input" | "$LOSP_BIN" -db "$tmpdb" -no-prompt -f "$tmpcode" 2>&1) || true
+        actual=$(echo "$input" | "$LOSP_BIN" -db "$tmpdb" -f "$tmpcode" 2>&1) || true
         rm -f "$tmpcode"
     else
-        actual=$(echo "$code" | "$LOSP_BIN" -db "$tmpdb" -no-prompt 2>&1) || true
+        actual=$(echo "$code" | "$LOSP_BIN" -db "$tmpdb" 2>&1) || true
     fi
     rm -f "$tmpdb"
 

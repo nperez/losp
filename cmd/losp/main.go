@@ -117,7 +117,7 @@ func main() {
 	case *file != "":
 		// File was loaded, run __startup__ (unless compile mode)
 		if !*compile {
-			_, err = runtime.Eval("▶__startup__ ◆")
+			result, err = runtime.Eval("▶__startup__ ◆")
 		}
 
 	case *evalStr != "":
@@ -133,8 +133,14 @@ func main() {
 		}
 		result, err = runtime.Eval(string(input))
 		// In compile mode, just persist and exit - don't run __startup__
+		// If __startup__ was defined, run it and use its result
 		if err == nil && !*compile {
-			_, err = runtime.Eval("▶__startup__ ◆")
+			startupResult, startupErr := runtime.Eval("▶__startup__ ◆")
+			if startupErr != nil {
+				err = startupErr
+			} else if startupResult != "" {
+				result = startupResult
+			}
 		}
 
 	default:

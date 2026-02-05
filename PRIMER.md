@@ -546,6 +546,27 @@ For a simple prompt without a system message, use an empty first argument:
 ◆
 ```
 
+### Code Generation
+
+**GENERATE**: `▶GENERATE request ◆`
+
+Two-stage LLM code generation. Stage 1: the LLM plans generation instructions from the request. Stage 2: the LLM produces losp code following those instructions. Returns the generated code as text.
+
+GENERATE returns code — it does not execute it. To execute generated code, splice it into an expression body using `▷` (immediate execute) during a `▼` (store) definition:
+
+```losp
+▼_run ▷GENERATE Create a function that outputs hello world ◆ ◆
+▶_run ◆
+```
+
+How this works:
+1. `▼_run` begins collecting its body
+2. `▷GENERATE` fires immediately during body collection — the generated code text is spliced into the body
+3. The generated code (e.g., `▶SAY hello world ◆`) becomes the stored body of `_run`
+4. `▶_run ◆` executes the body — deferred operators fire, producing output
+
+If no LLM provider is configured, GENERATE returns EMPTY. If the request is empty, GENERATE returns EMPTY.
+
 ### I/O
 
 **SAY**: `▶SAY text... ◆` → outputs text and any number of expressions

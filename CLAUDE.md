@@ -94,14 +94,16 @@ losp is a streaming template language using Unicode operators instead of parenth
 ## Build and Test Commands
 
 ```bash
-go build ./...           # Build all packages (Go code only)
+go generate ./internal/stdlib/ && go build ./...   # Generate embedded files and build
 go test ./...            # Run all tests
 go test ./... -v         # Verbose test output
 go test -run TestName    # Run specific test
 go run ./cmd/losp        # Run the CLI
 go run ./cmd/losp -f examples/simulation.losp -db simulation.db  # Run a losp file
-go build -o ./losp ./cmd/losp && LOSP_BIN=./losp ./tests/conformance/run_tests.sh  # Run conformance tests
+go generate ./internal/stdlib/ && go build -o ./losp ./cmd/losp && LOSP_BIN=./losp ./tests/conformance/run_tests.sh  # Run conformance tests
 ```
+
+**Embedded files:** `PRIMER_COMPACT.md` and `PROMPTING_LOSP.md` live at the repo root. `go generate ./internal/stdlib/` copies them into `internal/stdlib/` for `go:embed`. You must run `go generate` before building if either file has changed. The copies in `internal/stdlib/` are gitignored.
 
 **Conformance Tests:** The losp conformance tests are `.losp` files in `./tests/conformance/`. They are NOT Go tests. Build the binary first with `go build -o ./losp ./cmd/losp`, then run with `LOSP_BIN=./losp ./tests/conformance/run_tests.sh`.
 
@@ -343,7 +345,26 @@ three
 
 **Global Namespace:** All variables share a single flat namespace. Placeholders write to globals, which can cause clobbering in nested calls.
 
-**Builtins:** IF, COMPARE, FOREACH, PROMPT, SAY, READ, PERSIST, LOAD, COUNT, APPEND, TRUE, FALSE, EMPTY
+**Builtins:** IF, COMPARE, FOREACH, PROMPT, SAY, READ, PERSIST, LOAD, COUNT, APPEND, TRUE, FALSE, EMPTY, GENERATE
+
+## GENERATE and Executing Generated Code
+
+**GENERATE returns losp code as text. It does NOT execute the generated code.** The returned text is inert — operators in it do not fire until the text is parsed by the evaluator.
+
+**To execute generated code, splice it into an expression body with `▷` (immediate execute), then execute the expression:**
+
+```losp
+▼_run ▷GENERATE produce losp code that outputs hello world ◆ ◆
+▶_run ◆
+```
+
+How this works:
+1. `▼_run` starts collecting its body via `evalBodyForDeferredStore`
+2. `▷GENERATE` fires immediately during body collection — the generated code text is spliced into the body
+3. The generated code (e.g., `▶SAY hello world ◆`) becomes the stored body of `_run`
+4. `▶_run ◆` executes: the body is parsed, deferred operators fire, output is produced
+
+**Why `▶▶GENERATE` does NOT work:** The inner `▶GENERATE` returns a multi-line code block as text. The outer `▶` tries to use that entire text blob as an expression name to look up in the namespace — which doesn't exist. The `▶▶` (double execute) pattern only works when the inner expression returns a short name (like `▶▶IF` returning `_ThenBranch`).
 
 ## Deliverables (per SECOND_SYSTEM.md)
 
@@ -462,7 +483,7 @@ sqlite3 app.db "SELECT name, substr(value, 1, 80) FROM expressions WHERE name LI
 
 When debugging losp applications, follow these strategies:
 
-### 1. Isolate Components First
+### Isolate Components First
 
 Before assuming application bugs, test builtins and patterns in isolation:
 
@@ -474,7 +495,7 @@ Before assuming application bugs, test builtins and patterns in isolation:
 ./losp -e '▼F □x ▶SAY Got: ▲x ◆ ◆ ▶F hello ◆'
 ```
 
-### 2. Trace Argument Flow
+### Trace Argument Flow
 
 Add SAY debug output at each layer when values disappear in nested calls:
 
@@ -484,19 +505,11 @@ Add SAY debug output at each layer when values disappear in nested calls:
 ▼Inner □_i_in ▶SAY [Inner: ▲_i_in] ◆ ◆
 ```
 
-### 3. Use -no-prompt for Control Flow Testing
-
-Test without LLM latency. PROMPT returns empty, so error handling executes:
-
-```bash
-./losp -f app.losp -no-prompt
-```
-
-### 4. Inspect Database State
+### Inspect Database State
 
 Verify what was actually persisted (see queries above).
 
-### 5. Check for Placeholder Clobbering
+### Check for Placeholder Clobbering
 
 If values vanish in nested calls, look for conflicting placeholder names:
 
@@ -510,7 +523,7 @@ If values vanish in nested calls, look for conflicting placeholder names:
 ▼Inner □_i_input ◆
 ```
 
-### 6. Watch for Clear-Then-Append Patterns
+### Watch for Clear-Then-Append Patterns
 
 This pattern wipes data if new content is empty:
 
@@ -521,7 +534,7 @@ This pattern wipes data if new content is empty:
 ◆
 ```
 
-### 7. Automated Testing with Piped Input
+### Automated Testing with Piped Input
 
 For interactive apps, pipe input for repeatable tests:
 
@@ -529,7 +542,7 @@ For interactive apps, pipe input for repeatable tests:
 echo -e 'line1\nline2\nline3' | ./losp -f app.losp -db test.db
 ```
 
-### 8. Verify LLM Response Format
+### Verify LLM Response Format
 
 When EXTRACT returns empty, check if the LLM response is malformed:
 

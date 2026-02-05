@@ -89,7 +89,7 @@ type Evaluator struct {
 	outputWriter OutputWriter
 	deferDepth   int         // Tracks ◯ defer operator depth
 	persistMode  PersistMode // Controls persistence behavior
-	loadOnly     bool        // If true, ▼ bodies are stored without immediate op processing
+	loadOnly     bool
 }
 
 // Option configures an Evaluator.

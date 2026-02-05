@@ -1,2 +1,3 @@
 losp
 *.db
+internal/stdlib/*.md

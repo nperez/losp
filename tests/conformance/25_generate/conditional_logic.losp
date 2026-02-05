@@ -1,0 +1,5 @@
+# EXPECTED: correct
+▼__startup__
+    ▷GENERATE Write a losp expression named FOO with placeholder _val. The body should be: IF with COMPARE checking if _val equals BAR on separate lines, then correct, then incorrect. Use deferred operators only. ◆
+    ▶SAY ▶FOO BAR ◆◆
+◆

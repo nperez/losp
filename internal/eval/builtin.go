@@ -6,6 +6,7 @@ import (
 	"unicode"
 
 	"nickandperla.net/losp/internal/expr"
+	"nickandperla.net/losp/internal/stdlib"
 	"nickandperla.net/losp/internal/token"
 )
 
@@ -51,6 +52,8 @@ func getBuiltin(name string) BuiltinFunc {
 		return builtinLower
 	case "TRIM":
 		return builtinTrim
+	case "GENERATE":
+		return builtinGenerate
 	}
 	return nil
 }
@@ -600,4 +603,30 @@ func builtinTrim(e *Evaluator, argsRaw string) (expr.Expr, error) {
 	}
 
 	return expr.Text{Value: strings.Join(results, "\n")}, nil
+}
+
+func builtinGenerate(e *Evaluator, argsRaw string) (expr.Expr, error) {
+	if e.provider == nil {
+		return expr.Empty{}, nil
+	}
+
+	evaluated, err := e.Eval(argsRaw)
+	if err != nil {
+		return nil, err
+	}
+	request := strings.TrimSpace(evaluated)
+	if request == "" {
+		return expr.Empty{}, nil
+	}
+
+	// Single-stage generation with full PRIMER in context
+	system := stdlib.Primer
+	user := request + "\n\nOutput ONLY losp code. No markdown. No explanation."
+
+	response, err := e.provider.Prompt(system, user)
+	if err != nil {
+		return nil, err
+	}
+
+	return expr.Text{Value: strings.TrimSpace(response)}, nil
 }

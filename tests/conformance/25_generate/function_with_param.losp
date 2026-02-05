@@ -1,0 +1,5 @@
+# EXPECTED: Hello Alice
+▼__startup__
+    ▷GENERATE Write a losp expression named FOO with one placeholder parameter named _name whose body is the text Hello followed by a space followed by the deferred retrieve of _name ◆
+    ▶SAY ▶FOO Alice ◆◆
+◆

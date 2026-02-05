@@ -1,0 +1,5 @@
+# EXPECTED: hello world
+▼__startup__
+    ▷GENERATE Write a losp expression named FOO whose body is exactly the text hello world with no operators ◆
+    ▶SAY ▶FOO ◆◆
+◆

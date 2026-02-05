@@ -72,6 +72,7 @@ Returns: FALSE
 | IF | `▶IF cond then else ◆` | selected branch (cond is TRUE/FALSE text) |
 | FOREACH | `▶FOREACH ▲items ▲body ◆` | concatenated results |
 | PROMPT | `▶PROMPT system user ◆` | LLM response |
+| GENERATE | `▶GENERATE request ◆` | generated losp code (text) |
 | SAY | `▶SAY text... ◆` | (outputs text) |
 | READ | `▶READ [prompt] ◆` | user input line |
 | PERSIST | `▶PERSIST name ◆` | (saves to storage) |
@@ -164,6 +165,14 @@ List
 second item
 ◆
 ```
+
+### Executing Generated Code
+GENERATE returns code as text, not executed. Splice into an expression body with `▷`:
+```losp
+▼_run ▷GENERATE Create code that outputs hello world ◆ ◆
+▶_run ◆
+```
+`▷GENERATE` fires during `▼`'s body collection, splicing the generated code into the body. `▶_run ◆` then executes it.
 
 ### Immediate vs Deferred Inside Expressions
 ```losp
