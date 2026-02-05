@@ -550,7 +550,7 @@ For a simple prompt without a system message, use an empty first argument:
 
 **GENERATE**: `▶GENERATE request ◆`
 
-Two-stage LLM code generation. Stage 1: the LLM plans generation instructions from the request. Stage 2: the LLM produces losp code following those instructions. Returns the generated code as text.
+LLM code generation of losp. You can express losp in plain language and have it generated. Returns the generated code as text.
 
 GENERATE returns code — it does not execute it. To execute generated code, splice it into an expression body using `▷` (immediate execute) during a `▼` (store) definition:
 
