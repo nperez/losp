@@ -30,42 +30,6 @@ func WithMemoryStore() Option {
 	}
 }
 
-// WithOllama configures the Ollama LLM provider.
-func WithOllama(url, model string) Option {
-	return func(r *Runtime) {
-		opts := []provider.OllamaOption{}
-		if url != "" {
-			opts = append(opts, provider.WithOllamaURL(url))
-		}
-		if model != "" {
-			opts = append(opts, provider.WithOllamaModel(model))
-		}
-		r.provider = provider.NewOllama(opts...)
-	}
-}
-
-// WithOpenRouter configures the OpenRouter LLM provider.
-func WithOpenRouter(model string) Option {
-	return func(r *Runtime) {
-		opts := []provider.OpenRouterOption{}
-		if model != "" {
-			opts = append(opts, provider.WithOpenRouterModel(model))
-		}
-		r.provider = provider.NewOpenRouter(opts...)
-	}
-}
-
-// WithAnthropic configures the Anthropic Claude LLM provider.
-func WithAnthropic(model string) Option {
-	return func(r *Runtime) {
-		opts := []provider.AnthropicOption{}
-		if model != "" {
-			opts = append(opts, provider.WithAnthropicModel(model))
-		}
-		r.provider = provider.NewAnthropic(opts...)
-	}
-}
-
 // WithMockProvider configures a mock LLM provider (for testing).
 func WithMockProvider(response string) Option {
 	return func(r *Runtime) {

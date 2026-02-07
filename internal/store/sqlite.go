@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"sync"
 
-	_ "modernc.org/sqlite"
-
 	"nickandperla.net/losp/internal/expr"
 )
 

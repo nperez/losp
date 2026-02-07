@@ -33,22 +33,9 @@ func main() {
 		losp.WithSQLiteStore(*dbPath),
 	}
 
-	// Configure provider
+	// Configure provider (platform-specific)
 	if !*noPrompt {
-		switch *providerF {
-		case "ollama":
-			opts = append(opts, losp.WithOllama(*ollamaURL, *model))
-		case "openrouter":
-			opts = append(opts, losp.WithOpenRouter(*model))
-		case "anthropic":
-			opts = append(opts, losp.WithAnthropic(*model))
-		case "":
-			// Default to ollama if available
-			opts = append(opts, losp.WithOllama(*ollamaURL, *model))
-		default:
-			fmt.Fprintf(os.Stderr, "Unknown provider: %s\n", *providerF)
-			os.Exit(1)
-		}
+		configureProvider(&opts, *providerF, *ollamaURL, *model)
 	}
 
 	// Configure streaming
