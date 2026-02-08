@@ -1,0 +1,6 @@
+# EXPECTED: TRUE
+▼doc losp is great ◆
+▽c ▶CORPUS empty_search ◆ ◆
+▶ADD ▲c doc ◆
+▶INDEX ▲c ◆
+▶COMPARE ▶SEARCH ▲c xyznonexistent ◆ ▶EMPTY ◆

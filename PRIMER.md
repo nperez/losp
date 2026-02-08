@@ -452,6 +452,8 @@ This is predictable (depth-first execution order) and confined to the engine ins
 
 ## Builtins
 
+**Builtin names are case-sensitive and ALL CAPS.** `▶SAY` invokes the builtin; `▶say`, `▶Say`, etc. look up user-defined expressions. This means user expressions can use any casing without colliding with builtins.
+
 ### Control Flow
 
 **IF**: `▶IF condition then-expr else-expr ◆`
@@ -782,6 +784,8 @@ Query or change runtime settings. With one argument, returns the current value. 
 | `TOP_K` | Top-k sampling |
 | `TOP_P` | Top-p / nucleus sampling |
 | `MAX_TOKENS` | Max response tokens |
+| `EMBED_MODEL` | Embedding model (Ollama default: `qwen3-embedding:0.6b`) |
+| `SEARCH_LIMIT` | Max results from SEARCH/SIMILAR (default 10) |
 
 ```losp
 ▶SAY Current model: ▶SYSTEM MODEL ◆ ◆
@@ -800,6 +804,62 @@ Switching providers with `SYSTEM PROVIDER` creates a new provider instance and c
 
 Unknown settings return `UNKNOWN_SETTING`. Unknown provider names return `UNKNOWN_PROVIDER`. If no provider is configured, MODEL/TEMPERATURE/etc. return EMPTY.
 
+### Corpus and Search
+
+**CORPUS**: `▶CORPUS name ◆` → returns a handle (e.g. `_corpus_1`)
+
+Creates or loads a named corpus — a persistent collection of expressions that can be indexed for full-text search and vector similarity search. If a corpus with the given name already exists in the database, it is loaded with its membership and indexes intact. Returns a handle ID for use with ADD, INDEX, SEARCH, EMBED, and SIMILAR.
+
+```losp
+▽c ▶CORPUS characters ◆ ◆
+▶ADD ▲c CharName ◆
+▶ADD ▲c CharBio ◆
+```
+
+CORPUS is idempotent — calling it multiple times with the same name returns a handle to the same corpus.
+
+**ADD**: `▶ADD handle expr-name ◆` → `EMPTY`
+
+Adds a named expression to a corpus. The expression must exist in the namespace. Both the membership and the expression's current value are recorded.
+
+```losp
+▶ADD ▲c Sim_Char_Name ◆
+▶ADD ▲c Sim_Char_Bio ◆
+```
+
+**INDEX**: `▶INDEX handle ◆` → `EMPTY`
+
+Builds or rebuilds the full-text search (FTS5) index for a corpus. Indexes the current value of each member expression. Call again after adding new members or updating expression values.
+
+```losp
+▶INDEX ▲c ◆
+```
+
+**SEARCH**: `▶SEARCH handle query ◆` → matching expression names (newline-separated)
+
+Full-text search within a corpus. Returns the names of matching expressions, ordered by relevance. Max results controlled by `SYSTEM SEARCH_LIMIT` (default 10).
+
+```losp
+▶SEARCH ▲c warrior ◆
+```
+
+**EMBED**: `▶EMBED handle ◆` → `EMPTY`
+
+Generates vector embeddings for all un-embedded members of a corpus using the active LLM provider. Embeddings are persisted in the database. Incremental — only processes members that don't already have embeddings. Also builds the HNSW vector index.
+
+```losp
+▶EMBED ▲c ◆
+```
+
+**SIMILAR**: `▶SIMILAR handle query ◆` → matching expression names (newline-separated)
+
+Vector similarity search within a corpus. Embeds the query text, then finds the nearest neighbors in the HNSW index. Returns expression names ordered by similarity. Max results controlled by `SYSTEM SEARCH_LIMIT` (default 10).
+
+```losp
+▶SIMILAR ▲c brave hero who fights dragons ◆
+```
+
+EMBED must have been called on the corpus first.
 
 ---
 
@@ -1195,6 +1255,12 @@ On subsequent runs, the backing store `__stdlib__` replaces the built-in prelude
 | Query timer remaining | `▶TICKS handle ◆` → ms remaining |
 | Sleep | `▶SLEEP ms ◆` |
 | Query/set runtime config | `▶SYSTEM setting [value] ◆` |
+| Create/load corpus | `▶CORPUS name ◆` → handle |
+| Add expression to corpus | `▶ADD handle expr-name ◆` |
+| Build FTS index | `▶INDEX handle ◆` |
+| Full-text search | `▶SEARCH handle query ◆` → names |
+| Generate embeddings | `▶EMBED handle ◆` |
+| Vector similarity search | `▶SIMILAR handle query ◆` → names |
 
 ---
 

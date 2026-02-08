@@ -156,6 +156,51 @@ func (o *Ollama) Prompt(system, user string) (string, error) {
 	return result.Message.Content, nil
 }
 
+type ollamaEmbedRequest struct {
+	Model string   `json:"model"`
+	Input []string `json:"input"`
+}
+
+type ollamaEmbedResponse struct {
+	Embeddings [][]float32 `json:"embeddings"`
+}
+
+// Embed generates embeddings for the given texts using Ollama's /api/embed endpoint.
+func (o *Ollama) Embed(texts []string) ([][]float32, error) {
+	model := o.params["EMBED_MODEL"]
+	if model == "" {
+		model = "qwen3-embedding:0.6b"
+	}
+	reqBody := ollamaEmbedRequest{
+		Model: model,
+		Input: texts,
+	}
+
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, err
+	}
+
+	client := &http.Client{Timeout: o.Timeout}
+	resp, err := client.Post(o.URL+"/api/embed", "application/json", bytes.NewReader(jsonBody))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("ollama embed error: %s", string(body))
+	}
+
+	var result ollamaEmbedResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+
+	return result.Embeddings, nil
+}
+
 func (o *Ollama) readStream(body io.Reader) (string, error) {
 	decoder := json.NewDecoder(body)
 	var fullResponse bytes.Buffer

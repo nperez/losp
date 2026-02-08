@@ -1,0 +1,6 @@
+# EXPECTED: greeting
+▼greeting hello world ◆
+▽c ▶CORPUS search_test ◆ ◆
+▶ADD ▲c greeting ◆
+▶INDEX ▲c ◆
+▶SEARCH ▲c hello ◆

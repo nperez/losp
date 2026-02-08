@@ -16,5 +16,10 @@ type Configurable interface {
 	ProviderName() string
 }
 
+// EmbeddingProvider generates vector embeddings from text.
+type EmbeddingProvider interface {
+	Embed(texts []string) ([][]float32, error)
+}
+
 // StreamCallback is called with each token during streaming.
 type StreamCallback func(token string)

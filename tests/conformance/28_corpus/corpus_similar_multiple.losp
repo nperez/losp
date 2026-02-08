@@ -1,0 +1,10 @@
+# EXPECTED: 3
+▼warrior A fierce warrior who fights with sword and shield ◆
+▼scholar A quiet scholar who reads ancient texts ◆
+▼knight A brave knight who battles dragons ◆
+▽c ▶CORPUS similar_multi ◆ ◆
+▶ADD ▲c warrior ◆
+▶ADD ▲c scholar ◆
+▶ADD ▲c knight ◆
+▶EMBED ▲c ◆
+▶COUNT ▶SIMILAR ▲c fighting and combat ◆ ◆

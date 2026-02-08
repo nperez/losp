@@ -66,6 +66,18 @@ func getBuiltin(name string) BuiltinFunc {
 		return builtinTicks
 	case "SLEEP":
 		return builtinSleep
+	case "CORPUS":
+		return builtinCorpus
+	case "ADD":
+		return builtinAdd
+	case "INDEX":
+		return builtinIndex
+	case "SEARCH":
+		return builtinSearch
+	case "EMBED":
+		return builtinEmbed
+	case "SIMILAR":
+		return builtinSimilar
 	}
 	return nil
 }
@@ -595,7 +607,7 @@ func builtinSystem(e *Evaluator, argsRaw string) (expr.Expr, error) {
 		}
 		return expr.Empty{}, nil
 
-	case "TEMPERATURE", "NUM_CTX", "TOP_K", "TOP_P", "MAX_TOKENS":
+	case "TEMPERATURE", "NUM_CTX", "TOP_K", "TOP_P", "MAX_TOKENS", "EMBED_MODEL":
 		if cfg, ok := e.provider.(Configurable); ok {
 			if value != "" {
 				cfg.SetParam(setting, value)
@@ -604,6 +616,13 @@ func builtinSystem(e *Evaluator, argsRaw string) (expr.Expr, error) {
 			return expr.Text{Value: cfg.GetParam(setting)}, nil
 		}
 		return expr.Empty{}, nil
+
+	case "SEARCH_LIMIT":
+		if value != "" {
+			e.SetSetting("SEARCH_LIMIT", value)
+			return expr.Empty{}, nil
+		}
+		return expr.Text{Value: e.GetSetting("SEARCH_LIMIT", "10")}, nil
 
 	default:
 		return expr.Text{Value: "UNKNOWN_SETTING"}, nil

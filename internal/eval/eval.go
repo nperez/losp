@@ -103,7 +103,9 @@ type Evaluator struct {
 	persistMode       PersistMode    // Controls persistence behavior
 	loadOnly          bool
 	asyncRegistry     *AsyncRegistry
+	corpusRegistry    *CorpusRegistry
 	providerFactories map[string]ProviderFactory
+	settings          map[string]string // Runtime settings (SEARCH_LIMIT, etc.)
 }
 
 // Option configures an Evaluator.
@@ -149,7 +151,9 @@ func New(opts ...Option) *Evaluator {
 	e := &Evaluator{
 		namespace:         NewNamespace(),
 		asyncRegistry:     NewAsyncRegistry(),
+		corpusRegistry:    NewCorpusRegistry(),
 		providerFactories: make(map[string]ProviderFactory),
+		settings:          make(map[string]string),
 		outputWriter: func(text string) error {
 			fmt.Print(text)
 			return nil
@@ -180,8 +184,10 @@ func (e *Evaluator) forkForAsync() *Evaluator {
 		store:             e.store,
 		provider:          e.provider,
 		asyncRegistry:     e.asyncRegistry,
+		corpusRegistry:    e.corpusRegistry,
 		persistMode:       e.persistMode,
 		providerFactories: e.providerFactories,
+		settings:          e.settings,
 		// inputReader, outputWriter, streamCb are nil (SAY silenced, READ returns EMPTY)
 	}
 }
@@ -733,8 +739,8 @@ func (e *Evaluator) scanBodyWithNestedTerminators(scan *scanner.Scanner) (string
 // 3. POPULATE - placeholders are bound to arguments
 // 4. EXECUTE - deferred expressions run
 func (e *Evaluator) execute(name string, argsRaw string) (expr.Expr, error) {
-	// Check for builtin first
-	if builtin := getBuiltin(strings.ToUpper(name)); builtin != nil {
+	// Check for builtin first (exact case match — builtins are ALL CAPS)
+	if builtin := getBuiltin(name); builtin != nil {
 		return builtin(e, argsRaw)
 	}
 
@@ -1161,6 +1167,24 @@ func (e *Evaluator) Provider() Provider {
 // AsyncRegistry returns the evaluator's async registry.
 func (e *Evaluator) AsyncRegistry() *AsyncRegistry {
 	return e.asyncRegistry
+}
+
+// CorpusRegistry returns the evaluator's corpus registry.
+func (e *Evaluator) CorpusRegistry() *CorpusRegistry {
+	return e.corpusRegistry
+}
+
+// GetSetting returns a runtime setting value, or the default if unset.
+func (e *Evaluator) GetSetting(key, defaultVal string) string {
+	if v, ok := e.settings[key]; ok {
+		return v
+	}
+	return defaultVal
+}
+
+// SetSetting sets a runtime setting value.
+func (e *Evaluator) SetSetting(key, value string) {
+	e.settings[key] = value
 }
 
 // PersistMode returns the current persistence mode.

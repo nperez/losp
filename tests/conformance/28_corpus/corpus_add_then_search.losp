@@ -1,0 +1,6 @@
+# EXPECTED: myexpr
+▼myexpr some searchable content ◆
+▽c ▶CORPUS add_test ◆ ◆
+▶ADD ▲c myexpr ◆
+▶INDEX ▲c ◆
+▶SEARCH ▲c searchable ◆

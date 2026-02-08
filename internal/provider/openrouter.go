@@ -198,6 +198,74 @@ func (o *OpenRouter) promptOnce(system, user string) (string, error) {
 	return result.Choices[0].Message.Content, nil
 }
 
+type openRouterEmbedRequest struct {
+	Model string   `json:"model"`
+	Input []string `json:"input"`
+}
+
+type openRouterEmbedResponse struct {
+	Data []struct {
+		Embedding []float32 `json:"embedding"`
+		Index     int       `json:"index"`
+	} `json:"data"`
+}
+
+// Embed generates embeddings via OpenRouter's /v1/embeddings endpoint (OpenAI-compatible).
+func (o *OpenRouter) Embed(texts []string) ([][]float32, error) {
+	if o.APIKey == "" {
+		return nil, fmt.Errorf("OPEN_ROUTER_API_KEY not set")
+	}
+
+	model := o.params["EMBED_MODEL"]
+	if model == "" {
+		model = o.Model
+	}
+	reqBody := openRouterEmbedRequest{
+		Model: model,
+		Input: texts,
+	}
+
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", "https://openrouter.ai/api/v1/embeddings", bytes.NewReader(jsonBody))
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+o.APIKey)
+
+	client := &http.Client{Timeout: o.Timeout}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("openrouter embed error: %s", string(body))
+	}
+
+	var result openRouterEmbedResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+
+	// Sort by index to maintain order
+	embeddings := make([][]float32, len(result.Data))
+	for _, d := range result.Data {
+		if d.Index < len(embeddings) {
+			embeddings[d.Index] = d.Embedding
+		}
+	}
+
+	return embeddings, nil
+}
+
 func (o *OpenRouter) readStream(body io.Reader) (string, error) {
 	scanner := bufio.NewScanner(body)
 	var fullResponse strings.Builder

@@ -1,0 +1,6 @@
+# EXPECTED: doc
+▼doc The brave warrior fought valiantly against the dragon ◆
+▽c ▶CORPUS embed_test ◆ ◆
+▶ADD ▲c doc ◆
+▶EMBED ▲c ◆
+▶SIMILAR ▲c warrior dragon ◆

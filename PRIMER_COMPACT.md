@@ -66,6 +66,8 @@ Returns: FALSE
 
 ## Builtins
 
+Builtin names are **case-sensitive and ALL CAPS**. `▶SAY` invokes the builtin; `▶say` or `▶Say` look up user expressions.
+
 | Builtin | Signature | Returns |
 |---------|-----------|---------|
 | COMPARE | `▶COMPARE val1 val2 ◆` | TRUE or FALSE |
@@ -86,6 +88,24 @@ Returns: FALSE
 | TRUE | `▲TRUE` | "TRUE" |
 | FALSE | `▲FALSE` | "FALSE" |
 | EMPTY | `▲EMPTY` | "" |
+| CORPUS | `▶CORPUS name ◆` | handle (e.g. `_corpus_1`) |
+| ADD | `▶ADD handle expr-name ◆` | EMPTY |
+| INDEX | `▶INDEX handle ◆` | EMPTY (builds FTS index) |
+| SEARCH | `▶SEARCH handle query ◆` | matching names (newline-separated) |
+| EMBED | `▶EMBED handle ◆` | EMPTY (generates embeddings) |
+| SIMILAR | `▶SIMILAR handle query ◆` | matching names (newline-separated) |
+
+### Corpus and Search
+```losp
+▽c ▶CORPUS characters ◆ ◆
+▶ADD ▲c CharName ◆
+▶ADD ▲c CharBio ◆
+▶INDEX ▲c ◆
+▶SEARCH ▲c warrior ◆
+▶EMBED ▲c ◆
+▶SIMILAR ▲c brave hero ◆
+```
+CORPUS creates/loads a persistent searchable collection. INDEX builds FTS5 for keyword search. EMBED generates vector embeddings via the LLM provider; SIMILAR finds semantically nearest neighbors. `SYSTEM SEARCH_LIMIT N` controls max results (default 10). `SYSTEM EMBED_MODEL model` sets the embedding model (default: `qwen3-embedding:0.6b` for Ollama).
 
 ## Patterns
 

@@ -1,0 +1,10 @@
+# EXPECTED: 2
+▼alpha the brave warrior ◆
+▼bravo the brave knight ◆
+▼charlie the quiet monk ◆
+▽c ▶CORPUS multi_test ◆ ◆
+▶ADD ▲c alpha ◆
+▶ADD ▲c bravo ◆
+▶ADD ▲c charlie ◆
+▶INDEX ▲c ◆
+▶COUNT ▶SEARCH ▲c brave ◆ ◆

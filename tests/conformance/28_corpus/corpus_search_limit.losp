@@ -1,0 +1,9 @@
+# EXPECTED: 1
+▼a alpha content ◆
+▼b bravo content ◆
+▽c ▶CORPUS limit_test ◆ ◆
+▶ADD ▲c a ◆
+▶ADD ▲c b ◆
+▶INDEX ▲c ◆
+▶SYSTEM SEARCH_LIMIT 1 ◆
+▶COUNT ▶SEARCH ▲c content ◆ ◆

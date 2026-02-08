@@ -1,0 +1,7 @@
+# EXPECTED: item
+▼item hello ◆
+▽c1 ▶CORPUS same_name ◆ ◆
+▶ADD ▲c1 item ◆
+▶INDEX ▲c1 ◆
+▽c2 ▶CORPUS same_name ◆ ◆
+▶SEARCH ▲c2 hello ◆
