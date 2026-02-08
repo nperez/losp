@@ -10,22 +10,24 @@ import (
 
 // Runtime is the losp interpreter runtime.
 type Runtime struct {
-	evaluator    *eval.Evaluator
-	store        eval.Store
-	provider     eval.Provider
-	streamCb     func(token string)
-	inputReader  func(prompt string) (string, error)
-	outputWriter func(text string) error
-	timeout      time.Duration
-	prelude      string          // Custom prelude source (if empty, uses DefaultPrelude)
-	noStdlib     bool            // If true, skip loading prelude
-	persistMode  eval.PersistMode // Controls persistence behavior
+	evaluator         *eval.Evaluator
+	store             eval.Store
+	provider          eval.Provider
+	streamCb          func(token string)
+	inputReader       func(prompt string) (string, error)
+	outputWriter      func(text string) error
+	timeout           time.Duration
+	prelude           string          // Custom prelude source (if empty, uses DefaultPrelude)
+	noStdlib          bool            // If true, skip loading prelude
+	persistMode       eval.PersistMode // Controls persistence behavior
+	providerFactories map[string]eval.ProviderFactory
 }
 
 // New creates a new losp runtime with the given options.
 func New(opts ...Option) *Runtime {
 	r := &Runtime{
-		timeout: 5 * time.Minute,
+		timeout:           5 * time.Minute,
+		providerFactories: make(map[string]eval.ProviderFactory),
 	}
 
 	for _, opt := range opts {
@@ -52,6 +54,11 @@ func New(opts ...Option) *Runtime {
 	evalOpts = append(evalOpts, eval.WithPersistMode(r.persistMode))
 
 	r.evaluator = eval.New(evalOpts...)
+
+	// Register provider factories on the evaluator
+	for name, factory := range r.providerFactories {
+		r.evaluator.RegisterProviderFactory(name, factory)
+	}
 
 	// Load prelude unless disabled
 	if !r.noStdlib {

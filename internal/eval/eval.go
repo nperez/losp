@@ -70,6 +70,18 @@ type Provider interface {
 	Prompt(system, user string) (string, error)
 }
 
+// Configurable allows getting/setting inference parameters at runtime.
+type Configurable interface {
+	GetParam(key string) string
+	SetParam(key string, value string)
+	GetModel() string
+	SetModel(model string)
+	ProviderName() string
+}
+
+// ProviderFactory creates a new provider with the given stream callback.
+type ProviderFactory func(streamCb StreamCallback) Provider
+
 // StreamCallback is called with streaming LLM output.
 type StreamCallback func(token string)
 
@@ -81,16 +93,17 @@ type OutputWriter func(text string) error
 
 // Evaluator interprets losp expressions.
 type Evaluator struct {
-	namespace      *Namespace
-	store          Store
-	provider       Provider
-	streamCb       StreamCallback
-	inputReader    InputReader
-	outputWriter   OutputWriter
-	deferDepth     int            // Tracks ◯ defer operator depth
-	persistMode    PersistMode    // Controls persistence behavior
-	loadOnly       bool
-	asyncRegistry  *AsyncRegistry
+	namespace         *Namespace
+	store             Store
+	provider          Provider
+	streamCb          StreamCallback
+	inputReader       InputReader
+	outputWriter      OutputWriter
+	deferDepth        int            // Tracks ◯ defer operator depth
+	persistMode       PersistMode    // Controls persistence behavior
+	loadOnly          bool
+	asyncRegistry     *AsyncRegistry
+	providerFactories map[string]ProviderFactory
 }
 
 // Option configures an Evaluator.
@@ -134,8 +147,9 @@ func (e *Evaluator) SetInputReader(r InputReader) {
 // New creates a new Evaluator with the given options.
 func New(opts ...Option) *Evaluator {
 	e := &Evaluator{
-		namespace:     NewNamespace(),
-		asyncRegistry: NewAsyncRegistry(),
+		namespace:         NewNamespace(),
+		asyncRegistry:     NewAsyncRegistry(),
+		providerFactories: make(map[string]ProviderFactory),
 		outputWriter: func(text string) error {
 			fmt.Print(text)
 			return nil
@@ -147,16 +161,27 @@ func New(opts ...Option) *Evaluator {
 	return e
 }
 
+// SetProvider sets the LLM provider at runtime.
+func (e *Evaluator) SetProvider(p Provider) {
+	e.provider = p
+}
+
+// RegisterProviderFactory registers a factory for creating providers by name.
+func (e *Evaluator) RegisterProviderFactory(name string, f ProviderFactory) {
+	e.providerFactories[name] = f
+}
+
 // forkForAsync creates a new Evaluator for async execution.
 // The forked evaluator has a cloned namespace (snapshot isolation),
 // shared store, provider, and async registry, but nil I/O.
 func (e *Evaluator) forkForAsync() *Evaluator {
 	return &Evaluator{
-		namespace:     e.namespace.Clone(),
-		store:         e.store,
-		provider:      e.provider,
-		asyncRegistry: e.asyncRegistry,
-		persistMode:   e.persistMode,
+		namespace:         e.namespace.Clone(),
+		store:             e.store,
+		provider:          e.provider,
+		asyncRegistry:     e.asyncRegistry,
+		persistMode:       e.persistMode,
+		providerFactories: e.providerFactories,
 		// inputReader, outputWriter, streamCb are nil (SAY silenced, READ returns EMPTY)
 	}
 }

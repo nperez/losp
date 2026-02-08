@@ -766,6 +766,40 @@ Blocks the current evaluator for the specified duration in milliseconds.
 
 All handles are unified — AWAIT, CHECK, and TICKS work on both ASYNC and TIMER handles.
 
+### Runtime Configuration
+
+**SYSTEM**: `▶SYSTEM setting [value] ◆`
+
+Query or change runtime settings. With one argument, returns the current value. With two arguments, sets a new value.
+
+| Setting | Description |
+|---------|-------------|
+| `MODEL` | LLM model name |
+| `PROVIDER` | LLM provider (OLLAMA, OPENROUTER, ANTHROPIC) |
+| `PERSIST_MODE` | Persistence behavior (ON_DEMAND, ALWAYS, NEVER) |
+| `TEMPERATURE` | Sampling temperature |
+| `NUM_CTX` | Context window size (Ollama) |
+| `TOP_K` | Top-k sampling |
+| `TOP_P` | Top-p / nucleus sampling |
+| `MAX_TOKENS` | Max response tokens |
+
+```losp
+▶SAY Current model: ▶SYSTEM MODEL ◆ ◆
+
+▶SYSTEM MODEL qwen3:4b ◆
+▶SYSTEM TEMPERATURE 0.3 ◆
+▶PROMPT Be concise. What is 2+2? ◆
+
+▶SYSTEM PROVIDER ANTHROPIC ◆
+▶SYSTEM MODEL claude-sonnet-4-20250514 ◆
+▶SYSTEM TEMPERATURE 0.9 ◆
+▶PROMPT Be creative. Write a haiku. ◆
+```
+
+Switching providers with `SYSTEM PROVIDER` creates a new provider instance and copies inference parameters (TEMPERATURE, TOP_K, etc.) from the old provider. The MODEL is not copied — each provider starts with its default model.
+
+Unknown settings return `UNKNOWN_SETTING`. Unknown provider names return `UNKNOWN_PROVIDER`. If no provider is configured, MODEL/TEMPERATURE/etc. return EMPTY.
+
 
 ---
 
@@ -1160,6 +1194,7 @@ On subsequent runs, the backing store `__stdlib__` replaces the built-in prelude
 | Delayed execution | `▶TIMER ms expr-name ◆` → handle |
 | Query timer remaining | `▶TICKS handle ◆` → ms remaining |
 | Sleep | `▶SLEEP ms ◆` |
+| Query/set runtime config | `▶SYSTEM setting [value] ◆` |
 
 ---
 

@@ -7,5 +7,14 @@ type Provider interface {
 	Prompt(system, user string) (string, error)
 }
 
+// Configurable allows getting/setting inference parameters at runtime.
+type Configurable interface {
+	GetParam(key string) string
+	SetParam(key string, value string)
+	GetModel() string
+	SetModel(model string)
+	ProviderName() string
+}
+
 // StreamCallback is called with each token during streaming.
 type StreamCallback func(token string)

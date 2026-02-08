@@ -133,6 +133,19 @@ func WithPersistMode(mode PersistMode) Option {
 	}
 }
 
+// ProviderFactory creates a new provider with the given stream callback.
+type ProviderFactory = eval.ProviderFactory
+
+// StreamCallback is called with streaming LLM output.
+type StreamCallback = eval.StreamCallback
+
+// WithProviderFactory registers a provider factory by name.
+func WithProviderFactory(name string, f ProviderFactory) Option {
+	return func(r *Runtime) {
+		r.providerFactories[name] = f
+	}
+}
+
 // WithOllama configures the Ollama LLM provider.
 func WithOllama(url, model string) Option {
 	return func(r *Runtime) {
@@ -144,6 +157,17 @@ func WithOllama(url, model string) Option {
 			opts = append(opts, provider.WithOllamaModel(model))
 		}
 		r.provider = provider.NewOllama(opts...)
+		// Register factory for runtime switching
+		r.providerFactories["OLLAMA"] = func(streamCb eval.StreamCallback) eval.Provider {
+			fOpts := []provider.OllamaOption{}
+			if url != "" {
+				fOpts = append(fOpts, provider.WithOllamaURL(url))
+			}
+			if streamCb != nil {
+				fOpts = append(fOpts, provider.WithOllamaStreamCallback(provider.StreamCallback(streamCb)))
+			}
+			return provider.NewOllama(fOpts...)
+		}
 	}
 }
 
@@ -155,6 +179,14 @@ func WithOpenRouter(model string) Option {
 			opts = append(opts, provider.WithOpenRouterModel(model))
 		}
 		r.provider = provider.NewOpenRouter(opts...)
+		// Register factory for runtime switching
+		r.providerFactories["OPENROUTER"] = func(streamCb eval.StreamCallback) eval.Provider {
+			fOpts := []provider.OpenRouterOption{}
+			if streamCb != nil {
+				fOpts = append(fOpts, provider.WithOpenRouterStreamCallback(provider.StreamCallback(streamCb)))
+			}
+			return provider.NewOpenRouter(fOpts...)
+		}
 	}
 }
 
@@ -166,5 +198,13 @@ func WithAnthropic(model string) Option {
 			opts = append(opts, provider.WithAnthropicModel(model))
 		}
 		r.provider = provider.NewAnthropic(opts...)
+		// Register factory for runtime switching
+		r.providerFactories["ANTHROPIC"] = func(streamCb eval.StreamCallback) eval.Provider {
+			fOpts := []provider.AnthropicOption{}
+			if streamCb != nil {
+				fOpts = append(fOpts, provider.WithAnthropicStreamCallback(provider.StreamCallback(streamCb)))
+			}
+			return provider.NewAnthropic(fOpts...)
+		}
 	}
 }

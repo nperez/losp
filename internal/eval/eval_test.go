@@ -965,3 +965,228 @@ func TestEphemeralBody_NestedDeferForNestedDefinition(t *testing.T) {
 		t.Errorf("after Inner exec: expected X='fired', got '%s'", result)
 	}
 }
+
+// =============================================================================
+// SYSTEM Builtin Tests
+// =============================================================================
+
+func TestSystemGetSetModel(t *testing.T) {
+	e := New(WithProvider(&mockConfigurable{model: "test-model", params: map[string]string{}}))
+
+	result, err := e.Eval("▶SYSTEM MODEL ◆")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != "test-model" {
+		t.Errorf("expected 'test-model', got '%s'", result)
+	}
+
+	_, err = e.Eval("▶SYSTEM MODEL new-model ◆")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	result, err = e.Eval("▶SYSTEM MODEL ◆")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != "new-model" {
+		t.Errorf("expected 'new-model', got '%s'", result)
+	}
+}
+
+func TestSystemGetSetTemperature(t *testing.T) {
+	e := New(WithProvider(&mockConfigurable{model: "m", params: map[string]string{}}))
+
+	// Get unset temperature returns empty
+	result, err := e.Eval("▶SYSTEM TEMPERATURE ◆")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != "" {
+		t.Errorf("expected empty, got '%s'", result)
+	}
+
+	// Set temperature
+	_, err = e.Eval("▶SYSTEM TEMPERATURE 0.7 ◆")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	result, err = e.Eval("▶SYSTEM TEMPERATURE ◆")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != "0.7" {
+		t.Errorf("expected '0.7', got '%s'", result)
+	}
+}
+
+func TestSystemInferenceParams(t *testing.T) {
+	e := New(WithProvider(&mockConfigurable{model: "m", params: map[string]string{}}))
+
+	params := []struct{ name, value string }{
+		{"NUM_CTX", "8192"},
+		{"TOP_K", "40"},
+		{"TOP_P", "0.9"},
+		{"MAX_TOKENS", "1024"},
+	}
+
+	for _, p := range params {
+		_, err := e.Eval("▶SYSTEM " + p.name + " " + p.value + " ◆")
+		if err != nil {
+			t.Fatalf("failed to set %s: %v", p.name, err)
+		}
+
+		result, err := e.Eval("▶SYSTEM " + p.name + " ◆")
+		if err != nil {
+			t.Fatalf("failed to get %s: %v", p.name, err)
+		}
+		if result != p.value {
+			t.Errorf("SYSTEM %s: expected '%s', got '%s'", p.name, p.value, result)
+		}
+	}
+}
+
+func TestSystemProviderName(t *testing.T) {
+	e := New(WithProvider(&mockConfigurable{model: "m", providerName: "MOCK", params: map[string]string{}}))
+
+	result, err := e.Eval("▶SYSTEM PROVIDER ◆")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != "MOCK" {
+		t.Errorf("expected 'MOCK', got '%s'", result)
+	}
+}
+
+func TestSystemProviderSwitch(t *testing.T) {
+	original := &mockConfigurable{model: "orig-model", providerName: "ORIG", params: map[string]string{"TEMPERATURE": "0.5"}}
+	e := New(WithProvider(original))
+
+	// Register a factory for "NEW" provider
+	e.RegisterProviderFactory("NEW", func(streamCb StreamCallback) Provider {
+		return &mockConfigurable{model: "new-default", providerName: "NEW", params: map[string]string{}}
+	})
+
+	// Switch to NEW provider
+	_, err := e.Eval("▶SYSTEM PROVIDER NEW ◆")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Check new provider name
+	result, err := e.Eval("▶SYSTEM PROVIDER ◆")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != "NEW" {
+		t.Errorf("expected 'NEW', got '%s'", result)
+	}
+
+	// Check that inference params were copied
+	result, err = e.Eval("▶SYSTEM TEMPERATURE ◆")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != "0.5" {
+		t.Errorf("expected temperature '0.5' copied to new provider, got '%s'", result)
+	}
+}
+
+func TestSystemProviderSwitchUnknown(t *testing.T) {
+	e := New(WithProvider(&mockConfigurable{model: "m", params: map[string]string{}}))
+
+	result, err := e.Eval("▶SYSTEM PROVIDER NONEXISTENT ◆")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != "UNKNOWN_PROVIDER" {
+		t.Errorf("expected 'UNKNOWN_PROVIDER', got '%s'", result)
+	}
+}
+
+func TestSystemUnknownSetting(t *testing.T) {
+	e := New()
+
+	result, err := e.Eval("▶SYSTEM BOGUS ◆")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != "UNKNOWN_SETTING" {
+		t.Errorf("expected 'UNKNOWN_SETTING', got '%s'", result)
+	}
+}
+
+func TestSystemWithNilProvider(t *testing.T) {
+	e := New() // no provider set
+
+	// MODEL with nil provider should return empty
+	result, err := e.Eval("▶SYSTEM MODEL ◆")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != "" {
+		t.Errorf("expected empty with nil provider, got '%s'", result)
+	}
+
+	// TEMPERATURE with nil provider should return empty
+	result, err = e.Eval("▶SYSTEM TEMPERATURE ◆")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != "" {
+		t.Errorf("expected empty with nil provider, got '%s'", result)
+	}
+
+	// PROVIDER with nil provider should return empty
+	result, err = e.Eval("▶SYSTEM PROVIDER ◆")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != "" {
+		t.Errorf("expected empty with nil provider, got '%s'", result)
+	}
+}
+
+func TestSystemPersistModeStillWorks(t *testing.T) {
+	e := New()
+
+	result, err := e.Eval("▶SYSTEM PERSIST_MODE ◆")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != "ON_DEMAND" {
+		t.Errorf("expected 'ON_DEMAND', got '%s'", result)
+	}
+
+	_, err = e.Eval("▶SYSTEM PERSIST_MODE NEVER ◆")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	result, err = e.Eval("▶SYSTEM PERSIST_MODE ◆")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != "NEVER" {
+		t.Errorf("expected 'NEVER', got '%s'", result)
+	}
+}
+
+// mockConfigurable implements both Provider and Configurable for testing.
+type mockConfigurable struct {
+	model        string
+	providerName string
+	params       map[string]string
+}
+
+func (m *mockConfigurable) Prompt(system, user string) (string, error) {
+	return "mock response", nil
+}
+
+func (m *mockConfigurable) GetParam(key string) string     { return m.params[key] }
+func (m *mockConfigurable) SetParam(key, value string)     { m.params[key] = value }
+func (m *mockConfigurable) GetModel() string               { return m.model }
+func (m *mockConfigurable) SetModel(model string)          { m.model = model }
+func (m *mockConfigurable) ProviderName() string           { return m.providerName }

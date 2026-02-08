@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -15,6 +16,7 @@ type Ollama struct {
 	Model    string
 	Timeout  time.Duration
 	StreamCb StreamCallback
+	params   map[string]string
 }
 
 // OllamaOption configures the Ollama provider.
@@ -46,6 +48,7 @@ func NewOllama(opts ...OllamaOption) *Ollama {
 		URL:     "http://localhost:11434",
 		Model:   "qwen3:30b-a3b-instruct-2507-q4_K_M",
 		Timeout: 5 * time.Minute,
+		params:  make(map[string]string),
 	}
 	for _, opt := range opts {
 		opt(o)
@@ -53,12 +56,27 @@ func NewOllama(opts ...OllamaOption) *Ollama {
 	return o
 }
 
+// GetParam returns an inference parameter value.
+func (o *Ollama) GetParam(key string) string { return o.params[key] }
+
+// SetParam sets an inference parameter value.
+func (o *Ollama) SetParam(key, value string) { o.params[key] = value }
+
+// GetModel returns the current model name.
+func (o *Ollama) GetModel() string { return o.Model }
+
+// SetModel sets the model name.
+func (o *Ollama) SetModel(model string) { o.Model = model }
+
+// ProviderName returns "OLLAMA".
+func (o *Ollama) ProviderName() string { return "OLLAMA" }
+
 type ollamaRequest struct {
-	Model     string            `json:"model"`
-	Messages  []ollamaMessage   `json:"messages"`
-	Stream    bool              `json:"stream"`
-	Options   map[string]int    `json:"options,omitempty"`
-	KeepAlive string            `json:"keep_alive,omitempty"`
+	Model     string                 `json:"model"`
+	Messages  []ollamaMessage        `json:"messages"`
+	Stream    bool                   `json:"stream"`
+	Options   map[string]interface{} `json:"options,omitempty"`
+	KeepAlive string                 `json:"keep_alive,omitempty"`
 }
 
 type ollamaMessage struct {
@@ -79,11 +97,33 @@ func (o *Ollama) Prompt(system, user string) (string, error) {
 	}
 	messages = append(messages, ollamaMessage{Role: "user", Content: user})
 
+	options := map[string]interface{}{"num_ctx": 16384}
+	if v, ok := o.params["NUM_CTX"]; ok {
+		if n, err := strconv.Atoi(v); err == nil {
+			options["num_ctx"] = n
+		}
+	}
+	if v, ok := o.params["TEMPERATURE"]; ok {
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			options["temperature"] = f
+		}
+	}
+	if v, ok := o.params["TOP_K"]; ok {
+		if n, err := strconv.Atoi(v); err == nil {
+			options["top_k"] = n
+		}
+	}
+	if v, ok := o.params["TOP_P"]; ok {
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			options["top_p"] = f
+		}
+	}
+
 	reqBody := ollamaRequest{
 		Model:     o.Model,
 		Messages:  messages,
 		Stream:    o.StreamCb != nil,
-		Options:   map[string]int{"num_ctx": 16384},
+		Options:   options,
 		KeepAlive: "5m",
 	}
 

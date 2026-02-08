@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -18,6 +19,7 @@ type Anthropic struct {
 	Model    string
 	Timeout  time.Duration
 	StreamCb StreamCallback
+	params   map[string]string
 }
 
 // AnthropicOption configures the Anthropic provider.
@@ -49,6 +51,7 @@ func NewAnthropic(opts ...AnthropicOption) *Anthropic {
 		APIKey:  os.Getenv("ANTHROPIC_API_KEY"),
 		Model:   "claude-sonnet-4-20250514",
 		Timeout: 5 * time.Minute,
+		params:  make(map[string]string),
 	}
 	for _, opt := range opts {
 		opt(a)
@@ -56,12 +59,30 @@ func NewAnthropic(opts ...AnthropicOption) *Anthropic {
 	return a
 }
 
+// GetParam returns an inference parameter value.
+func (a *Anthropic) GetParam(key string) string { return a.params[key] }
+
+// SetParam sets an inference parameter value.
+func (a *Anthropic) SetParam(key, value string) { a.params[key] = value }
+
+// GetModel returns the current model name.
+func (a *Anthropic) GetModel() string { return a.Model }
+
+// SetModel sets the model name.
+func (a *Anthropic) SetModel(model string) { a.Model = model }
+
+// ProviderName returns "ANTHROPIC".
+func (a *Anthropic) ProviderName() string { return "ANTHROPIC" }
+
 type anthropicRequest struct {
-	Model     string             `json:"model"`
-	MaxTokens int                `json:"max_tokens"`
-	System    string             `json:"system,omitempty"`
-	Messages  []anthropicMessage `json:"messages"`
-	Stream    bool               `json:"stream"`
+	Model       string             `json:"model"`
+	MaxTokens   int                `json:"max_tokens"`
+	System      string             `json:"system,omitempty"`
+	Messages    []anthropicMessage `json:"messages"`
+	Stream      bool               `json:"stream"`
+	Temperature *float64           `json:"temperature,omitempty"`
+	TopK        *int               `json:"top_k,omitempty"`
+	TopP        *float64           `json:"top_p,omitempty"`
 }
 
 type anthropicMessage struct {
@@ -102,12 +123,34 @@ func (a *Anthropic) Prompt(system, user string) (string, error) {
 		{Role: "user", Content: user},
 	}
 
+	maxTokens := 4096
+	if v, ok := a.params["MAX_TOKENS"]; ok {
+		if n, err := strconv.Atoi(v); err == nil {
+			maxTokens = n
+		}
+	}
+
 	reqBody := anthropicRequest{
 		Model:     a.Model,
-		MaxTokens: 4096,
+		MaxTokens: maxTokens,
 		System:    system,
 		Messages:  messages,
 		Stream:    a.StreamCb != nil,
+	}
+	if v, ok := a.params["TEMPERATURE"]; ok {
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			reqBody.Temperature = &f
+		}
+	}
+	if v, ok := a.params["TOP_K"]; ok {
+		if n, err := strconv.Atoi(v); err == nil {
+			reqBody.TopK = &n
+		}
+	}
+	if v, ok := a.params["TOP_P"]; ok {
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			reqBody.TopP = &f
+		}
 	}
 
 	jsonBody, err := json.Marshal(reqBody)

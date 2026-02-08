@@ -526,30 +526,84 @@ func builtinSystem(e *Evaluator, argsRaw string) (expr.Expr, error) {
 	// SYSTEM setting [value]
 	// With one arg: returns current value
 	// With two args: sets new value
-	args, err := e.parseArgs(argsRaw)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(args) < 1 {
+	// Split by whitespace since SYSTEM only takes simple text arguments
+	fields := strings.Fields(strings.TrimSpace(argsRaw))
+	if len(fields) < 1 {
 		return expr.Empty{}, nil
 	}
 
-	setting := strings.ToUpper(args[0])
+	setting := strings.ToUpper(fields[0])
+	// Rejoin remaining fields as the value (preserves spaces in model names etc.)
+	var value string
+	if len(fields) >= 2 {
+		value = strings.Join(fields[1:], " ")
+	}
 
 	switch setting {
 	case "PERSIST_MODE":
-		if len(args) >= 2 {
-			// Set mode
-			mode, ok := ParsePersistMode(args[1])
+		if value != "" {
+			mode, ok := ParsePersistMode(value)
 			if !ok {
 				return expr.Text{Value: "UNKNOWN"}, nil
 			}
 			e.SetPersistMode(mode)
 			return expr.Empty{}, nil
 		}
-		// Get mode
 		return expr.Text{Value: e.PersistMode().String()}, nil
+
+	case "MODEL":
+		if cfg, ok := e.provider.(Configurable); ok {
+			if value != "" {
+				cfg.SetModel(value)
+				return expr.Empty{}, nil
+			}
+			return expr.Text{Value: cfg.GetModel()}, nil
+		}
+		return expr.Empty{}, nil
+
+	case "PROVIDER":
+		if value != "" {
+			name := strings.ToUpper(value)
+			factory, ok := e.providerFactories[name]
+			if !ok {
+				return expr.Text{Value: "UNKNOWN_PROVIDER"}, nil
+			}
+			// Copy inference params from old provider to new one
+			var oldParams map[string]string
+			if cfg, ok := e.provider.(Configurable); ok {
+				for _, key := range []string{"TEMPERATURE", "NUM_CTX", "TOP_K", "TOP_P", "MAX_TOKENS"} {
+					if v := cfg.GetParam(key); v != "" {
+						if oldParams == nil {
+							oldParams = make(map[string]string)
+						}
+						oldParams[key] = v
+					}
+				}
+			}
+			newProvider := factory(e.streamCb)
+			if cfg, ok := newProvider.(Configurable); ok && oldParams != nil {
+				for k, v := range oldParams {
+					cfg.SetParam(k, v)
+				}
+			}
+			e.provider = newProvider
+			return expr.Empty{}, nil
+		}
+		// Get current provider name
+		if cfg, ok := e.provider.(Configurable); ok {
+			return expr.Text{Value: cfg.ProviderName()}, nil
+		}
+		return expr.Empty{}, nil
+
+	case "TEMPERATURE", "NUM_CTX", "TOP_K", "TOP_P", "MAX_TOKENS":
+		if cfg, ok := e.provider.(Configurable); ok {
+			if value != "" {
+				cfg.SetParam(setting, value)
+				return expr.Empty{}, nil
+			}
+			return expr.Text{Value: cfg.GetParam(setting)}, nil
+		}
+		return expr.Empty{}, nil
 
 	default:
 		return expr.Text{Value: "UNKNOWN_SETTING"}, nil

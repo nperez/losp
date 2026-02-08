@@ -1,0 +1,4 @@
+# EXPECTED: second-model
+▶SYSTEM MODEL first-model ◆
+▶SYSTEM MODEL second-model ◆
+▶SYSTEM MODEL ◆

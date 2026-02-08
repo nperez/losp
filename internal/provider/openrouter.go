@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -18,6 +19,7 @@ type OpenRouter struct {
 	Model    string
 	Timeout  time.Duration
 	StreamCb StreamCallback
+	params   map[string]string
 }
 
 // OpenRouterOption configures the OpenRouter provider.
@@ -49,6 +51,7 @@ func NewOpenRouter(opts ...OpenRouterOption) *OpenRouter {
 		APIKey:  os.Getenv("OPEN_ROUTER_API_KEY"),
 		Model:   "z-ai/glm-4.5-air:free",
 		Timeout: 5 * time.Minute,
+		params:  make(map[string]string),
 	}
 	for _, opt := range opts {
 		opt(o)
@@ -56,10 +59,29 @@ func NewOpenRouter(opts ...OpenRouterOption) *OpenRouter {
 	return o
 }
 
+// GetParam returns an inference parameter value.
+func (o *OpenRouter) GetParam(key string) string { return o.params[key] }
+
+// SetParam sets an inference parameter value.
+func (o *OpenRouter) SetParam(key, value string) { o.params[key] = value }
+
+// GetModel returns the current model name.
+func (o *OpenRouter) GetModel() string { return o.Model }
+
+// SetModel sets the model name.
+func (o *OpenRouter) SetModel(model string) { o.Model = model }
+
+// ProviderName returns "OPENROUTER".
+func (o *OpenRouter) ProviderName() string { return "OPENROUTER" }
+
 type openRouterRequest struct {
-	Model    string              `json:"model"`
-	Messages []openRouterMessage `json:"messages"`
-	Stream   bool                `json:"stream"`
+	Model       string              `json:"model"`
+	Messages    []openRouterMessage `json:"messages"`
+	Stream      bool                `json:"stream"`
+	Temperature *float64            `json:"temperature,omitempty"`
+	TopP        *float64            `json:"top_p,omitempty"`
+	TopK        *int                `json:"top_k,omitempty"`
+	MaxTokens   *int                `json:"max_tokens,omitempty"`
 }
 
 type openRouterMessage struct {
@@ -113,6 +135,26 @@ func (o *OpenRouter) promptOnce(system, user string) (string, error) {
 		Model:    o.Model,
 		Messages: messages,
 		Stream:   o.StreamCb != nil,
+	}
+	if v, ok := o.params["TEMPERATURE"]; ok {
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			reqBody.Temperature = &f
+		}
+	}
+	if v, ok := o.params["TOP_P"]; ok {
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			reqBody.TopP = &f
+		}
+	}
+	if v, ok := o.params["TOP_K"]; ok {
+		if n, err := strconv.Atoi(v); err == nil {
+			reqBody.TopK = &n
+		}
+	}
+	if v, ok := o.params["MAX_TOKENS"]; ok {
+		if n, err := strconv.Atoi(v); err == nil {
+			reqBody.MaxTokens = &n
+		}
 	}
 
 	jsonBody, err := json.Marshal(reqBody)
