@@ -14,14 +14,24 @@ import (
 
 var compiledModule *gigwasm.CompiledModule
 
+const wasmCachePath = "losp.wasm"
+
 func TestMain(m *testing.M) {
-	fmt.Println("Compiling losp to WASM...")
-	wasmBytes, err := gigwasm.CompileGo("../../cmd/losp")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to compile losp to WASM: %v\n", err)
-		os.Exit(1)
+	wasmBytes, err := os.ReadFile(wasmCachePath)
+	if err == nil {
+		fmt.Printf("Loaded cached WASM binary: %d bytes\n", len(wasmBytes))
+	} else {
+		fmt.Println("Compiling losp to WASM...")
+		wasmBytes, err = gigwasm.CompileGo("../../cmd/losp")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to compile losp to WASM: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("WASM binary: %d bytes, caching to %s\n", len(wasmBytes), wasmCachePath)
+		if err := os.WriteFile(wasmCachePath, wasmBytes, 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to cache WASM binary: %v\n", err)
+		}
 	}
-	fmt.Printf("WASM binary: %d bytes\n", len(wasmBytes))
 
 	fmt.Println("Pre-compiling WASM module...")
 	compiledModule, err = gigwasm.CompileModule(wasmBytes)
