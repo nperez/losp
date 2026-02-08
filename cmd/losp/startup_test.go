@@ -35,7 +35,7 @@ func TestStartupExecutedAfterFile(t *testing.T) {
 
 	// Run the CLI with the test file
 	dbPath := filepath.Join(tmpDir, "test.db")
-	runCmd := exec.Command(filepath.Join(tmpDir, "losp"), "-f", testFile, "-db", dbPath, "-no-prompt")
+	runCmd := exec.Command(filepath.Join(tmpDir, "losp"), "-f", testFile, "-db", dbPath)
 	output, err := runCmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("failed to run losp: %v\n%s", err, output)
@@ -76,13 +76,13 @@ func TestStartupLoadedFromDatabase(t *testing.T) {
 	}
 
 	// Run to persist __startup__ to database
-	runCmd := exec.Command(filepath.Join(tmpDir, "losp"), "-f", testFile, "-db", dbPath, "-no-prompt")
+	runCmd := exec.Command(filepath.Join(tmpDir, "losp"), "-f", testFile, "-db", dbPath)
 	if out, err := runCmd.CombinedOutput(); err != nil {
 		t.Fatalf("failed to run setup: %v\n%s", err, out)
 	}
 
 	// Now run with just the database (no file) - should load and execute __startup__
-	runCmd2 := exec.Command(filepath.Join(tmpDir, "losp"), "-db", dbPath, "-no-prompt")
+	runCmd2 := exec.Command(filepath.Join(tmpDir, "losp"), "-db", dbPath)
 	output, err := runCmd2.CombinedOutput()
 	if err != nil {
 		t.Fatalf("failed to run from db: %v\n%s", err, output)
@@ -126,13 +126,13 @@ func TestCompileWorkflow(t *testing.T) {
 	}
 
 	// Compile: run with -compile flag (persists all definitions)
-	compileCmd := exec.Command(filepath.Join(tmpDir, "losp"), "-compile", "-f", testFile, "-db", dbPath, "-no-prompt")
+	compileCmd := exec.Command(filepath.Join(tmpDir, "losp"), "-compile", "-f", testFile, "-db", dbPath)
 	if out, err := compileCmd.CombinedOutput(); err != nil {
 		t.Fatalf("failed to compile: %v\n%s", err, out)
 	}
 
 	// Run from database only
-	runCmd := exec.Command(filepath.Join(tmpDir, "losp"), "-db", dbPath, "-no-prompt")
+	runCmd := exec.Command(filepath.Join(tmpDir, "losp"), "-db", dbPath)
 	output, err := runCmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("failed to run from db: %v\n%s", err, output)
@@ -165,7 +165,7 @@ func TestEmptyStartupNoFile(t *testing.T) {
 
 	// Run with empty database - should try to enter REPL
 	// We'll provide stdin to simulate immediate exit
-	runCmd := exec.Command(filepath.Join(tmpDir, "losp"), "-db", dbPath, "-no-prompt")
+	runCmd := exec.Command(filepath.Join(tmpDir, "losp"), "-db", dbPath)
 	runCmd.Stdin = strings.NewReader("") // Empty input triggers EOF
 	output, _ := runCmd.CombinedOutput()
 
@@ -205,7 +205,7 @@ func TestCompileModeDoesNotRunStartup(t *testing.T) {
 	}
 
 	// Run with -compile flag - should NOT execute __startup__
-	runCmd := exec.Command(filepath.Join(tmpDir, "losp"), "-compile", "-f", testFile, "-db", dbPath, "-no-prompt")
+	runCmd := exec.Command(filepath.Join(tmpDir, "losp"), "-compile", "-f", testFile, "-db", dbPath)
 	output, err := runCmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("failed to run losp: %v\n%s", err, output)
@@ -240,7 +240,7 @@ func TestPipedInputRunsStartup(t *testing.T) {
     ▶SAY PIPED_STARTUP_RAN ◆
 ◆`
 
-	runCmd := exec.Command(filepath.Join(tmpDir, "losp"), "-db", dbPath, "-no-prompt")
+	runCmd := exec.Command(filepath.Join(tmpDir, "losp"), "-db", dbPath)
 	runCmd.Stdin = strings.NewReader(program)
 	output, err := runCmd.CombinedOutput()
 	if err != nil {

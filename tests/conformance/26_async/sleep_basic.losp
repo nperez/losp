@@ -1,0 +1,5 @@
+# EXPECTED: before
+# EXPECTED: after
+▶SAY before ◆
+▶SLEEP 10 ◆
+▶SAY after ◆

@@ -113,6 +113,7 @@ func (r *Runtime) LoadFile(path string) error {
 
 // Close releases resources.
 func (r *Runtime) Close() error {
+	r.evaluator.AsyncRegistry().Shutdown()
 	if r.store != nil {
 		return r.store.Close()
 	}

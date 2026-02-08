@@ -1,0 +1,6 @@
+# EXPECTED: before
+▽val before ◆
+▼ReadVal ▲val ◆
+▽h ▶ASYNC ReadVal ◆ ◆
+▽val after ◆
+▶AWAIT ▲h ◆

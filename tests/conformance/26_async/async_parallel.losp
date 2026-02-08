@@ -1,0 +1,6 @@
+# EXPECTED: val-a val-b
+▼A val-a ◆
+▼B val-b ◆
+▽h1 ▶ASYNC A ◆ ◆
+▽h2 ▶ASYNC B ◆ ◆
+▶AWAIT ▲h1 ◆ ▶AWAIT ▲h2 ◆

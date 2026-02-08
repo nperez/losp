@@ -19,7 +19,6 @@ func main() {
 		providerF   = flag.String("provider", "", "LLM provider: ollama or openrouter")
 		model       = flag.String("model", "", "LLM model name")
 		stream      = flag.Bool("stream", false, "Enable streaming output")
-		noPrompt    = flag.Bool("no-prompt", false, "Disable LLM prompts")
 		noStdlib    = flag.Bool("no-stdlib", false, "Disable standard library prelude")
 		ollamaURL   = flag.String("ollama", "http://localhost:11434", "Ollama API URL")
 		persistMode = flag.String("persist-mode", "on_demand", "Persistence mode: on_demand, always, or never")
@@ -34,9 +33,7 @@ func main() {
 	}
 
 	// Configure provider (platform-specific)
-	if !*noPrompt {
-		configureProvider(&opts, *providerF, *ollamaURL, *model)
-	}
+	configureProvider(&opts, *providerF, *ollamaURL, *model)
 
 	// Configure streaming
 	if *stream {

@@ -81,15 +81,16 @@ type OutputWriter func(text string) error
 
 // Evaluator interprets losp expressions.
 type Evaluator struct {
-	namespace    *Namespace
-	store        Store
-	provider     Provider
-	streamCb     StreamCallback
-	inputReader  InputReader
-	outputWriter OutputWriter
-	deferDepth   int         // Tracks ◯ defer operator depth
-	persistMode  PersistMode // Controls persistence behavior
-	loadOnly     bool
+	namespace      *Namespace
+	store          Store
+	provider       Provider
+	streamCb       StreamCallback
+	inputReader    InputReader
+	outputWriter   OutputWriter
+	deferDepth     int            // Tracks ◯ defer operator depth
+	persistMode    PersistMode    // Controls persistence behavior
+	loadOnly       bool
+	asyncRegistry  *AsyncRegistry
 }
 
 // Option configures an Evaluator.
@@ -133,7 +134,8 @@ func (e *Evaluator) SetInputReader(r InputReader) {
 // New creates a new Evaluator with the given options.
 func New(opts ...Option) *Evaluator {
 	e := &Evaluator{
-		namespace: NewNamespace(),
+		namespace:     NewNamespace(),
+		asyncRegistry: NewAsyncRegistry(),
 		outputWriter: func(text string) error {
 			fmt.Print(text)
 			return nil
@@ -143,6 +145,20 @@ func New(opts ...Option) *Evaluator {
 		opt(e)
 	}
 	return e
+}
+
+// forkForAsync creates a new Evaluator for async execution.
+// The forked evaluator has a cloned namespace (snapshot isolation),
+// shared store, provider, and async registry, but nil I/O.
+func (e *Evaluator) forkForAsync() *Evaluator {
+	return &Evaluator{
+		namespace:     e.namespace.Clone(),
+		store:         e.store,
+		provider:      e.provider,
+		asyncRegistry: e.asyncRegistry,
+		persistMode:   e.persistMode,
+		// inputReader, outputWriter, streamCb are nil (SAY silenced, READ returns EMPTY)
+	}
 }
 
 // Eval evaluates a losp string and returns the result.
@@ -1115,6 +1131,11 @@ func (e *Evaluator) Store() Store {
 // Provider returns the evaluator's LLM provider.
 func (e *Evaluator) Provider() Provider {
 	return e.provider
+}
+
+// AsyncRegistry returns the evaluator's async registry.
+func (e *Evaluator) AsyncRegistry() *AsyncRegistry {
+	return e.asyncRegistry
 }
 
 // PersistMode returns the current persistence mode.

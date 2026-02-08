@@ -369,7 +369,7 @@ How this works:
 ## Deliverables
 
 1. **Library** - Programmatic API for embedding losp
-2. **CLI** - Standalone executable with flags: `-e`, `-f`, `-db`, `-provider`, `-model`, `-stream`, `-no-prompt`, `-no-stdlib`, `-ollama`, `-persist-mode`, `-compile`
+2. **CLI** - Standalone executable with flags: `-e`, `-f`, `-db`, `-provider`, `-model`, `-stream`, `-no-stdlib`, `-ollama`, `-persist-mode`, `-compile`
 3. **REPL** - Interactive mode when invoked without arguments
 
 ## Architecture Notes

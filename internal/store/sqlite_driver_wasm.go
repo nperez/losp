@@ -2,4 +2,4 @@
 
 package store
 
-import _ "github.com/alexprogrammr/gowasmer/wasmsql"
+import _ "nickandperla.net/gigwasm/wasmsql"

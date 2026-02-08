@@ -1,0 +1,5 @@
+# EXPECTED: TRUE
+▼Work done ◆
+▽h ▶ASYNC Work ◆ ◆
+▽_discard ▶AWAIT ▲h ◆ ◆
+▶CHECK ▲h ◆

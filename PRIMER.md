@@ -677,6 +677,95 @@ Useful for case-insensitive comparison:
 
 **EMPTY**: `▲EMPTY` → Special empty expression useful for empty testing
 
+### Async Primitives
+
+losp supports concurrent execution through async forking. This is primarily useful for launching parallel LLM calls via PROMPT/GENERATE.
+
+**ASYNC**: `▶ASYNC expression-name ◆` → returns a handle (e.g. `_async_1`)
+
+Forks execution of a named expression in a new goroutine. The forked evaluator gets a **cloned namespace** (snapshot at fork time, writes are isolated) but **shares** the persistence store and LLM provider. SAY is silenced and READ returns EMPTY in forked evaluators.
+
+```losp
+▼SlowCall ▶PROMPT
+    You are an expert.
+    Analyze this data...
+◆ ◆
+
+▽handle ▶ASYNC SlowCall ◆ ◆
+▽result ▶AWAIT ▲handle ◆ ◆
+▶SAY ▲result ◆
+```
+
+ASYNC takes only the expression name (no arguments). To pass data, set namespace values before forking — the clone captures them:
+
+```losp
+▽context some relevant data ◆
+▽handle ▶ASYNC UseContext ◆ ◆
+```
+
+Returns EMPTY if the expression doesn't exist.
+
+**AWAIT**: `▶AWAIT handle ◆` → blocks until completion, returns result text
+
+Blocks the current evaluator until the async handle completes. Returns the result of the forked expression, or EMPTY on error. Double-AWAIT on the same handle is safe and returns the cached result immediately.
+
+```losp
+▽h1 ▶ASYNC Call1 ◆ ◆
+▽h2 ▶ASYNC Call2 ◆ ◆
+▽r1 ▶AWAIT ▲h1 ◆ ◆
+▽r2 ▶AWAIT ▲h2 ◆ ◆
+```
+
+Returns EMPTY if the handle is unknown.
+
+**CHECK**: `▶CHECK handle ◆` → `TRUE` or `FALSE`
+
+Non-blocking completion check. Returns TRUE if the async operation has finished, FALSE otherwise. Returns FALSE for unknown handles.
+
+```losp
+▽h ▶ASYNC SlowOp ◆ ◆
+▶IF ▶CHECK ▲h ◆
+    Done!
+    Still working...
+◆
+```
+
+**TIMER**: `▶TIMER ms expression-name ◆` → returns a handle
+
+Delayed fire-once execution. The expression runs after the specified milliseconds. A 0ms timer fires immediately (effectively an ASYNC).
+
+```losp
+▼Cleanup ▶PERSIST State ◆ ◆
+
+▽t ▶TIMER
+5000
+Cleanup
+◆ ◆
+```
+
+**TICKS**: `▶TICKS handle ◆` → milliseconds remaining (text)
+
+Query a timer's countdown. Returns 0 for non-timer handles (promises) and for completed timers.
+
+```losp
+▽t ▶TIMER
+5000
+Cleanup
+◆ ◆
+▶SAY ▶TICKS ▲t ◆ ms remaining ◆
+```
+
+**SLEEP**: `▶SLEEP ms ◆` → EMPTY
+
+Blocks the current evaluator for the specified duration in milliseconds.
+
+```losp
+▶SLEEP 1000 ◆
+▶SAY One second later ◆
+```
+
+All handles are unified — AWAIT, CHECK, and TICKS work on both ASYNC and TIMER handles.
+
 
 ---
 
@@ -1065,6 +1154,12 @@ On subsequent runs, the backing store `__stdlib__` replaces the built-in prelude
 | Save to backing store | `▶PERSIST name ◆` |
 | Load from backing store | `▶LOAD name ◆` |
 | Load with default | `▶LOAD name default ◆` (args are expressions) |
+| Fork async execution | `▶ASYNC expr-name ◆` → handle |
+| Wait for async result | `▶AWAIT handle ◆` → result text |
+| Check if async done | `▶CHECK handle ◆` → TRUE/FALSE |
+| Delayed execution | `▶TIMER ms expr-name ◆` → handle |
+| Query timer remaining | `▶TICKS handle ◆` → ms remaining |
+| Sleep | `▶SLEEP ms ◆` |
 
 ---
 
@@ -1124,16 +1219,6 @@ When debugging nested calls, add debug output at each layer:
 
 ▶Outer test value ◆
 ```
-
-### Test Without LLM Calls
-
-Use `-no-prompt` to test control flow without waiting for LLM:
-
-```bash
-./losp -f myapp.losp -no-prompt
-```
-
-PROMPT returns empty string with `-no-prompt`, so your retry/error handling code will execute.
 
 ### Inspect Database State
 

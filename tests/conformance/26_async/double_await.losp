@@ -1,0 +1,4 @@
+# EXPECTED: same same
+▼Work same ◆
+▽h ▶ASYNC Work ◆ ◆
+▶AWAIT ▲h ◆ ▶AWAIT ▲h ◆

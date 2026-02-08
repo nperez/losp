@@ -423,6 +423,5 @@ Avoid this pattern—if new content is empty, data is wiped:
 ```
 
 ### Testing Shortcuts
-- Use `-no-prompt` to test control flow without LLM latency
 - Use `sqlite3` to inspect persisted expressions
 - Pipe input for automated testing: `echo -e 'a\nb\nc' | ./losp -f app.losp`

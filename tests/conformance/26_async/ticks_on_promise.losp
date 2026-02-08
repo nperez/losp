@@ -1,0 +1,5 @@
+# EXPECTED: 0
+▼Work val ◆
+▽h ▶ASYNC Work ◆ ◆
+▽_discard ▶AWAIT ▲h ◆ ◆
+▶TICKS ▲h ◆

@@ -1,0 +1,7 @@
+# EXPECTED: timer-done
+▼Delayed timer-done ◆
+▽h ▶TIMER
+0
+Delayed
+◆ ◆
+▶AWAIT ▲h ◆

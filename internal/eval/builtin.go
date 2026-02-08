@@ -54,6 +54,18 @@ func getBuiltin(name string) BuiltinFunc {
 		return builtinTrim
 	case "GENERATE":
 		return builtinGenerate
+	case "ASYNC":
+		return builtinAsync
+	case "AWAIT":
+		return builtinAwait
+	case "CHECK":
+		return builtinCheck
+	case "TIMER":
+		return builtinTimer
+	case "TICKS":
+		return builtinTicks
+	case "SLEEP":
+		return builtinSleep
 	}
 	return nil
 }
