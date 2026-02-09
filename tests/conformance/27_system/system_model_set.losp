@@ -1,3 +1,6 @@
 # EXPECTED: my-custom-model
-▶SYSTEM MODEL my-custom-model ◆
+▶SYSTEM
+MODEL
+my-custom-model
+◆
 ▶SYSTEM MODEL ◆

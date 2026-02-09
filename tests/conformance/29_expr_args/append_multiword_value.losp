@@ -1,0 +1,8 @@
+# EXPECTED: first item
+# EXPECTED: second item with spaces
+▽List first item ◆
+▶APPEND
+List
+second item with spaces
+◆
+▶SAY ▶List ◆ ◆

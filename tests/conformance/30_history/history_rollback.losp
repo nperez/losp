@@ -1,0 +1,11 @@
+# EXPECTED: first
+▶SYSTEM
+PERSIST_MODE
+ALWAYS
+◆
+▽X first ◆
+▽X second ◆
+▽X third ◆
+▽_h ▶HISTORY X ◆ ◆
+▶_X_1 ◆
+▲X

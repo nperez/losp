@@ -1,11 +1,12 @@
-# EXPECTED: [one]
-# EXPECTED: [two]
+# EXPECTED: [x]
+# EXPECTED: [y]
 ▼ShowItem □item [▲item] ◆
 ▼Items
-one
-two
+x
+y
 ◆
+▼BodyRef ShowItem ◆
 ▶FOREACH
 ▲Items
-ShowItem
+▲BodyRef
 ◆

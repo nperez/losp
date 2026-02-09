@@ -3,6 +3,9 @@ package eval
 import (
 	"strings"
 	"testing"
+
+	"nickandperla.net/losp/internal/expr"
+	"nickandperla.net/losp/internal/store"
 )
 
 func TestBasicSay(t *testing.T) {
@@ -157,10 +160,11 @@ func TestForeach(t *testing.T) {
 		return nil
 	}))
 
-	// Define item handler
+	// Define item handler and items list
 	e.Eval("▼ShowItem □item - ▲item ◆")
+	e.Eval("▼Items\napple\nbanana\n◆")
 
-	result, err := e.Eval("▶FOREACH apple banana ▲ShowItem ◆")
+	result, err := e.Eval("▶FOREACH\n▲Items\nShowItem\n◆")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -981,7 +985,7 @@ func TestSystemGetSetModel(t *testing.T) {
 		t.Errorf("expected 'test-model', got '%s'", result)
 	}
 
-	_, err = e.Eval("▶SYSTEM MODEL new-model ◆")
+	_, err = e.Eval("▶SYSTEM\nMODEL\nnew-model\n◆")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1008,7 +1012,7 @@ func TestSystemGetSetTemperature(t *testing.T) {
 	}
 
 	// Set temperature
-	_, err = e.Eval("▶SYSTEM TEMPERATURE 0.7 ◆")
+	_, err = e.Eval("▶SYSTEM\nTEMPERATURE\n0.7\n◆")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1033,7 +1037,7 @@ func TestSystemInferenceParams(t *testing.T) {
 	}
 
 	for _, p := range params {
-		_, err := e.Eval("▶SYSTEM " + p.name + " " + p.value + " ◆")
+		_, err := e.Eval("▶SYSTEM\n" + p.name + "\n" + p.value + "\n◆")
 		if err != nil {
 			t.Fatalf("failed to set %s: %v", p.name, err)
 		}
@@ -1070,7 +1074,7 @@ func TestSystemProviderSwitch(t *testing.T) {
 	})
 
 	// Switch to NEW provider
-	_, err := e.Eval("▶SYSTEM PROVIDER NEW ◆")
+	_, err := e.Eval("▶SYSTEM\nPROVIDER\nNEW\n◆")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1097,7 +1101,7 @@ func TestSystemProviderSwitch(t *testing.T) {
 func TestSystemProviderSwitchUnknown(t *testing.T) {
 	e := New(WithProvider(&mockConfigurable{model: "m", params: map[string]string{}}))
 
-	result, err := e.Eval("▶SYSTEM PROVIDER NONEXISTENT ◆")
+	result, err := e.Eval("▶SYSTEM\nPROVIDER\nNONEXISTENT\n◆")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1160,7 +1164,7 @@ func TestSystemPersistModeStillWorks(t *testing.T) {
 		t.Errorf("expected 'ON_DEMAND', got '%s'", result)
 	}
 
-	_, err = e.Eval("▶SYSTEM PERSIST_MODE NEVER ◆")
+	_, err = e.Eval("▶SYSTEM\nPERSIST_MODE\nNEVER\n◆")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1190,3 +1194,254 @@ func (m *mockConfigurable) SetParam(key, value string)     { m.params[key] = val
 func (m *mockConfigurable) GetModel() string               { return m.model }
 func (m *mockConfigurable) SetModel(model string)          { m.model = model }
 func (m *mockConfigurable) ProviderName() string           { return m.providerName }
+
+// =============================================================================
+// HISTORY Builtin Tests
+// =============================================================================
+
+func TestHistoryCreatesEphemeralExpressions(t *testing.T) {
+	s := newMemoryStoreForTest()
+	e := New(WithStore(s), WithPersistMode(PersistAlways))
+
+	e.Eval("▽X first ◆")
+	e.Eval("▽X second ◆")
+
+	result, err := e.Eval("▶HISTORY X ◆")
+	if err != nil {
+		t.Fatalf("HISTORY failed: %v", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(result), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("expected 2 version names, got %d: %v", len(lines), lines)
+	}
+
+	// Newest first
+	if lines[0] != "_X_2" {
+		t.Errorf("expected first line '_X_2', got '%s'", lines[0])
+	}
+	if lines[1] != "_X_1" {
+		t.Errorf("expected second line '_X_1', got '%s'", lines[1])
+	}
+
+	// Verify ephemeral expressions exist in namespace
+	v1 := e.namespace.Get("_X_1")
+	if v1.IsEmpty() {
+		t.Error("_X_1 not in namespace")
+	}
+	v2 := e.namespace.Get("_X_2")
+	if v2.IsEmpty() {
+		t.Error("_X_2 not in namespace")
+	}
+}
+
+func TestHistoryReturnsNewestFirst(t *testing.T) {
+	s := newMemoryStoreForTest()
+	e := New(WithStore(s), WithPersistMode(PersistAlways))
+
+	e.Eval("▽X alpha ◆")
+	e.Eval("▽X beta ◆")
+	e.Eval("▽X gamma ◆")
+
+	result, err := e.Eval("▶HISTORY X ◆")
+	if err != nil {
+		t.Fatalf("HISTORY failed: %v", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(result), "\n")
+	if len(lines) != 3 {
+		t.Fatalf("expected 3 version names, got %d", len(lines))
+	}
+	if lines[0] != "_X_3" || lines[1] != "_X_2" || lines[2] != "_X_1" {
+		t.Errorf("unexpected order: %v", lines)
+	}
+}
+
+func TestHistoryRespectsLimit(t *testing.T) {
+	s := newMemoryStoreForTest()
+	e := New(WithStore(s), WithPersistMode(PersistAlways))
+
+	e.Eval("▽X one ◆")
+	e.Eval("▽X two ◆")
+	e.Eval("▽X three ◆")
+
+	e.historyLimit = 2
+	result, err := e.Eval("▶HISTORY X ◆")
+	if err != nil {
+		t.Fatalf("HISTORY failed: %v", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(result), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("expected 2 with limit, got %d: %v", len(lines), lines)
+	}
+}
+
+func TestHistoryNonexistentReturnsEmpty(t *testing.T) {
+	s := newMemoryStoreForTest()
+	e := New(WithStore(s), WithPersistMode(PersistAlways))
+
+	result, err := e.Eval("▶HISTORY nope ◆")
+	if err != nil {
+		t.Fatalf("HISTORY failed: %v", err)
+	}
+	if result != "" {
+		t.Errorf("expected empty for nonexistent, got '%s'", result)
+	}
+}
+
+func TestPersistNoopInAlways(t *testing.T) {
+	s := newMemoryStoreForTest()
+	e := New(WithStore(s), WithPersistMode(PersistAlways))
+
+	e.Eval("▽X hello ◆")
+
+	// PERSIST should be a no-op in ALWAYS mode
+	result, err := e.Eval("▶PERSIST X ◆")
+	if err != nil {
+		t.Fatalf("PERSIST failed: %v", err)
+	}
+	if result != "" {
+		t.Errorf("expected empty from PERSIST no-op, got '%s'", result)
+	}
+}
+
+func TestAutoPersistVersionHistory(t *testing.T) {
+	s := newMemoryStoreForTest()
+	e := New(WithStore(s), WithPersistMode(PersistAlways))
+
+	e.Eval("▽X first ◆")
+	e.Eval("▽X second ◆")
+	e.Eval("▽X second ◆") // Dedup: should not create version 3
+
+	entries, err := s.GetHistory("X", 0)
+	if err != nil {
+		t.Fatalf("GetHistory failed: %v", err)
+	}
+	if len(entries) != 2 {
+		t.Fatalf("expected 2 versions (dedup), got %d", len(entries))
+	}
+}
+
+func TestHistoryRollback(t *testing.T) {
+	s := newMemoryStoreForTest()
+	e := New(WithStore(s), WithPersistMode(PersistAlways))
+
+	e.Eval("▽X first ◆")
+	e.Eval("▽X second ◆")
+	e.Eval("▽X third ◆")
+
+	// Call HISTORY to create ephemeral versions
+	e.Eval("▶HISTORY X ◆")
+
+	// Execute _X_1 to rollback
+	_, err := e.Eval("▶_X_1 ◆")
+	if err != nil {
+		t.Fatalf("rollback failed: %v", err)
+	}
+
+	// X should now be "first"
+	result, err := e.Eval("▲X")
+	if err != nil {
+		t.Fatalf("retrieve failed: %v", err)
+	}
+	if result != "first" {
+		t.Errorf("expected 'first' after rollback, got '%s'", result)
+	}
+}
+
+func TestSystemHistoryLimit(t *testing.T) {
+	e := New()
+
+	// Default is 0
+	result, err := e.Eval("▶SYSTEM HISTORY_LIMIT ◆")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != "0" {
+		t.Errorf("expected '0', got '%s'", result)
+	}
+
+	// Set it
+	_, err = e.Eval("▶SYSTEM\nHISTORY_LIMIT\n5\n◆")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	result, err = e.Eval("▶SYSTEM HISTORY_LIMIT ◆")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != "5" {
+		t.Errorf("expected '5', got '%s'", result)
+	}
+}
+
+// newMemoryStoreForTest creates a store.Memory via the store package.
+// We use eval.Store interface but the concrete type is store.Memory.
+func newMemoryStoreForTest() *memoryStoreWrapper {
+	return &memoryStoreWrapper{
+		data:     make(map[string]string),
+		versions: make(map[string][]versionEntry),
+	}
+}
+
+type versionEntry struct {
+	version int
+	value   string
+}
+
+// memoryStoreWrapper is a simple in-evaluator-test store that implements
+// both eval.Store and store.HistoryStore semantics.
+type memoryStoreWrapper struct {
+	data     map[string]string
+	versions map[string][]versionEntry
+}
+
+func (m *memoryStoreWrapper) Get(name string) (expr.Expr, error) {
+	if v, ok := m.data[name]; ok {
+		return expr.Text{Value: v}, nil
+	}
+	return nil, nil
+}
+
+func (m *memoryStoreWrapper) Put(name string, e expr.Expr) error {
+	value := ""
+	if e != nil {
+		value = e.String()
+	}
+	// Dedup
+	if vv := m.versions[name]; len(vv) > 0 {
+		if vv[len(vv)-1].value == value {
+			m.data[name] = value
+			return nil
+		}
+	}
+	ver := len(m.versions[name]) + 1
+	m.versions[name] = append(m.versions[name], versionEntry{version: ver, value: value})
+	m.data[name] = value
+	return nil
+}
+
+func (m *memoryStoreWrapper) Delete(name string) error {
+	delete(m.data, name)
+	delete(m.versions, name)
+	return nil
+}
+
+func (m *memoryStoreWrapper) Close() error { return nil }
+
+func (m *memoryStoreWrapper) GetHistory(name string, limit int) ([]store.VersionEntry, error) {
+	vv := m.versions[name]
+	if len(vv) == 0 {
+		return nil, nil
+	}
+	result := make([]store.VersionEntry, len(vv))
+	for i, v := range vv {
+		result[len(vv)-1-i] = store.VersionEntry{Version: v.version, Value: v.value}
+	}
+	if limit > 0 && limit < len(result) {
+		result = result[:limit]
+	}
+	return result, nil
+}

@@ -1,0 +1,5 @@
+# EXPECTED: the true branch
+▶IF TRUE
+the true branch
+the false branch
+◆

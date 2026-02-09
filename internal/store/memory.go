@@ -12,6 +12,7 @@ type Memory struct {
 	mu       sync.RWMutex
 	data     map[string]expr.Expr
 	metadata map[string]string
+	versions map[string][]VersionEntry // name -> versions (oldest first)
 
 	// Corpus support
 	corpora    map[string]bool              // corpus name -> exists
@@ -26,6 +27,7 @@ func NewMemory() *Memory {
 	return &Memory{
 		data:       make(map[string]expr.Expr),
 		metadata:   make(map[string]string),
+		versions:   make(map[string][]VersionEntry),
 		corpora:    make(map[string]bool),
 		members:    make(map[string][]string),
 		ftsContent: make(map[string]map[string]string),
@@ -44,25 +46,68 @@ func (m *Memory) Get(name string) (expr.Expr, error) {
 	return nil, nil
 }
 
-// Put stores an expression by name.
+// Put stores an expression by name, appending a new version if changed.
 func (m *Memory) Put(name string, e expr.Expr) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
+	value := ""
+	if e != nil {
+		value = e.String()
+	}
+
+	// Dedup: skip if value unchanged
+	if vv := m.versions[name]; len(vv) > 0 {
+		if vv[len(vv)-1].Value == value {
+			m.data[name] = e
+			return nil
+		}
+	}
+
+	ver := len(m.versions[name]) + 1
+	m.versions[name] = append(m.versions[name], VersionEntry{
+		Version: ver,
+		Value:   value,
+	})
 	m.data[name] = e
 	return nil
 }
 
-// Delete removes an expression by name.
+// Delete removes an expression and all its versions by name.
 func (m *Memory) Delete(name string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	delete(m.data, name)
+	delete(m.versions, name)
 	return nil
 }
 
 // Close is a no-op for memory store.
 func (m *Memory) Close() error {
 	return nil
+}
+
+// GetHistory returns version entries for a name, newest first.
+// If limit <= 0, all versions are returned.
+func (m *Memory) GetHistory(name string, limit int) ([]VersionEntry, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	vv := m.versions[name]
+	if len(vv) == 0 {
+		return nil, nil
+	}
+
+	// Return newest-first
+	result := make([]VersionEntry, len(vv))
+	for i, v := range vv {
+		result[len(vv)-1-i] = v
+	}
+
+	if limit > 0 && limit < len(result) {
+		result = result[:limit]
+	}
+	return result, nil
 }
 
 // GetMetadata retrieves a metadata value by key.
@@ -214,5 +259,11 @@ type CorpusStore interface {
 var (
 	_ CorpusStore = (*SQLite)(nil)
 	_ CorpusStore = (*Memory)(nil)
+)
+
+// Verify both implementations satisfy HistoryStore.
+var (
+	_ HistoryStore = (*SQLite)(nil)
+	_ HistoryStore = (*Memory)(nil)
 )
 

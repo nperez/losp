@@ -1,0 +1,8 @@
+# EXPECTED: hello
+▶SYSTEM
+PERSIST_MODE
+ALWAYS
+◆
+▽X hello ◆
+▶PERSIST X ◆
+▲X

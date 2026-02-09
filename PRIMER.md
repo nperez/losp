@@ -385,6 +385,8 @@ Arguments bind positionally. Use newlines to separate multiple string expression
 
 ## Argument Parsing
 
+**THE FUNDAMENTAL RULE: All arguments are expressions. Whitespace within a line does NOT split arguments. Only newlines and operator boundaries separate arguments.**
+
 Arguments are parsed as expressions. The rules are:
 
 1. **Text on a single line is one argument** — whitespace within a line does NOT split arguments
@@ -495,9 +497,9 @@ Evaluates condition. If result equals `TRUE`, evaluates then-expr; otherwise eva
 
 The `▷COMPARE` fires during IF's argument parsing, returning TRUE or FALSE immediately. This is useful when comparing against constants or values that won't change during execution.
 
-**FOREACH**: `▶FOREACH ▲items ▲body ◆`
+**FOREACH**: `▶FOREACH items-expr body-name ◆`
 
-Body is executed for each item, receiving it as the first argument:
+Two expression arguments. The first evaluates to text containing expressions (one per line or operator boundary); these are re-parsed, and each result is passed as the first argument to the expression named by the second argument:
 
 ```losp
 ▼ShowItem
@@ -515,7 +517,7 @@ Body is executed for each item, receiving it as the first argument:
 
 ▶FOREACH
     ▲Items
-    ▲ShowItem
+    ShowItem
 ◆
 
 # Output
@@ -523,6 +525,13 @@ Body is executed for each item, receiving it as the first argument:
 - apple
 - banana
 - cherry
+```
+
+The body name is evaluated, so dynamic dispatch works:
+
+```losp
+▼BodyRef ShowItem ◆
+▶FOREACH ▲Items ▲BodyRef ◆
 ```
 
 ### LLM Interaction
@@ -604,6 +613,10 @@ LOAD accepts an optional default value. If the key doesn't exist or is empty, th
 ```
 
 Persistence is explicit. Normal global variables exist only for the engine instance lifetime.
+
+In `ALWAYS` mode (`▶SYSTEM PERSIST_MODE ALWAYS ◆`), every store operation auto-persists, and PERSIST is a no-op — the value is already persisted. PERSIST is also a no-op in `NEVER` mode.
+
+Persistence uses append-only versioned storage: every mutation that changes an expression's value appends a new version row. Retrieval always returns the latest version. Use `HISTORY` to query prior versions.
 
 ### Data Extraction
 
@@ -786,17 +799,33 @@ Query or change runtime settings. With one argument, returns the current value. 
 | `MAX_TOKENS` | Max response tokens |
 | `EMBED_MODEL` | Embedding model (Ollama default: `qwen3-embedding:0.6b`) |
 | `SEARCH_LIMIT` | Max results from SEARCH/SIMILAR (default 10) |
+| `HISTORY_LIMIT` | Max versions returned by HISTORY (default 0 = all) |
 
 ```losp
 ▶SAY Current model: ▶SYSTEM MODEL ◆ ◆
 
-▶SYSTEM MODEL qwen3:4b ◆
-▶SYSTEM TEMPERATURE 0.3 ◆
+▶SYSTEM
+    MODEL
+    qwen3:4b
+◆
+▶SYSTEM
+    TEMPERATURE
+    0.3
+◆
 ▶PROMPT Be concise. What is 2+2? ◆
 
-▶SYSTEM PROVIDER ANTHROPIC ◆
-▶SYSTEM MODEL claude-sonnet-4-20250514 ◆
-▶SYSTEM TEMPERATURE 0.9 ◆
+▶SYSTEM
+    PROVIDER
+    ANTHROPIC
+◆
+▶SYSTEM
+    MODEL
+    claude-sonnet-4-20250514
+◆
+▶SYSTEM
+    TEMPERATURE
+    0.9
+◆
 ▶PROMPT Be creative. Write a haiku. ◆
 ```
 
@@ -860,6 +889,68 @@ Vector similarity search within a corpus. Embeds the query text, then finds the 
 ```
 
 EMBED must have been called on the corpus first.
+
+### Version History
+
+**HISTORY**: `▶HISTORY name ◆` → versioned expression names (newline-separated, newest first)
+
+Queries the version history of a persisted expression. Requires `PERSIST_MODE ALWAYS` to accumulate versions — every store operation that changes the value appends a new version. Duplicate consecutive values are not stored.
+
+HISTORY creates ephemeral named expressions in the namespace (e.g., `_X_1`, `_X_2`, `_X_3`) — one per version. Each is a deferred store that, when executed, redefines the original expression to that version's value (rollback).
+
+```losp
+▶SYSTEM
+    PERSIST_MODE
+    ALWAYS
+◆
+▽X first value ◆
+▽X second value ◆
+▽X third value ◆
+
+▶SAY ▶HISTORY X ◆ ◆
+# Prints:
+# _X_3
+# _X_2
+# _X_1
+```
+
+**Rollback** — execute a version expression to restore an earlier value:
+
+```losp
+▽_h ▶HISTORY X ◆ ◆
+▶_X_1 ◆           # X is now "first value" again
+▶SAY ▲X ◆         # Prints: first value
+```
+
+**Introspect** — retrieve a version expression to see its definition without rollback:
+
+```losp
+▲_X_2              # Returns the ▼X second value ◆ definition text
+```
+
+Control the number of versions returned with `SYSTEM HISTORY_LIMIT`:
+
+```losp
+▶SYSTEM
+    HISTORY_LIMIT
+    5
+◆
+▶HISTORY X ◆      # Returns at most 5 most recent versions
+```
+
+HISTORY returns EMPTY if the expression has no version history or doesn't exist.
+
+HISTORY expressions work with CORPUS for semantic search over version history:
+
+```losp
+▽_h ▶HISTORY X ◆ ◆
+▽c ▶CORPUS versions ◆ ◆
+▶ADD ▲c _X_1 ◆
+▶ADD ▲c _X_2 ◆
+▶ADD ▲c _X_3 ◆
+▶INDEX ▲c ◆
+▶SEARCH ▲c keyword ◆   # Find which version mentions "keyword"
+```
 
 ---
 
@@ -1240,6 +1331,7 @@ On subsequent runs, the backing store `__stdlib__` replaces the built-in prelude
 | End operator scope | `◆` |
 | Check equality | `▶COMPARE ▲a ▲b ◆` → TRUE/FALSE |
 | Conditional | `▶IF cond then else ◆` (args are expressions) |
+| Iterate over items | `▶FOREACH items-expr body-name ◆` |
 | Prompt LLM | `▶PROMPT system user ◆` (args are expressions) |
 | Extract labeled field | `▶EXTRACT LABEL ▲source ◆` |
 | Convert to uppercase | `▶UPPER expr... ◆` |
@@ -1261,6 +1353,8 @@ On subsequent runs, the backing store `__stdlib__` replaces the built-in prelude
 | Full-text search | `▶SEARCH handle query ◆` → names |
 | Generate embeddings | `▶EMBED handle ◆` |
 | Vector similarity search | `▶SIMILAR handle query ◆` → names |
+| Query version history | `▶HISTORY name ◆` → version names |
+| Rollback to version | `▶_Name_N ◆` (execute a HISTORY version) |
 
 ---
 

@@ -14,3 +14,15 @@ type Store interface {
 	// Close releases resources.
 	Close() error
 }
+
+// VersionEntry represents a single version of a persisted expression.
+type VersionEntry struct {
+	Version int
+	Value   string
+	Ts      string
+}
+
+// HistoryStore extends Store with version history queries.
+type HistoryStore interface {
+	GetHistory(name string, limit int) ([]VersionEntry, error)
+}

@@ -1,0 +1,6 @@
+# EXPECTED: the default value
+▶LOAD
+nonexistent_key_12345
+the default value
+◆
+▶SAY ▲nonexistent_key_12345 ◆

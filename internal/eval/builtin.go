@@ -2,6 +2,7 @@ package eval
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -78,6 +79,8 @@ func getBuiltin(name string) BuiltinFunc {
 		return builtinEmbed
 	case "SIMILAR":
 		return builtinSimilar
+	case "HISTORY":
+		return builtinHistory
 	}
 	return nil
 }
@@ -146,70 +149,31 @@ func builtinCompare(e *Evaluator, argsRaw string) (expr.Expr, error) {
 }
 
 func builtinForeach(e *Evaluator, argsRaw string) (expr.Expr, error) {
-	// FOREACH item1 item2 ... body
-	// Last arg is body expression (typically ▲BodyName), preceding are items
-	// We need to extract the body name from the last ▲ or △ before parsing
-
-	argsRaw = strings.TrimSpace(argsRaw)
-	if argsRaw == "" {
-		return expr.Empty{}, nil
-	}
-
-	// Find the last RETRIEVE (▲) in the args to get the body name
-	lastRetrieve := strings.LastIndex(argsRaw, string(token.RuneRetrieve))
-	if lastRetrieve == -1 {
-		lastRetrieve = strings.LastIndex(argsRaw, string(token.RuneImmRetrieve))
-	}
-
-	var bodyName string
-	var itemsRaw string
-
-	if lastRetrieve != -1 {
-		// Extract body name from the retrieve
-		itemsRaw = strings.TrimSpace(argsRaw[:lastRetrieve])
-		bodyPart := argsRaw[lastRetrieve+len(string(token.RuneRetrieve)):]
-		bodyName = strings.TrimSpace(strings.Fields(bodyPart)[0])
-	} else {
-		// No retrieve - assume last word is body name
-		parts := strings.Fields(argsRaw)
-		if len(parts) < 2 {
-			return expr.Empty{}, nil
-		}
-		bodyName = parts[len(parts)-1]
-		itemsRaw = strings.Join(parts[:len(parts)-1], " ")
-	}
-
-	// Parse items
-	args, err := e.parseArgs(itemsRaw)
+	// FOREACH items-expr body-name
+	// Two expression arguments:
+	//   1. items-expr - evaluates to text containing expressions (one per line or operator)
+	//   2. body-name - text name of the expression to execute per item
+	// The items text is re-parsed as expressions; each result is passed to body.
+	args, err := e.parseArgs(argsRaw)
 	if err != nil {
 		return nil, err
 	}
-
-	// FOREACH iterates over expressions - newlines and operators delimit expressions
-	// Each arg from parseArgs might contain multiple expressions (e.g., if a RETRIEVE
-	// returns "▲foo\n▲bar"), so we re-parse each arg to expand expressions
-	var items []string
-	for _, arg := range args {
-		// Re-parse the arg to expand any expressions within it
-		subItems, err := e.parseArgs(arg)
-		if err != nil {
-			// If parsing fails, just use the arg as-is
-			if s := strings.TrimSpace(arg); s != "" {
-				items = append(items, s)
-			}
-		} else if len(subItems) > 0 {
-			items = append(items, subItems...)
-		} else {
-			// No sub-items parsed, use arg as-is
-			if s := strings.TrimSpace(arg); s != "" {
-				items = append(items, s)
-			}
-		}
+	if len(args) < 2 {
+		return expr.Empty{}, nil
 	}
 
+	// Re-parse the items text to expand embedded expressions
+	itemsText := args[0]
+	items, err := e.parseArgs(itemsText)
+	if err != nil {
+		return expr.Empty{}, nil
+	}
 	if len(items) == 0 {
 		return expr.Empty{}, nil
 	}
+
+	// Second arg is the body expression name
+	bodyName := args[1]
 
 	// Get the body expression
 	stored := e.namespace.Get(bodyName)
@@ -249,7 +213,12 @@ func builtinSay(e *Evaluator, argsRaw string) (expr.Expr, error) {
 }
 
 func builtinRead(e *Evaluator, argsRaw string) (expr.Expr, error) {
-	prompt := strings.TrimSpace(argsRaw)
+	// Parse args as expressions
+	evaluated, err := e.Eval(argsRaw)
+	if err != nil {
+		return nil, err
+	}
+	prompt := strings.TrimSpace(evaluated)
 
 	if e.inputReader == nil {
 		return expr.Empty{}, nil
@@ -345,8 +314,8 @@ func formatAsDefinition(name string, val expr.Expr) string {
 }
 
 func builtinPersist(e *Evaluator, argsRaw string) (expr.Expr, error) {
-	// In NEVER mode, PERSIST is a no-op
-	if e.PersistMode() == PersistNever {
+	// In NEVER or ALWAYS mode, PERSIST is a no-op
+	if e.PersistMode() == PersistNever || e.PersistMode() == PersistAlways {
 		return expr.Empty{}, nil
 	}
 
@@ -538,17 +507,19 @@ func builtinSystem(e *Evaluator, argsRaw string) (expr.Expr, error) {
 	// SYSTEM setting [value]
 	// With one arg: returns current value
 	// With two args: sets new value
-	// Split by whitespace since SYSTEM only takes simple text arguments
-	fields := strings.Fields(strings.TrimSpace(argsRaw))
-	if len(fields) < 1 {
+	// Arguments are expressions — newlines or operators separate them
+	args, err := e.parseArgs(argsRaw)
+	if err != nil {
+		return nil, err
+	}
+	if len(args) < 1 {
 		return expr.Empty{}, nil
 	}
 
-	setting := strings.ToUpper(fields[0])
-	// Rejoin remaining fields as the value (preserves spaces in model names etc.)
+	setting := strings.ToUpper(strings.TrimSpace(args[0]))
 	var value string
-	if len(fields) >= 2 {
-		value = strings.Join(fields[1:], " ")
+	if len(args) >= 2 {
+		value = strings.TrimSpace(args[1])
 	}
 
 	switch setting {
@@ -623,6 +594,17 @@ func builtinSystem(e *Evaluator, argsRaw string) (expr.Expr, error) {
 			return expr.Empty{}, nil
 		}
 		return expr.Text{Value: e.GetSetting("SEARCH_LIMIT", "10")}, nil
+
+	case "HISTORY_LIMIT":
+		if value != "" {
+			n, err := strconv.Atoi(value)
+			if err != nil {
+				return expr.Text{Value: "INVALID"}, nil
+			}
+			e.historyLimit = n
+			return expr.Empty{}, nil
+		}
+		return expr.Text{Value: strconv.Itoa(e.historyLimit)}, nil
 
 	default:
 		return expr.Text{Value: "UNKNOWN_SETTING"}, nil

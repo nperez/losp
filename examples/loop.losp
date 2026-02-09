@@ -3,9 +3,13 @@
     - ▲item
 ◆
 
-▶SAY ▶FOREACH
+▼Items
     apple
     banana
     cherry
-    ▲ShowItem
+◆
+
+▶SAY ▶FOREACH
+    ▲Items
+    ShowItem
 ◆ ◆

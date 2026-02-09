@@ -51,6 +51,29 @@ Execution order: LOAD → PARSE → POPULATE → EXECUTE
 
 **To capture a computed result that uses placeholder values, pass it to a helper function as an argument.** The helper receives the already-evaluated result via its own placeholder.
 
+## ⚠️⚠️⚠️ ARGUMENTS ARE EXPRESSIONS, NOT WORDS ⚠️⚠️⚠️
+
+**THIS IS THE #2 MISTAKE. DO NOT MAKE IT.**
+
+In losp, ALL arguments to ALL builtins and expressions are **expressions**. An expression is:
+- **A full line of text** — whitespace within a line is content, NOT a separator
+- **An operator result** — each operator produces exactly one expression
+
+**Newlines separate text expressions. Spaces do not. Operators are natural boundaries.**
+
+```losp
+▶COMPARE hello world ◆     # ONE argument: "hello world"
+▶COMPARE
+hello
+world
+◆                          # TWO arguments: "hello", "world"
+▶COMPARE ▲A ▲B ◆          # TWO arguments: result of ▲A, result of ▲B
+```
+
+**In Go implementation:** EVERY builtin MUST use `e.parseArgs(argsRaw)` or `e.Eval(argsRaw)`. NEVER `strings.Fields(argsRaw)`. NEVER `strings.Split(argsRaw, " ")`. NEVER any whitespace-based splitting on raw argument strings. NO EXCEPTIONS.
+
+**If you find a builtin using `strings.Fields` on raw args, it is BROKEN.** Fix it.
+
 ## ⚠️ BODIES ARE EPHEMERAL ⚠️
 
 **When immediate operators fire, they are CONSUMED. The stored body is UPDATED.**

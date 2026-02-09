@@ -106,6 +106,7 @@ type Evaluator struct {
 	corpusRegistry    *CorpusRegistry
 	providerFactories map[string]ProviderFactory
 	settings          map[string]string // Runtime settings (SEARCH_LIMIT, etc.)
+	historyLimit      int               // Limit for HISTORY queries (0 = all)
 }
 
 // Option configures an Evaluator.
@@ -188,6 +189,7 @@ func (e *Evaluator) forkForAsync() *Evaluator {
 		persistMode:       e.persistMode,
 		providerFactories: e.providerFactories,
 		settings:          e.settings,
+		historyLimit:      e.historyLimit,
 		// inputReader, outputWriter, streamCb are nil (SAY silenced, READ returns EMPTY)
 	}
 }

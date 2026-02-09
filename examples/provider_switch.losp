@@ -3,8 +3,14 @@
 ▶SAY [1] Starting provider: ▶SYSTEM PROVIDER ◆ ◆
 ▶SAY [1] Starting model: ▶SYSTEM MODEL ◆ ◆
 
-▶SYSTEM MODEL gemma3:4b-it-qat ◆
-▶SYSTEM TEMPERATURE 0.3 ◆
+▶SYSTEM
+MODEL
+gemma3:4b-it-qat
+◆
+▶SYSTEM
+TEMPERATURE
+0.3
+◆
 ▶SAY [2] Switched to model: ▶SYSTEM MODEL ◆ (temp=▶SYSTEM TEMPERATURE ◆) ◆
 
 ▽OllamaAnswer ▶PROMPT
@@ -13,8 +19,14 @@ What is the capital of Japan?
 ◆ ◆
 ▶SAY [2] Ollama says: ▲OllamaAnswer ◆
 
-▶SYSTEM PROVIDER OPENROUTER ◆
-▶SYSTEM MODEL nvidia/nemotron-3-nano-30b-a3b:free ◆
+▶SYSTEM
+PROVIDER
+OPENROUTER
+◆
+▶SYSTEM
+MODEL
+nvidia/nemotron-3-nano-30b-a3b:free
+◆
 ▶SAY [3] Switched to provider: ▶SYSTEM PROVIDER ◆, model: ▶SYSTEM MODEL ◆ (temp=▶SYSTEM TEMPERATURE ◆) ◆
 
 ▽OpenRouterAnswer ▶PROMPT

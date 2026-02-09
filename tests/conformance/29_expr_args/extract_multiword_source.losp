@@ -1,0 +1,6 @@
+# EXPECTED: the value here
+▽src FIELD: the value here ◆
+▶EXTRACT
+FIELD
+▲src
+◆

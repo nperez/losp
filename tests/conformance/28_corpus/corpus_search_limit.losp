@@ -5,5 +5,8 @@
 ▶ADD ▲c a ◆
 ▶ADD ▲c b ◆
 ▶INDEX ▲c ◆
-▶SYSTEM SEARCH_LIMIT 1 ◆
+▶SYSTEM
+SEARCH_LIMIT
+1
+◆
 ▶COUNT ▶SEARCH ▲c content ◆ ◆

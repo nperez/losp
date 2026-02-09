@@ -1,9 +1,9 @@
-# EXPECTED: [one]
-# EXPECTED: [two]
+# EXPECTED: [hello world]
+# EXPECTED: [foo bar]
 ▼ShowItem □item [▲item] ◆
 ▼Items
-one
-two
+hello world
+foo bar
 ◆
 ▶FOREACH
 ▲Items

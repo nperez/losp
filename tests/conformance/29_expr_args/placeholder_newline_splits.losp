@@ -1,0 +1,6 @@
+# EXPECTED: [first arg] and [second arg]
+▼TwoArgs □a □b ▶SAY [▲a] and [▲b] ◆ ◆
+▶TwoArgs
+first arg
+second arg
+◆

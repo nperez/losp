@@ -1,0 +1,13 @@
+# EXPECTED: 2
+▶SYSTEM
+PERSIST_MODE
+ALWAYS
+◆
+▽X first ◆
+▽X second ◆
+▽X third ◆
+▶SYSTEM
+HISTORY_LIMIT
+2
+◆
+▶COUNT ▶HISTORY X ◆ ◆

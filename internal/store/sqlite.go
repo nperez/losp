@@ -5,13 +5,14 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
+	"strings"
 	"sync"
 
 	"nickandperla.net/losp/internal/expr"
 )
 
 // Current schema version
-const SchemaVersion = "2"
+const SchemaVersion = "3"
 
 // SQLite is a SQLite-backed store.
 type SQLite struct {
@@ -57,13 +58,23 @@ func NewSQLite(path string) (*SQLite, error) {
 			db.Close()
 			return nil, err
 		}
-		if err := s.setMetadataUnlocked("schema_version", SchemaVersion); err != nil {
+		version = "2"
+	}
+	if version == "2" {
+		// Migrate to v3: versioned expressions
+		if err := s.migrateToV3(); err != nil {
 			db.Close()
 			return nil, err
 		}
-	} else if version != SchemaVersion {
+		version = "3"
+	}
+	if version != SchemaVersion {
 		db.Close()
 		return nil, fmt.Errorf("unsupported schema version: %s (expected %s)", version, SchemaVersion)
+	}
+	if err := s.setMetadataUnlocked("schema_version", SchemaVersion); err != nil {
+		db.Close()
+		return nil, err
 	}
 
 	return s, nil
@@ -95,13 +106,48 @@ func (s *SQLite) migrateToV2() error {
 	return err
 }
 
-// Get retrieves an expression by name.
+// migrateToV3 converts the expressions table to append-only versioned storage.
+func (s *SQLite) migrateToV3() error {
+	// Check if expressions table already has a version column (idempotent)
+	var cnt int
+	err := s.db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('expressions') WHERE name = 'version'`).Scan(&cnt)
+	if err != nil {
+		return err
+	}
+	if cnt > 0 {
+		// Already migrated
+		return nil
+	}
+
+	_, err = s.db.Exec(`
+		ALTER TABLE expressions RENAME TO expressions_old;
+
+		CREATE TABLE expressions (
+			name    TEXT    NOT NULL,
+			version INTEGER NOT NULL,
+			value   TEXT    NOT NULL,
+			ts      TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
+			PRIMARY KEY (name, version)
+		);
+
+		CREATE INDEX IF NOT EXISTS idx_expr_latest
+			ON expressions(name, version DESC);
+
+		INSERT INTO expressions (name, version, value)
+			SELECT name, 1, value FROM expressions_old;
+
+		DROP TABLE expressions_old;
+	`)
+	return err
+}
+
+// Get retrieves the latest version of an expression by name.
 func (s *SQLite) Get(name string) (expr.Expr, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	var value string
-	err := s.db.QueryRow("SELECT value FROM expressions WHERE name = ?", name).Scan(&value)
+	err := s.db.QueryRow("SELECT value FROM expressions WHERE name = ? ORDER BY version DESC LIMIT 1", name).Scan(&value)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -112,7 +158,7 @@ func (s *SQLite) Get(name string) (expr.Expr, error) {
 	return expr.Text{Value: value}, nil
 }
 
-// Put stores an expression by name.
+// Put appends a new version of an expression (if the value changed).
 func (s *SQLite) Put(name string, e expr.Expr) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -122,20 +168,77 @@ func (s *SQLite) Put(name string, e expr.Expr) error {
 		value = e.String()
 	}
 
-	_, err := s.db.Exec(`
-		INSERT INTO expressions (name, value) VALUES (?, ?)
-		ON CONFLICT(name) DO UPDATE SET value = excluded.value
-	`, name, value)
+	// Check latest version for dedup
+	var latestValue string
+	var latestVersion int
+	err := s.db.QueryRow(
+		"SELECT version, value FROM expressions WHERE name = ? ORDER BY version DESC LIMIT 1", name,
+	).Scan(&latestVersion, &latestValue)
+	if err == sql.ErrNoRows {
+		// First version
+		_, err = s.db.Exec(
+			"INSERT INTO expressions (name, version, value) VALUES (?, 1, ?)", name, value,
+		)
+		return err
+	}
+	if err != nil {
+		return err
+	}
+
+	// No-op if value unchanged
+	if latestValue == value {
+		return nil
+	}
+
+	_, err = s.db.Exec(
+		"INSERT INTO expressions (name, version, value) VALUES (?, ?, ?)",
+		name, latestVersion+1, value,
+	)
 	return err
 }
 
-// Delete removes an expression by name.
+// Delete removes all versions of an expression by name.
 func (s *SQLite) Delete(name string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	_, err := s.db.Exec("DELETE FROM expressions WHERE name = ?", name)
 	return err
+}
+
+// GetHistory returns version entries for a name, newest first.
+// If limit <= 0, all versions are returned.
+func (s *SQLite) GetHistory(name string, limit int) ([]VersionEntry, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	var rows *sql.Rows
+	var err error
+	if limit > 0 {
+		rows, err = s.db.Query(
+			"SELECT version, value, ts FROM expressions WHERE name = ? ORDER BY version DESC LIMIT ?",
+			name, limit,
+		)
+	} else {
+		rows, err = s.db.Query(
+			"SELECT version, value, ts FROM expressions WHERE name = ? ORDER BY version DESC",
+			name,
+		)
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var entries []VersionEntry
+	for rows.Next() {
+		var ve VersionEntry
+		if err := rows.Scan(&ve.Version, &ve.Value, &ve.Ts); err != nil {
+			return nil, err
+		}
+		entries = append(entries, ve)
+	}
+	return entries, rows.Err()
 }
 
 // Close closes the database connection.
@@ -261,9 +364,12 @@ func (s *SQLite) SearchFTS(corpus, query string, limit int) ([]string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	table := fmt.Sprintf(`"corpus_fts_%s"`, corpus)
+	// Quote the query as an FTS5 phrase to prevent raw user text from being
+	// interpreted as FTS5 syntax (column filters, boolean operators, etc.).
+	safeQuery := `"` + strings.ReplaceAll(query, `"`, `""`) + `"`
 	rows, err := s.db.Query(
 		fmt.Sprintf(`SELECT expr_name FROM %s WHERE %s MATCH ? ORDER BY rank LIMIT ?`, table, table),
-		query, limit,
+		safeQuery, limit,
 	)
 	if err != nil {
 		return nil, err

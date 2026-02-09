@@ -1,0 +1,3 @@
+# EXPECTED: TRUE
+▽A hello ◆
+▶COMPARE ▲A hello ◆

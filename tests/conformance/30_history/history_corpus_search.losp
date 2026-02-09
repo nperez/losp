@@ -1,0 +1,23 @@
+# EXPECTED: _X_2
+▶SYSTEM
+PERSIST_MODE
+ALWAYS
+◆
+▽X cats are great ◆
+▽X dogs are loyal ◆
+▽X fish swim fast ◆
+▽_h ▶HISTORY X ◆ ◆
+▽H ▶CORPUS history_search ◆ ◆
+▶ADD ▲H
+_X_1
+◆
+▶ADD ▲H
+_X_2
+◆
+▶ADD ▲H
+_X_3
+◆
+▶INDEX ▲H ◆
+▶SEARCH ▲H
+dogs
+◆
