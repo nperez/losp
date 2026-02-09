@@ -1,0 +1,11 @@
+# EXPECTED: 2
+▶SYSTEM
+PERSIST_MODE
+ALWAYS
+◆
+▽List first ◆
+▶APPEND
+List
+second
+◆
+▶COUNT ▶HISTORY List ◆ ◆

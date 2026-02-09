@@ -1,111 +1,168 @@
-# losp Quick Reference
+# losp Code Generation Reference
 
-A streaming template language using Unicode operators.
+losp is a streaming expression language using Unicode operators instead of parentheses. Operators consume tokens until the `◆` terminator.
 
 ## Operators
 
 | Op | Name | Timing | Description |
 |----|------|--------|-------------|
-| `▼` | Store | Deferred | Store expression (definition preserved) |
-| `▽` | ImmStore | Immediate | Evaluate now, store result |
-| `▲` | Retrieve | Deferred | Retrieve stored expression |
+| `▼` | Store | Deferred | Define expression (body preserved for later execution) |
+| `▽` | ImmStore | Immediate | Evaluate body now, store result |
+| `▲` | Retrieve | Deferred | Retrieve stored expression (deferred ops returned as text) |
 | `△` | ImmRetrieve | Immediate | Retrieve now, substitute into stream |
-| `▶` | Execute | Deferred | Execute expression or builtin |
+| `▶` | Execute | Deferred | Execute expression or builtin (deferred ops evaluated) |
 | `▷` | ImmExec | Immediate | Execute now, substitute result |
 | `□` | Placeholder | — | Declare argument slot |
-| `◯` | Defer | — | Prevent immediate resolution (consumed when used) |
-| `◆` | Terminator | — | End operator scope |
+| `◯` | Defer | — | Prevent immediate resolution (consumed on use) |
+| `◆` | Terminator | — | End ONE operator's scope |
 
-## The Rules
+**Timing rules:**
+- **Immediate** (`△` `▷` `▽`): Fire as encountered during parsing. Result spliced into stream.
+- **Deferred** (`▲` `▶` `▼`): Stored as-is. Resolved when executed.
+- Inside `▼` bodies: immediate operators fire at DEFINITION time, deferred at EXECUTION time.
+- Every `◆` terminates exactly ONE operator. Count your terminators.
 
-1. **Immediate operators fire when parsed.** `△`, `▷`, `▽` resolve as encountered.
-2. **Deferred operators fire when executed.** `▲`, `▶`, `▼` resolve later.
-3. **Every `◆` terminates ONE operator.** Count your terminators.
-4. **◯ defers until next parse, then is consumed.** Not preserved in bodies.
-5. **Global namespace.** All variables share one flat dictionary.
+## THE ARGUMENT RULE
 
-## Execution Order
+**Newlines separate text arguments. Spaces do NOT. Operators are natural boundaries.**
 
-```
-LOAD → PARSE → POPULATE → EXECUTE
-         ↑           ↑
-   imm ops fire   placeholders bound
-```
+This is the most important rule in losp. Violations produce wrong code every time.
 
-**Critical:** Immediate operators fire BEFORE placeholders are bound.
-
-## Arguments
-
-**Newlines separate text arguments. Operators are already boundaries.**
-
-| Code | Args |
-|------|------|
-| `▶FUNC hello world ◆` | 1: "hello world" |
-| `▶FUNC`<br>`hello`<br>`world`<br>`◆` | 2: "hello", "world" |
-| `▶FUNC ▲A ▲B ◆` | 2: result of ▲A, result of ▲B |
-| `▶COMPARE ▲X yes ◆` | 2: result of ▲X, "yes" (operator + text) |
-
-**CRITICAL: For COMPARE with two literal strings, MUST use newlines:**
 ```losp
-▶COMPARE
-a
-a
+▶BUILTIN hello world ◆
+```
+This is ONE argument: the text `hello world`.
+
+```losp
+▶BUILTIN
+hello
+world
 ◆
 ```
-Returns: TRUE
+This is TWO arguments: `hello` and `world`.
 
 ```losp
+▶BUILTIN ▲A ▲B ◆
+```
+This is TWO arguments: result of `▲A` and result of `▲B`. Operators are already boundaries.
+
+```losp
+▶BUILTIN ▲A some text ◆
+```
+This is TWO arguments: result of `▲A`, then `some text`.
+
+## Builtins
+
+Builtin names are **ALL CAPS** and case-sensitive.
+
+| Builtin | Signature | Returns |
+|---------|-----------|---------|
+| SAY | `▶SAY text... ◆` | (outputs text) |
+| COMPARE | `▶COMPARE val1 val2 ◆` | `TRUE` or `FALSE` |
+| IF | `▶IF condition then else ◆` | selected branch text |
+| FOREACH | `▶FOREACH items body-name ◆` | concatenated results |
+| PROMPT | `▶PROMPT system user ◆` | LLM response |
+| GENERATE | `▶GENERATE request ◆` | generated losp code |
+| READ | `▶READ [prompt] ◆` | user input line |
+| PERSIST | `▶PERSIST name ◆` | (saves to DB) |
+| LOAD | `▶LOAD name [default] ◆` | stored value |
+| COUNT | `▶COUNT expr ◆` | number of lines |
+| APPEND | `▶APPEND name content ◆` | (appends to expression) |
+| EXTRACT | `▶EXTRACT label source ◆` | extracted value |
+| UPPER | `▶UPPER text ◆` | uppercased |
+| LOWER | `▶LOWER text ◆` | lowercased |
+| TRIM | `▶TRIM text ◆` | trimmed |
+| SYSTEM | `▶SYSTEM setting [value] ◆` | current value or EMPTY |
+| HISTORY | `▶HISTORY name ◆` | version names |
+| CORPUS | `▶CORPUS name ◆` | handle |
+| ADD | `▶ADD handle name ◆` | EMPTY |
+| INDEX | `▶INDEX handle ◆` | EMPTY |
+| SEARCH | `▶SEARCH handle query ◆` | matching names |
+| EMBED | `▶EMBED handle ◆` | EMPTY |
+| SIMILAR | `▶SIMILAR handle query ◆` | matching names |
+| ASYNC | `▶ASYNC expr-name ◆` | handle |
+| AWAIT | `▶AWAIT handle ◆` | result |
+| CHECK | `▶CHECK handle ◆` | TRUE/FALSE |
+| TIMER | `▶TIMER ms expr-name ◆` | handle |
+| TICKS | `▶TICKS handle ◆` | ms remaining |
+| SLEEP | `▶SLEEP ms ◆` | EMPTY |
+| TRUE | `▲TRUE` | `TRUE` |
+| FALSE | `▲FALSE` | `FALSE` |
+| EMPTY | `▲EMPTY` | empty string |
+
+## IF and COMPARE
+
+IF takes exactly 3 arguments: condition, then-branch, else-branch.
+
+COMPARE takes exactly 2 arguments and returns `TRUE` or `FALSE`.
+
+**When COMPARE arguments are operators, they can be inline:**
+```losp
+▶COMPARE ▲X ▲Y ◆
+```
+Two arguments (operator boundaries).
+
+**When COMPARE arguments are plain text, they MUST be on separate lines:**
+```losp
+▶COMPARE
+hello
+hello
+◆
+```
+Returns: `TRUE`
+
+**`▶COMPARE hello hello ◆` is WRONG** — that is ONE argument `hello hello` compared to nothing.
+
+### IF with COMPARE — the correct patterns
+
+**Pattern 1: COMPARE with operator args, IF branches on separate lines**
+```losp
+▶IF ▶COMPARE ▲X target ◆
+matched
+not matched
+◆
+```
+Three args: `▶COMPARE` result (operator), `matched` (line), `not matched` (line).
+
+**Pattern 2: Inside an expression with placeholder**
+```losp
+▼Check □_val ▶IF ▶COMPARE ▲_val target ◆
+matched
+not matched
+◆ ◆
+▶Check target ◆
+```
+Output: `matched`
+
+**Pattern 3: COMPARE with two text literals**
+```losp
+▶IF
 ▶COMPARE
 a
 b
 ◆
+yes
+no
+◆
 ```
-Returns: FALSE
 
-**`▶COMPARE a a ◆` is WRONG** - it compares "a a" with nothing!
-
-## Builtins
-
-Builtin names are **case-sensitive and ALL CAPS**. `▶SAY` invokes the builtin; `▶say` or `▶Say` look up user expressions.
-
-| Builtin | Signature | Returns |
-|---------|-----------|---------|
-| COMPARE | `▶COMPARE val1 val2 ◆` | TRUE or FALSE |
-| IF | `▶IF cond then else ◆` | selected branch (cond is TRUE/FALSE text) |
-| FOREACH | `▶FOREACH ▲items ▲body ◆` | concatenated results |
-| PROMPT | `▶PROMPT system user ◆` | LLM response |
-| GENERATE | `▶GENERATE request ◆` | generated losp code (text) |
-| SAY | `▶SAY text... ◆` | (outputs text) |
-| READ | `▶READ [prompt] ◆` | user input line |
-| PERSIST | `▶PERSIST name ◆` | (saves to storage) |
-| LOAD | `▶LOAD name [default] ◆` | stored value |
-| COUNT | `▶COUNT expr ◆` | number of lines |
-| APPEND | `▶APPEND name content ◆` | (appends to expr) |
-| EXTRACT | `▶EXTRACT label source ◆` | extracted value |
-| UPPER | `▶UPPER text ◆` | uppercased text |
-| LOWER | `▶LOWER text ◆` | lowercased text |
-| TRIM | `▶TRIM text ◆` | trimmed text |
-| TRUE | `▲TRUE` | "TRUE" |
-| FALSE | `▲FALSE` | "FALSE" |
-| EMPTY | `▲EMPTY` | "" |
-| CORPUS | `▶CORPUS name ◆` | handle (e.g. `_corpus_1`) |
-| ADD | `▶ADD handle expr-name ◆` | EMPTY |
-| INDEX | `▶INDEX handle ◆` | EMPTY (builds FTS index) |
-| SEARCH | `▶SEARCH handle query ◆` | matching names (newline-separated) |
-| EMBED | `▶EMBED handle ◆` | EMPTY (generates embeddings) |
-| SIMILAR | `▶SIMILAR handle query ◆` | matching names (newline-separated) |
-
-### Corpus and Search
+**WRONG — branches on same line:**
 ```losp
-▽c ▶CORPUS characters ◆ ◆
-▶ADD ▲c CharName ◆
-▶ADD ▲c CharBio ◆
-▶INDEX ▲c ◆
-▶SEARCH ▲c warrior ◆
-▶EMBED ▲c ◆
-▶SIMILAR ▲c brave hero ◆
+▶IF ▶COMPARE ▲X target ◆ yes no ◆
 ```
-CORPUS creates/loads a persistent searchable collection. INDEX builds FTS5 for keyword search. EMBED generates vector embeddings via the LLM provider; SIMILAR finds semantically nearest neighbors. `SYSTEM SEARCH_LIMIT N` controls max results (default 10). `SYSTEM EMBED_MODEL model` sets the embedding model (default: `qwen3-embedding:0.6b` for Ollama).
+`yes no` is ONE argument. IF sees condition + one arg, no else branch.
+
+**WRONG — then and else on same line:**
+```losp
+▶IF ▶COMPARE ▲_val BAR ◆ correct incorrect ◆
+```
+`correct incorrect` is ONE argument. Must be:
+```losp
+▶IF ▶COMPARE ▲_val BAR ◆
+correct
+incorrect
+◆
+```
 
 ## Patterns
 
@@ -116,51 +173,22 @@ CORPUS creates/loads a persistent searchable collection. INDEX builds FTS5 for k
 ```
 Output: `hello`
 
-### Function with Placeholder
+### Expression with Placeholder
 ```losp
 ▼Greet □name Hello, ▲name! ◆
 ▶Greet Alice ◆
 ```
 Output: `Hello, Alice!`
 
-### Conditional
-IF checks if condition equals "TRUE" (the text). Use COMPARE to produce TRUE/FALSE:
+### Expression with IF
 ```losp
-▶IF
-▶COMPARE ▲X yes ◆
-matched
-not matched
-◆
-```
-Or use TRUE/FALSE directly:
-```losp
-▶IF
-TRUE
-yes-branch
-no-branch
-◆
-```
-
-### Return Values
-Expressions return their body's final text. No RETURN builtin exists.
-```losp
-▼Func ▶SAY side effect ◆ returned value ◆
-▶Func ◆
-```
-Output (SAY): `side effect`
-Result: `returned value`
-
-### Conditional Execution (execute selected branch only)
-```losp
-▼DoA ▶SAY A ran ◆ result-A ◆
-▼DoB ▶SAY B ran ◆ result-B ◆
-
-▶▶IF TRUE
-DoA
-DoB
+▼IsTarget □_val ▶IF ▶COMPARE ▲_val target ◆
+yes
+no
 ◆ ◆
+▶IsTarget target ◆
 ```
-IF returns text "DoA" or "DoB", outer `▶` executes only the selected one.
+Output: `yes`
 
 ### FOREACH
 ```losp
@@ -172,12 +200,12 @@ c
 ◆
 ▶FOREACH
 ▲Items
-▲ShowItem
+ShowItem
 ◆
 ```
 Output: `[a]\n[b]\n[c]`
 
-### APPEND (note the newlines!)
+### APPEND (arguments on separate lines)
 ```losp
 ▽List first ◆
 ▶APPEND
@@ -187,116 +215,44 @@ second item
 ```
 
 ### Executing Generated Code
-GENERATE returns code as text, not executed. Splice into an expression body with `▷`:
+GENERATE returns code as text. Splice into an expression body with `▷`:
 ```losp
 ▼_run ▷GENERATE Create code that outputs hello world ◆ ◆
 ▶_run ◆
 ```
-`▷GENERATE` fires during `▼`'s body collection, splicing the generated code into the body. `▶_run ◆` then executes it.
 
-### Immediate vs Deferred Inside Expressions
+### Conditional Execution (only run selected branch)
 ```losp
-▽X first ◆
-▼Template △X ◆
-▽X second ◆
-▶Template ◆
+▼DoA ▶SAY A ran ◆ result-A ◆
+▼DoB ▶SAY B ran ◆ result-B ◆
+
+▶▶IF TRUE
+DoA
+DoB
+◆ ◆
 ```
-Output: `first` (△X resolved at definition time)
+IF returns `DoA` or `DoB`, outer `▶` executes only the selected one.
 
-```losp
-▽X first ◆
-▼Template ▲X ◆
-▽X second ◆
-▶Template ◆
-```
-Output: `second` (▲X resolved at execution time)
-
-## DO NOT
-
-### Never use immediate ops to access placeholders
-```losp
-▼Broken □arg △arg ◆
-```
-**WRONG:** △arg fires at PARSE, before arg is bound. Result: empty.
-
-```losp
-▼Working □arg ▲arg ◆
-```
-**CORRECT:** ▲arg fires at EXECUTE, after arg is bound.
-
-### Never forget terminators
-Every operator needs its own `◆`. Count them:
-```losp
-▼Outer ▼Inner value ◆ ◆
-```
-Inner gets one ◆, Outer gets one ◆.
-
-### Never put multiple text args on one line (THE #1 MISTAKE)
-```losp
-▶COMPARE a a ◆
-```
-**WRONG:** One argument "a a". COMPARE sees this as comparing "a a" to nothing!
-
-```losp
-▶COMPARE
-a
-a
-◆
-```
-**CORRECT:** Two arguments on separate lines. Returns TRUE.
-
-**IF with COMPARE - correct pattern:**
-```losp
-▶IF
-▶COMPARE
-a
-a
-◆
-match
-nomatch
-◆
-```
-
-### Never expect ◯ to be preserved
-```losp
-▽Snap ◯△X ◆ ◆
-▲Snap
-▲Snap
-```
-First ▲Snap fires the △X and returns result. Second ▲Snap returns empty (body consumed).
-
-### Never use ▷COMPARE inside functions for runtime checks
-```losp
-▼CheckMode
-    ▶IF ▷COMPARE ▲Mode active ◆ yes no ◆
-◆
-```
-**WRONG:** ▷COMPARE fires when CheckMode is DEFINED, not when executed.
-
-```losp
-▼CheckMode
-    ▶IF ▶COMPARE ▲Mode active ◆ yes no ◆
-◆
-```
-**CORRECT:** ▶COMPARE fires when CheckMode is EXECUTED.
-
-## Retrieve vs Execute
-
-- `▲Name` — returns body with deferred ops as text
-- `▶Name ◆` — returns body with deferred ops evaluated
-
+### Retrieve vs Execute
 ```losp
 ▼Expr ▶COMPARE hello hello ◆ ◆
 ▲Expr
 ```
-Output: `▶COMPARE hello hello ◆` (text)
+Output: `▶COMPARE hello hello ◆` (text, unevaluated)
 
 ```losp
-▼Expr ▶COMPARE hello hello ◆ ◆
 ▶Expr ◆
 ```
 Output: `TRUE` (evaluated)
 
-## Output Format
+## Critical Rules
 
-When writing losp code, output ONLY the raw losp code. Never wrap in markdown code fences. Never add explanations.
+1. **Placeholders use deferred retrieve.** `▼Func □arg ▲arg ◆` is correct. `▼Func □arg △arg ◆` is WRONG (△ fires before arg is bound).
+2. **Every operator needs its own `◆`.** `▼Outer ▼Inner value ◆ ◆` — Inner gets one, Outer gets one.
+3. **IF branches MUST be separate expressions.** Use newlines for text branches. Never `then else` on one line.
+4. **Inside expression bodies, use deferred operators** (`▲` `▶` `▼`) for runtime behavior. Immediate operators fire at definition time.
+5. **losp has no comments.** `#` is just text.
+
+## Output Rules
+
+Output ONLY raw losp code. No markdown code fences. No explanation text.

@@ -1,0 +1,15 @@
+# EXPECTED: 3
+▶SYSTEM
+PERSIST_MODE
+ALWAYS
+◆
+▽Items alpha ◆
+▶APPEND
+Items
+beta
+◆
+▶APPEND
+Items
+gamma
+◆
+▶COUNT ▶HISTORY Items ◆ ◆

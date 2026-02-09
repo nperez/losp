@@ -271,6 +271,12 @@ func builtinAppend(e *Evaluator, argsRaw string) (expr.Expr, error) {
 	}
 
 	e.namespace.Set(name, expr.Text{Value: newValue})
+
+	// Auto-persist in ALWAYS mode
+	if e.persistMode == PersistAlways && e.store != nil {
+		e.autoPersist(name)
+	}
+
 	return expr.Empty{}, nil
 }
 
@@ -686,8 +692,8 @@ func builtinGenerate(e *Evaluator, argsRaw string) (expr.Expr, error) {
 		return expr.Empty{}, nil
 	}
 
-	// Single-stage generation with full PRIMER in context
-	system := stdlib.Primer
+	// Use compact primer to fit within model context limits
+	system := stdlib.PrimerCompact
 	user := request + "\n\nOutput ONLY losp code. No markdown. No explanation."
 
 	response, err := e.provider.Prompt(system, user)

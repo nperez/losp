@@ -1,0 +1,7 @@
+# EXPECTED: 1
+▶SYSTEM
+PERSIST_MODE
+ALWAYS
+◆
+▼Outer ▽Inner nested_value ◆ ◆
+▶COUNT ▶HISTORY Inner ◆ ◆

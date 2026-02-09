@@ -1,0 +1,10 @@
+# EXPECTED: effect_val
+▶SYSTEM
+PERSIST_MODE
+ALWAYS
+◆
+▼Func ◯▽Side effect_val ◆ ◆◆
+▶Func ◆
+▽_h ▶HISTORY Side ◆ ◆
+▶_Side_1 ◆
+▲Side

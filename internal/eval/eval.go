@@ -615,6 +615,10 @@ func (e *Evaluator) evalBodyForDeferredStore(scan *scanner.Scanner, opName strin
 					return "", nil, err
 				}
 				e.namespace.Set(name, expr.Text{Value: evaluated})
+				// Auto-persist in ALWAYS mode
+				if e.persistMode == PersistAlways && e.store != nil {
+					e.autoPersist(name)
+				}
 				// Immediate store produces no output in the body
 			} else {
 				// Inside ◯, preserve as text (including any dynamic name operators)
@@ -902,6 +906,10 @@ func (e *Evaluator) parseBodyImmediateOnly(body string) (string, error) {
 					return "", err
 				}
 				e.namespace.Set(name, expr.Text{Value: evaluated})
+				// Auto-persist in ALWAYS mode
+				if e.persistMode == PersistAlways && e.store != nil {
+					e.autoPersist(name)
+				}
 				// Immediate store produces no output
 			} else {
 				// Inside ◯, preserve as text
