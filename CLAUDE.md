@@ -124,11 +124,14 @@ go test -run TestName    # Run specific test
 go run ./cmd/losp        # Run the CLI
 go run ./cmd/losp -f examples/simulation.losp -db simulation.db  # Run a losp file
 go generate ./internal/stdlib/ && go build -o ./losp ./cmd/losp && LOSP_BIN=./losp ./tests/conformance/run_tests.sh  # Run conformance tests
+cd tests/wasm && rm -f losp.wasm && go test -v -count=1 -timeout 600s  # Run WASM conformance tests
 ```
 
 **Embedded files:** `PRIMER_COMPACT.md` and `PROMPTING_LOSP.md` live at the repo root. `go generate ./internal/stdlib/` copies them into `internal/stdlib/` for `go:embed`. You must run `go generate` before building if either file has changed. The copies in `internal/stdlib/` are gitignored.
 
 **Conformance Tests:** The losp conformance tests are `.losp` files in `./tests/conformance/`. They are NOT Go tests. Build the binary first with `go build -o ./losp ./cmd/losp`, then run with `LOSP_BIN=./losp ./tests/conformance/run_tests.sh`.
+
+**WASM Conformance Tests:** `tests/wasm/wasm_conformance_test.go` compiles losp to WASM via gigwasm and runs all conformance tests through the WASM binary. **Always run these after code changes** — the WASM build shares all interpreter, store, and builtin code. Schema migrations, new builtins, and store changes must work under both native and WASM builds. Delete the cached `losp.wasm` to force recompilation.
 
 **IMPORTANT: `go build` only compiles Go code.** It does NOT validate losp syntax or run losp files. To test a losp file, you must actually run it with the CLI.
 

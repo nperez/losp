@@ -894,7 +894,7 @@ EMBED must have been called on the corpus first.
 
 **HISTORY**: `▶HISTORY name ◆` → versioned expression names (newline-separated, newest first)
 
-Queries the version history of a persisted expression. Requires `PERSIST_MODE ALWAYS` to accumulate versions — every store operation that changes the value appends a new version. Duplicate consecutive values are not stored.
+Queries the version history of a persisted expression. All persisted expressions have history — every write to the database that changes the value appends a new version. In `PERSIST_MODE ALWAYS`, versions accumulate automatically on every store operation. In `EXPLICIT` mode, each `▶PERSIST name ◆` call that changes the value adds a new version. Duplicate consecutive values are not stored.
 
 HISTORY creates ephemeral named expressions in the namespace (e.g., `_X_1`, `_X_2`, `_X_3`) — one per version. Each is a deferred store that, when executed, redefines the original expression to that version's value (rollback).
 
