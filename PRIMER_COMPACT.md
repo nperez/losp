@@ -30,7 +30,11 @@ The body of an expression IS its output template. When executed, the body is eva
 ▼F □_a □_b ▲_a meets ▲_b ◆
 ```
 
-When called with `▶F Alice Bob ◆`, the body evaluates to: `Alice meets Bob`
+When called with
+`▶F
+Alice
+Bob
+◆`, the body evaluates to: `Alice meets Bob`
 - `▲_a` → Alice
 - `meets` → literal text
 - `▲_b` → Bob
