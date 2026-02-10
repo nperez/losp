@@ -1,0 +1,15 @@
+# EXPECTED: [x]
+# EXPECTED: [y]
+# EXPECTED: [z]
+▼Items
+x
+y
+z
+◆
+▼__startup__
+    ▷GENERATE Write a losp expression named Wrap with one placeholder _item. When executed it should return the placeholder value wrapped in square brackets like [value]. Use deferred operators. ◆
+    ▶SAY ▶FOREACH
+▲Items
+Wrap
+◆ ◆
+◆

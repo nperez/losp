@@ -1,0 +1,5 @@
+# EXPECTED: hello world
+▼__startup__
+    ▷GENERATE Write a losp expression named Meta. Its body should use GENERATE at parse time to create an expression named _msg with body hello world, then use SAY to output the value of _msg at runtime. ◆
+    ▶Meta ◆
+◆

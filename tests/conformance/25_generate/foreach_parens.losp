@@ -1,0 +1,15 @@
+# EXPECTED: (a)
+# EXPECTED: (b)
+# EXPECTED: (c)
+▼Data
+a
+b
+c
+◆
+▼__startup__
+    ▷GENERATE Write a losp expression named Paren with one placeholder _item. It should return the placeholder value wrapped in parentheses like (value) with no spaces. Use deferred operators. ◆
+    ▶SAY ▶FOREACH
+▲Data
+Paren
+◆ ◆
+◆

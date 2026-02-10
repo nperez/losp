@@ -1,0 +1,6 @@
+# EXPECTED: first
+# EXPECTED: second
+▼__startup__
+    ▷GENERATE Write losp code that does the following: First use immediate store to set MyList to the text first. Then use the APPEND builtin to append the text second to MyList. Remember APPEND takes its arguments on separate lines: the name on one line, the content on the next. ◆
+    ▶SAY ▲MyList ◆
+◆

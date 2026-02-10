@@ -1,0 +1,10 @@
+# EXPECTED: 3
+▼Data
+alpha
+beta
+gamma
+◆
+▼__startup__
+    ▷GENERATE Write a losp expression named CountIt with one placeholder named _input. The body should use the COUNT builtin on the deferred retrieve of _input. Use deferred operators only. ◆
+    ▶SAY ▶CountIt ▲Data ◆ ◆
+◆

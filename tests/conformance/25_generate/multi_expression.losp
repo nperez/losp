@@ -1,0 +1,5 @@
+# EXPECTED: HELLO
+▼__startup__
+    ▷GENERATE Write two losp expression definitions. First, define Transform with one placeholder _text that returns it uppercased using UPPER. Second, define Main whose body executes Transform with hello. Each definition needs its own closing terminator. Use deferred operators. ◆
+    ▶SAY ▶Main ◆ ◆
+◆

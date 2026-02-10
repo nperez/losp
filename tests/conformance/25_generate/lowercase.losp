@@ -1,0 +1,5 @@
+# EXPECTED: quiet
+▼__startup__
+    ▷GENERATE Write a losp expression named Whisper with one placeholder named _text. The body should use the LOWER builtin on the deferred retrieve of _text. Use deferred operators only. ◆
+    ▶SAY ▶Whisper QUIET ◆ ◆
+◆

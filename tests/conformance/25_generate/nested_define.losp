@@ -1,0 +1,6 @@
+# EXPECTED: inner works
+▼__startup__
+    ▷GENERATE Write a losp expression named Setup. The body of Setup should define another expression named Inner whose body is the literal text inner works with no operators. Use deferred store for both definitions. ◆
+    ▶Setup ◆
+    ▶SAY ▶Inner ◆ ◆
+◆

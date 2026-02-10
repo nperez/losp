@@ -1,0 +1,5 @@
+# EXPECTED: nope
+▼__startup__
+    ▷GENERATE Write a losp expression named Check with one placeholder _val. It should compare the placeholder value to YES and return yep if they match or nope if they do not. Use deferred operators. ◆
+    ▶SAY ▶LOWER ▶Check NO ◆ ◆ ◆
+◆

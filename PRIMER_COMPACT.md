@@ -22,6 +22,27 @@ losp is a streaming expression language using Unicode operators instead of paren
 - Inside `▼` bodies: immediate operators fire at DEFINITION time, deferred at EXECUTION time.
 - Every `◆` terminates exactly ONE operator. Count your terminators.
 
+## Expression Bodies
+
+The body of an expression IS its output template. When executed, the body is evaluated and the result is returned. Every piece of the desired output — literal text, operators, placeholders — must appear in the body.
+
+```losp
+▼F □_a □_b ▲_a meets ▲_b ◆
+```
+
+When called with `▶F Alice Bob ◆`, the body evaluates to: `Alice meets Bob`
+- `▲_a` → Alice
+- `meets` → literal text
+- `▲_b` → Bob
+
+If you omit `meets` or `▲_b` from the body, they will NOT appear in the output.
+
+**All whitespace in a body is literal.** Spaces appear in the output exactly as written.
+- `[▲x]` → `[value]` (no spaces)
+- `[ ▲x ]` → `[ value ]` (spaces in output)
+
+Do not add formatting spaces around operators inside bodies.
+
 ## THE ARGUMENT RULE
 
 **Newlines separate text arguments. Spaces do NOT. Operators are natural boundaries.**
@@ -180,7 +201,18 @@ Output: `hello`
 ```
 Output: `Hello, Alice!`
 
+### Two Placeholders (text and operators interleave freely on one line)
+```losp
+▼Introduce □_who □_to ▲_who meets ▲_to ◆
+▶Introduce
+Alice
+Bob
+◆
+```
+Output: `Alice meets Bob`
+
 ### Expression with IF
+Remember: IF branches MUST be on separate lines.
 ```losp
 ▼IsTarget □_val ▶IF ▶COMPARE ▲_val target ◆
 yes
@@ -215,11 +247,18 @@ second item
 ```
 
 ### Executing Generated Code
-GENERATE returns code as text. Splice into an expression body with `▷`:
+GENERATE returns code as text. To splice generated code into an expression body, use `▷` (ImmExec, immediate) — NOT `▶` (Execute, deferred). `▷GENERATE` fires at parse time and splices the result into the body. `▶GENERATE` would defer execution and NOT splice.
+
 ```losp
 ▼_run ▷GENERATE Create code that outputs hello world ◆ ◆
 ▶_run ◆
 ```
+
+**With code after the splice:**
+```losp
+▼Maker ▷GENERATE define an expression named _val with body test ◆ ▶SAY ▲_val ◆ ◆
+```
+Three `◆`: one for `▷GENERATE`, one for `▶SAY`, one for `▼Maker`.
 
 ### Conditional Execution (only run selected branch)
 ```losp
@@ -245,6 +284,23 @@ Output: `▶COMPARE hello hello ◆` (text, unevaluated)
 ```
 Output: `TRUE` (evaluated)
 
+## Terminator Counting
+
+Count one `◆` per operator. Read inside-out:
+
+```losp
+▼Check □_val ▶IF ▶COMPARE ▲_val target ◆
+yes
+no
+◆ ◆
+```
+
+- Terminator after `target`: closes `▶COMPARE`
+- Terminator after `no`: closes `▶IF`
+- Final terminator: closes `▼Check`
+
+Each operator opened must have exactly one `◆`. Missing one leaves an operator unclosed. An extra `◆` closes the wrong thing.
+
 ## Critical Rules
 
 1. **Placeholders use deferred retrieve.** `▼Func □arg ▲arg ◆` is correct. `▼Func □arg △arg ◆` is WRONG (△ fires before arg is bound).
@@ -255,4 +311,6 @@ Output: `TRUE` (evaluated)
 
 ## Output Rules
 
-Output ONLY raw losp code. No markdown code fences. No explanation text.
+Output ONLY the requested losp code. No markdown code fences. No explanation text.
+
+**Do NOT add test or demo code.** If asked to write an expression named Foo, output ONLY the `▼Foo ... ◆` definition. Do not add `▶Foo ◆` calls, `▶SAY` demonstrations, sample data, or any other code beyond what was requested.

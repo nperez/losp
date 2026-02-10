@@ -1,0 +1,5 @@
+# EXPECTED: HELLO WORLD
+▼__startup__
+    ▷GENERATE Write a losp expression named Shout with one placeholder named _text. The body should use the UPPER builtin on the deferred retrieve of _text. Use deferred operators only. ◆
+    ▶SAY ▶Shout hello world ◆ ◆
+◆
