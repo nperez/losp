@@ -1,4 +1,4 @@
-losp
+./losp
 *.db
 *.wasm
 internal/stdlib/*.md
