@@ -22,7 +22,7 @@ type SQLite struct {
 
 // NewSQLite creates a new SQLite store at the given path.
 func NewSQLite(path string) (*SQLite, error) {
-	db, err := sql.Open("sqlite", path)
+	db, err := sql.Open(driverName, path)
 	if err != nil {
 		return nil, err
 	}

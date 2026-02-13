@@ -220,7 +220,7 @@ func runWASMInstance(t *testing.T, args []string, stdinContent string) (string, 
 	// Run WASM instance from pre-compiled module (fast deserialization)
 	inst, instErr := gigwasm.NewInstanceFromModule(compiledModule,
 		gigwasm.WithArgs(args),
-		gigwasm.WithImportNamespace(gigwasm.SQLiteNamespace()),
+		gigwasm.WithImportNamespace(gigwasm.WasmSQLNamespace("sqlite")),
 		gigwasm.WithFetch(),
 	)
 
