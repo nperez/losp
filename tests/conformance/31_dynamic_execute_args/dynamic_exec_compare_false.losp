@@ -1,0 +1,4 @@
+# EXPECTED: FALSE
+▼test hello ◆
+▼myname test ◆
+▶COMPARE ▶▲myname ◆ world ◆

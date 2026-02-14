@@ -1,0 +1,4 @@
+# EXPECTED: positive
+▼response SENTIMENT: positive ◆
+▼respname response ◆
+▶EXTRACT SENTIMENT ▶▲respname ◆ ◆

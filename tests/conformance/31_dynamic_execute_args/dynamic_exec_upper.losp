@@ -1,0 +1,4 @@
+# EXPECTED: HELLO
+▼test hello ◆
+▼myname test ◆
+▶UPPER ▶▲myname ◆ ◆

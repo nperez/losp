@@ -1,0 +1,7 @@
+# EXPECTED: matched
+▼test TRUE ◆
+▼myname test ◆
+▶IF ▶▲myname ◆
+matched
+not matched
+◆

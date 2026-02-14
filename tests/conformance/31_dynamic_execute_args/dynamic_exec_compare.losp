@@ -1,0 +1,4 @@
+# EXPECTED: TRUE
+▼test hello ◆
+▼myname test ◆
+▶COMPARE ▶▲myname ◆ hello ◆

@@ -962,14 +962,25 @@ func (e *Evaluator) parseArgs(argsRaw string) ([]string, error) {
 			}
 		case token.IMM_RETRIEVE:
 			// Operators always produce an argument, even if empty
-			name, _ := scan.ScanName()
+			// Use scanNameOrDynamic to support dynamic naming (e.g., △▲ref)
+			name, err := e.scanNameOrDynamic(scan)
+			if err != nil {
+				return nil, err
+			}
 			val := e.namespace.Get(name)
 			args = append(args, strings.TrimSpace(val.String()))
 		case token.IMM_EXECUTE:
 			// Operators always produce an argument, even if empty
-			name, _ := scan.ScanName()
+			// Use scanNameOrDynamic to support dynamic naming (e.g., ▷▲ref ◆)
+			name, err := e.scanNameOrDynamic(scan)
+			if err != nil {
+				return nil, err
+			}
 			body, _ := scan.ScanUntilTerminator()
-			res, _ := e.execute(name, body)
+			res, err := e.execute(name, body)
+			if err != nil {
+				return nil, err
+			}
 			if res != nil {
 				args = append(args, strings.TrimSpace(res.String()))
 			} else {
@@ -977,7 +988,11 @@ func (e *Evaluator) parseArgs(argsRaw string) ([]string, error) {
 			}
 		case token.RETRIEVE:
 			// Operators always produce an argument, even if empty
-			name, _ := scan.ScanName()
+			// Use scanNameOrDynamic to support dynamic naming (e.g., ▲▲ref)
+			name, err := e.scanNameOrDynamic(scan)
+			if err != nil {
+				return nil, err
+			}
 			val := e.namespace.Get(name)
 			var result string
 			if s, ok := val.(expr.Stored); ok {
@@ -988,9 +1003,16 @@ func (e *Evaluator) parseArgs(argsRaw string) ([]string, error) {
 			args = append(args, strings.TrimSpace(result))
 		case token.EXECUTE:
 			// Operators always produce an argument, even if empty
-			name, _ := scan.ScanName()
+			// Use scanNameOrDynamic to support dynamic naming (e.g., ▶▲ref ◆)
+			name, err := e.scanNameOrDynamic(scan)
+			if err != nil {
+				return nil, err
+			}
 			body, _ := scan.ScanUntilTerminator()
-			res, _ := e.execute(name, body)
+			res, err := e.execute(name, body)
+			if err != nil {
+				return nil, err
+			}
 			if res != nil {
 				args = append(args, strings.TrimSpace(res.String()))
 			} else {
