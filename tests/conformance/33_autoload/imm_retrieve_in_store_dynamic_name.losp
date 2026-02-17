@@ -1,0 +1,5 @@
+# EXPECTED: dynamic_value
+▽_name myvar ◆
+▽myvar dynamic_value ◆
+▼_spliced △▲_name ◆
+▶_spliced ◆

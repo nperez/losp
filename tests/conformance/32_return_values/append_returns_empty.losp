@@ -1,0 +1,6 @@
+# EXPECTED: TRUE
+▽X hello ◆
+▶COMPARE ▶APPEND
+X
+world
+◆ ▶EMPTY ◆ ◆

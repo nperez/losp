@@ -1,0 +1,7 @@
+# EXPECTED: persisted_value
+▽_val persisted_value ◆
+▶PERSIST _val ◆
+▼_val ◆
+▶LOAD _val ◆
+▼_spliced △_val ◆
+▶_spliced ◆

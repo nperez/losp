@@ -1,0 +1,14 @@
+# EXPECTED: 1
+▶SYSTEM
+PERSIST_MODE
+ALWAYS
+◆
+▼MyExpr
+hello
+◆
+▽_d1 ▲MyExpr ◆
+▽_d2 ▲MyExpr ◆
+▽_d3 ▲MyExpr ◆
+▽_d4 ▲MyExpr ◆
+▽_d5 ▲MyExpr ◆
+▶COUNT ▶HISTORY MyExpr ◆ ◆

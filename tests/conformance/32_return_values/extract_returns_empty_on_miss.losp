@@ -1,0 +1,4 @@
+# EXPECTED: TRUE
+▶COMPARE ▶EXTRACT missing
+name: Alice
+◆ ▶EMPTY ◆ ◆

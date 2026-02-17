@@ -1,0 +1,4 @@
+# EXPECTED: 1
+▽A hello ◆
+▽B world ◆
+▶COUNT ▶RANDOM ▲A ▲B ◆ ◆

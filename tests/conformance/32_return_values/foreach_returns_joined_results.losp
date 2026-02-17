@@ -1,0 +1,10 @@
+# EXPECTED: [a]
+# EXPECTED: [b]
+# EXPECTED: [c]
+▼_body □_x [▲_x] ◆
+▼_items
+a
+b
+c
+◆
+▶FOREACH ▲_items _body ◆

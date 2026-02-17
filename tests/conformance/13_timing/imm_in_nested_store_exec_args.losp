@@ -1,0 +1,14 @@
+# EXPECTED: hello world
+▽_space hello ◆
+▽_text world ◆
+▼_concat
+□_a □_b
+▲_a ▲_b
+◆
+▼Outer
+▼Inner ▶_concat △_space △_text ◆ ◆
+◆
+▽_space changed ◆
+▽_text changed ◆
+▶Outer ◆
+▶Inner ◆

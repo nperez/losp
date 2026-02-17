@@ -1,0 +1,9 @@
+# EXPECTED: final_value
+▽_val initial ◆
+▼_val ◆
+▶APPEND
+_val
+final_value
+◆
+▼_spliced △_val ◆
+▶_spliced ◆

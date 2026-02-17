@@ -2,6 +2,7 @@ package eval
 
 import (
 	"fmt"
+	"math/rand"
 	"strconv"
 	"strings"
 	"unicode"
@@ -81,6 +82,8 @@ func getBuiltin(name string) BuiltinFunc {
 		return builtinSimilar
 	case "HISTORY":
 		return builtinHistory
+	case "RANDOM":
+		return builtinRandom
 	}
 	return nil
 }
@@ -248,6 +251,35 @@ func builtinCount(e *Evaluator, argsRaw string) (expr.Expr, error) {
 	return expr.Text{Value: fmt.Sprintf("%d", len(lines))}, nil
 }
 
+func builtinRandom(e *Evaluator, argsRaw string) (expr.Expr, error) {
+	args, err := e.parseArgs(argsRaw)
+	if err != nil {
+		return nil, err
+	}
+	if len(args) == 0 {
+		return expr.Empty{}, nil
+	}
+
+	// Multiple args: each is a candidate (handles operator boundaries and inline text)
+	// Single arg: re-parse to extract items from stored lists (like FOREACH)
+	var items []string
+	if len(args) == 1 {
+		items, err = e.parseArgs(args[0])
+		if err != nil {
+			return expr.Empty{}, nil
+		}
+	} else {
+		items = args
+	}
+
+	if len(items) == 0 {
+		return expr.Empty{}, nil
+	}
+
+	index := rand.Intn(len(items))
+	return expr.Text{Value: strings.TrimSpace(items[index])}, nil
+}
+
 func builtinAppend(e *Evaluator, argsRaw string) (expr.Expr, error) {
 	args, err := e.parseArgs(argsRaw)
 	if err != nil {
@@ -261,7 +293,8 @@ func builtinAppend(e *Evaluator, argsRaw string) (expr.Expr, error) {
 	name := args[0]
 	content := strings.Join(args[1:], " ")
 
-	// Get existing value
+	// Get existing value (auto-load from DB in PersistAlways mode)
+	e.autoLoad(name)
 	existing := e.namespace.Get(name)
 	var newValue string
 	if !existing.IsEmpty() {
@@ -313,7 +346,6 @@ func formatAsDefinition(name string, val expr.Expr) string {
 		sb.WriteString(stored.Body.String())
 	}
 
-	sb.WriteString(" ")
 	sb.WriteRune(token.RuneTerminator) // ◆
 
 	return sb.String()

@@ -107,6 +107,8 @@ type Evaluator struct {
 	providerFactories map[string]ProviderFactory
 	settings          map[string]string // Runtime settings (SEARCH_LIMIT, etc.)
 	historyLimit      int               // Limit for HISTORY queries (0 = all)
+	autoLoading       bool              // Guards against recursive autoLoad
+	autoLoadingName   string            // Name currently being auto-loaded (for targeted persist suppression)
 }
 
 // Option configures an Evaluator.
@@ -305,6 +307,12 @@ func (e *Evaluator) evalStream(scan *scanner.Scanner, stopAtTerminator bool) (ex
 			} else {
 				// ▼ - Deferred store: process body, evaluating immediate operators
 				// CRITICAL: Immediate operators (△, ▷, ▽) fire NOW during body collection
+				// Skip separator whitespace between name and body — without this,
+				// the space/newline after the name becomes body content, inflating
+				// on each formatAsDefinition → Eval roundtrip.
+				if err := scan.SkipWhitespace(); err != nil {
+					return nil, err
+				}
 				body, params, err := e.evalBodyForDeferredStore(scan, "▼"+name, item.Line)
 				if err != nil {
 					return nil, err
@@ -329,6 +337,7 @@ func (e *Evaluator) evalStream(scan *scanner.Scanner, stopAtTerminator bool) (ex
 			if item.Token == token.RETRIEVE {
 				// ▲ - DEFERRED retrieve: operates at EXECUTE time
 				// Only immediate operators fire; deferred operators are preserved
+				e.autoLoad(name)
 				val := e.namespace.Get(name)
 				result, err := e.parseBodyImmediateOnly(val.String())
 				if err != nil {
@@ -345,6 +354,7 @@ func (e *Evaluator) evalStream(scan *scanner.Scanner, stopAtTerminator bool) (ex
 				results = append(results, expr.Text{Value: result})
 			} else if e.deferDepth == 0 {
 				// △ - IMMEDIATE retrieve at parse time: only immediate ops fire
+				e.autoLoad(name)
 				val := e.namespace.Get(name)
 				result, err := e.parseBodyImmediateOnly(val.String())
 				if err != nil {
@@ -491,7 +501,10 @@ func (e *Evaluator) evalBodyForDeferredStore(scan *scanner.Scanner, opName strin
 				return "", nil, err
 			}
 			params = append(params, name)
-			// Placeholder is just a declaration, not included in body
+			// Skip separator whitespace after placeholder name
+			if err := scan.SkipWhitespace(); err != nil {
+				return "", nil, err
+			}
 
 		case token.DEFER:
 			// ◯ - defer ALL immediate operators until its own terminating ◆
@@ -526,6 +539,7 @@ func (e *Evaluator) evalBodyForDeferredStore(scan *scanner.Scanner, opName strin
 				if err != nil {
 					return "", nil, err
 				}
+				e.autoLoad(name)
 				val := e.namespace.Get(name)
 				result, err := e.Eval(val.String())
 				if err != nil {
@@ -585,18 +599,20 @@ func (e *Evaluator) evalBodyForDeferredStore(scan *scanner.Scanner, opName strin
 			}
 
 		case token.EXECUTE:
-			// ▶ - deferred execute, always preserve as text
-			// BUT we need to properly track nested terminators (e.g., inside ◯ or other operators)
-			// Use scanNamePreservingOperators to preserve any dynamic naming for later
+			// ▶ - deferred execute: ▶ is preserved for later execution,
+			// but immediate operators in its args MUST fire now.
+			// Per spec: "WHENEVER THE STREAM IS PARSED, IMMEDIATE OPERATORS FIRE."
 			nameText, err := e.scanNamePreservingOperators(scan)
 			if err != nil {
 				return "", nil, err
 			}
-			body, err := e.scanBodyWithNestedTerminators(scan)
+			// Recursively process args — fires immediate operators, preserves deferred ones
+			execBody, execParams, err := e.evalBodyForDeferredStore(scan, "▶"+nameText, item.Line)
 			if err != nil {
-				return "", nil, err
+				return "", nil, fmt.Errorf("in %s starting at line %d: %w", opName, startLine, err)
 			}
-			parts = append(parts, string(token.RuneExecute)+nameText+body+string(token.RuneTerminator))
+			params = append(params, execParams...)
+			parts = append(parts, string(token.RuneExecute)+nameText+execBody+string(token.RuneTerminator))
 
 		case token.IMM_STORE:
 			// ▽ - immediate store
@@ -641,6 +657,10 @@ func (e *Evaluator) evalBodyForDeferredStore(scan *scanner.Scanner, opName strin
 			nestedLine := item.Line
 			nameText, err := e.scanNamePreservingOperators(scan)
 			if err != nil {
+				return "", nil, err
+			}
+			// Skip separator whitespace between name and body
+			if err := scan.SkipWhitespace(); err != nil {
 				return "", nil, err
 			}
 			nestedBody, nestedParams, err := e.evalBodyForDeferredStore(scan, "▼"+nameText, nestedLine)
@@ -750,7 +770,8 @@ func (e *Evaluator) execute(name string, argsRaw string) (expr.Expr, error) {
 		return builtin(e, argsRaw)
 	}
 
-	// 1. LOAD - look up stored expression
+	// 1. LOAD - look up stored expression (auto-load from DB in PersistAlways mode)
+	e.autoLoad(name)
 	stored := e.namespace.Get(name)
 	if stored.IsEmpty() {
 		return expr.Empty{}, nil
@@ -844,6 +865,7 @@ func (e *Evaluator) parseBodyImmediateOnly(body string) (string, error) {
 				if err != nil {
 					return "", err
 				}
+				e.autoLoad(name)
 				val := e.namespace.Get(name)
 				result, err := e.Eval(val.String())
 				if err != nil {
@@ -967,6 +989,7 @@ func (e *Evaluator) parseArgs(argsRaw string) ([]string, error) {
 			if err != nil {
 				return nil, err
 			}
+			e.autoLoad(name)
 			val := e.namespace.Get(name)
 			args = append(args, strings.TrimSpace(val.String()))
 		case token.IMM_EXECUTE:
@@ -993,6 +1016,7 @@ func (e *Evaluator) parseArgs(argsRaw string) ([]string, error) {
 			if err != nil {
 				return nil, err
 			}
+			e.autoLoad(name)
 			val := e.namespace.Get(name)
 			var result string
 			if s, ok := val.(expr.Stored); ok {
@@ -1231,7 +1255,46 @@ func (e *Evaluator) SetPersistMode(mode PersistMode) {
 
 // autoPersist persists a value to the store (used in ALWAYS mode).
 func (e *Evaluator) autoPersist(name string) {
+	// Don't re-persist the expression currently being auto-loaded.
+	// This prevents a feedback loop: autoLoad → Eval("▼X body ◆") → ▼X fires →
+	// autoPersist("X") → formatAsDefinition adds padding → next autoLoad inflates body.
+	if e.autoLoading && name == e.autoLoadingName {
+		return
+	}
 	val := e.namespace.Get(name)
 	fullDef := formatAsDefinition(name, val)
 	e.store.Put(name, expr.Text{Value: fullDef})
+}
+
+// autoLoad loads a value from the store into the namespace when PersistAlways is active.
+// Called before every namespace lookup to ensure the DB is the source of truth.
+func (e *Evaluator) autoLoad(name string) {
+	if e.persistMode != PersistAlways || e.store == nil || e.autoLoading {
+		return
+	}
+
+	e.autoLoading = true
+	e.autoLoadingName = name
+	defer func() {
+		e.autoLoading = false
+		e.autoLoadingName = ""
+	}()
+
+	val, err := e.store.Get(name)
+	if err != nil || val == nil || val.IsEmpty() {
+		return
+	}
+
+	text := val.String()
+	trimmed := strings.TrimSpace(text)
+	runes := []rune(trimmed)
+	if len(runes) > 0 && runes[0] == token.RuneStore {
+		// Full definition (▼name body ◆) - re-eval to reconstruct Stored expression.
+		// autoPersist is suppressed for THIS name only (via autoLoadingName check)
+		// to prevent a feedback loop where formatAsDefinition padding inflates the body.
+		e.Eval(text)
+	} else {
+		// Plain text value
+		e.namespace.Set(name, expr.Text{Value: text})
+	}
 }

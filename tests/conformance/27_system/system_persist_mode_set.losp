@@ -1,6 +1,12 @@
-# EXPECTED: NEVER
+# EXPECTED: blocked
 ▶SYSTEM
 PERSIST_MODE
 NEVER
 ◆
-▶SYSTEM PERSIST_MODE ◆
+▽X should_not_persist ◆
+▶PERSIST X ◆
+▽X ◆
+▶LOAD X
+blocked
+◆
+▶SAY ▲X ◆

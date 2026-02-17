@@ -1,0 +1,6 @@
+# EXPECTED: line one
+# EXPECTED: line two
+▽_text line one
+line two ◆
+▼_run △_text ◆
+▶_run ◆

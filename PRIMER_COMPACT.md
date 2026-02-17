@@ -92,6 +92,7 @@ Builtin names are **ALL CAPS** and case-sensitive.
 | PERSIST | `▶PERSIST name ◆` | (saves to DB) |
 | LOAD | `▶LOAD name [default] ◆` | stored value |
 | COUNT | `▶COUNT expr ◆` | number of lines |
+| RANDOM | `▶RANDOM expr ◆` | one random line |
 | APPEND | `▶APPEND name content ◆` | (appends to expression) |
 | EXTRACT | `▶EXTRACT label source ◆` | extracted value |
 | UPPER | `▶UPPER text ◆` | uppercased |

@@ -1,0 +1,31 @@
+# EXPECTED: TRUE
+▶SYSTEM
+PERSIST_MODE
+ALWAYS
+◆
+▼_v ◆
+▶APPEND
+_v
+a
+◆
+▼_v ◆
+▶APPEND
+_v
+b
+◆
+▼_v ◆
+▶APPEND
+_v
+c
+◆
+▼_v ◆
+▶APPEND
+_v
+d
+◆
+▼_v ◆
+▶APPEND
+_v
+final
+◆
+▶COMPARE ▲_v final ◆

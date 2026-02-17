@@ -681,6 +681,19 @@ Useful for case-insensitive comparison:
 
 **COUNT**: `▶COUNT expr ◆` → counts expressions within the expression
 
+**RANDOM**: `▶RANDOM expr ◆` → returns one random expression from the evaluated list
+
+```losp
+▼Colors
+    red
+    green
+    blue
+◆
+▶RANDOM ▲Colors ◆    # → one of "red", "green", or "blue"
+```
+
+Returns EMPTY if the input is empty.
+
 **APPEND**: Appends an expression to another expression. First argument is an expression with the name of another expression or a string of the name. Second argument is an expression to append:
 
 ```losp
@@ -1315,6 +1328,56 @@ On subsequent runs, the backing store `__stdlib__` replaces the built-in prelude
 
 ---
 
+## Builtin Return Values
+
+Every builtin returns a value. Understanding what each builtin returns is critical for composing expressions correctly. Builtins that perform side effects (output, storage, persistence) return EMPTY. Builtins that compute or transform data return their result as text.
+
+| Builtin | Returns | Value |
+|---------|---------|-------|
+| `TRUE` | Text | `"TRUE"` |
+| `FALSE` | Text | `"FALSE"` |
+| `EMPTY` | Empty | `""` |
+| `COMPARE` | Text | `"TRUE"` or `"FALSE"` |
+| `IF` | Text | Selected branch text (then or else) |
+| `FOREACH` | Text | Joined results of body execution (newline-separated) |
+| `SAY` | Empty | Always EMPTY — output is a side effect via the output writer |
+| `READ` | Text | User input text, or EMPTY if no input reader |
+| `COUNT` | Text | Number of expressions as a string (e.g., `"3"`) |
+| `RANDOM` | Text or Empty | One random expression from the list, or EMPTY if input is empty |
+| `APPEND` | Empty | Always EMPTY — mutation is a side effect |
+| `EXTRACT` | Text or Empty | Extracted field value, or EMPTY if label not found |
+| `UPPER` | Text | Uppercased text |
+| `LOWER` | Text | Lowercased text |
+| `TRIM` | Text or Empty | Trimmed text, or EMPTY if result is blank |
+| `PERSIST` | Empty | Always EMPTY — persistence is a side effect |
+| `LOAD` | Empty | Always EMPTY — loads into namespace as a side effect |
+| `PROMPT` | Text | LLM response text, or EMPTY if no provider |
+| `GENERATE` | Text | Generated losp code text, or EMPTY if no provider |
+| `SYSTEM` | Text or Empty | Current setting value (getter) or EMPTY (setter) |
+| `ASYNC` | Text | Handle ID (e.g., `"_async_1"`), or EMPTY if expression missing |
+| `AWAIT` | Text or Empty | Async result text, or EMPTY on error/unknown handle |
+| `CHECK` | Text | `"TRUE"` or `"FALSE"` |
+| `TIMER` | Text | Handle ID, or EMPTY if expression missing |
+| `TICKS` | Text | Milliseconds remaining as string (e.g., `"4500"`) |
+| `SLEEP` | Empty | Always EMPTY |
+| `CORPUS` | Text | Handle ID (e.g., `"_corpus_1"`) |
+| `ADD` | Empty | Always EMPTY |
+| `INDEX` | Empty | Always EMPTY |
+| `SEARCH` | Text or Empty | Matching expression names (newline-separated), or EMPTY |
+| `EMBED` | Empty | Always EMPTY |
+| `SIMILAR` | Text or Empty | Matching expression names (newline-separated), or EMPTY |
+| `HISTORY` | Text or Empty | Version expression names (newline-separated), or EMPTY |
+
+**Key distinctions:**
+
+- **SAY returns EMPTY, not its argument.** SAY's job is to produce output via the output writer. Its return value is always EMPTY. If you need the text that SAY would output, use the text directly — don't try to capture SAY's return.
+- **LOAD returns EMPTY, not the loaded value.** LOAD populates the namespace as a side effect. To access the loaded value, retrieve it by name after LOAD: `▶LOAD X ◆` then `▲X`.
+- **APPEND returns EMPTY.** Like SAY, APPEND mutates state as a side effect. The appended-to expression is modified in place.
+- **IF returns text, not an executed result.** IF returns the selected branch as a string. To execute the selected branch, use `▶▶IF ...◆ ◆` (dynamic execute).
+- **FOREACH returns joined results.** Each body execution produces a result; FOREACH joins them with newlines and returns the combined text.
+
+---
+
 ## Quick Reference
 
 | Want to... | Use |
@@ -1340,6 +1403,7 @@ On subsequent runs, the backing store `__stdlib__` replaces the built-in prelude
 | Save to backing store | `▶PERSIST name ◆` |
 | Load from backing store | `▶LOAD name ◆` |
 | Load with default | `▶LOAD name default ◆` (args are expressions) |
+| Pick random expression | `▶RANDOM expr ◆` → one random item |
 | Fork async execution | `▶ASYNC expr-name ◆` → handle |
 | Wait for async result | `▶AWAIT handle ◆` → result text |
 | Check if async done | `▶CHECK handle ◆` → TRUE/FALSE |

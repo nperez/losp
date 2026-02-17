@@ -1,0 +1,4 @@
+# EXPECTED: TRUE
+▽A hello ◆
+▽B hello ◆
+▶COMPARE ▶COMPARE ▲A ▲B ◆ TRUE ◆

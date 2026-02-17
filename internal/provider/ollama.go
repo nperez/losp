@@ -118,6 +118,11 @@ func (o *Ollama) Prompt(system, user string) (string, error) {
 			options["top_p"] = f
 		}
 	}
+	if v, ok := o.params["MAX_TOKENS"]; ok {
+		if n, err := strconv.Atoi(v); err == nil {
+			options["num_predict"] = n
+		}
+	}
 
 	reqBody := ollamaRequest{
 		Model:     o.Model,

@@ -1,0 +1,4 @@
+# EXPECTED: FALSE
+▽_code ▶GENERATE Write a losp stored expression named _genfunc whose body is the text hello_world ◆ ◆
+▼_eval △_code ◆
+▶COMPARE ▶_genfunc ◆ ▶EMPTY ◆ ◆

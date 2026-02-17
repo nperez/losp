@@ -1,0 +1,5 @@
+# EXPECTED: hello world
+# EXPECTED:
+# EXPECTED: TRUE
+▶SAY hello world ◆
+▶COMPARE ▶SAY ◆ ▶EMPTY ◆ ◆

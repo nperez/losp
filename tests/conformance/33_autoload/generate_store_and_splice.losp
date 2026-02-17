@@ -1,0 +1,4 @@
+# EXPECTED: FALSE
+▽_code ▶GENERATE Write a losp stored expression named _generated with the body text hello_world ◆ ◆
+▼_eval △_code ◆
+▶COMPARE ▲_generated ▶EMPTY ◆ ◆

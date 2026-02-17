@@ -1,0 +1,2 @@
+# EXPECTED: TRUE
+▶COMPARE ▶LOAD nonexistent ◆ ▶EMPTY ◆ ◆

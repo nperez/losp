@@ -1,0 +1,8 @@
+# EXPECTED: appended_value
+▼_data ◆
+▶APPEND
+_data
+appended_value
+◆
+▼_spliced △_data ◆
+▶_spliced ◆

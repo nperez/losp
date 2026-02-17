@@ -1,6 +1,9 @@
-# EXPECTED: 2048
+# EXPECTED: apple
 ▶SYSTEM
 MAX_TOKENS
-2048
+2
 ◆
-▶SYSTEM MAX_TOKENS ◆
+▶SAY ▶TRIM ▶LOWER ▶PROMPT
+You are a bot that says exactly one word.
+Say apple. No commentary. Only the word apple.
+◆ ◆ ◆ ◆

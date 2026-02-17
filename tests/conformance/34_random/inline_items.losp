@@ -1,0 +1,6 @@
+# EXPECTED: FALSE
+▶COMPARE ▶RANDOM
+one
+two
+three
+◆ ▲EMPTY ◆

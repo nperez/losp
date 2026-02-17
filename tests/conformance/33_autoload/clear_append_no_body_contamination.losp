@@ -1,0 +1,16 @@
+# EXPECTED: second
+▶SYSTEM
+PERSIST_MODE
+ALWAYS
+◆
+▼_val ◆
+▶APPEND
+_val
+first
+◆
+▼_val ◆
+▶APPEND
+_val
+second
+◆
+▲_val

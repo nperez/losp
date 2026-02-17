@@ -1,0 +1,5 @@
+# EXPECTED: selected_else
+▶IF FALSE
+selected_then
+selected_else
+◆

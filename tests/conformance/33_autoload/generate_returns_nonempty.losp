@@ -1,0 +1,2 @@
+# EXPECTED: FALSE
+▶COMPARE ▶GENERATE Write a losp stored expression named _hello that outputs hello using SAY ◆ ▶EMPTY ◆ ◆

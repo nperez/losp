@@ -1,0 +1,5 @@
+# EXPECTED: baked_value
+▽X baked_value ◆
+▼Template ▶SAY △X ◆ ◆
+▽X changed_value ◆
+▶Template ◆
