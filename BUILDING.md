@@ -29,48 +29,76 @@ losp can be compiled to WebAssembly targeting the Go `js/wasm` platform:
 GOOS=js GOARCH=wasm go build -o losp.wasm ./cmd/losp/
 ```
 
-The resulting `losp.wasm` (~3.5 MB) is a standard Go WASM module that expects a host environment implementing:
+Or using [gigwasm](https://nickandperla.net/gigwasm) to compile programmatically:
+
+```go
+wasmBytes, err := gigwasm.CompileGo("./cmd/losp")
+```
+
+The resulting `losp.wasm` (~11.5 MB) is a standard Go WASM module that expects a host environment implementing:
 
 - The Go JS runtime bridge (`gojs` namespace, as in `wasm_exec.js`)
-- A `sqlite3` import namespace (19 functions) for database access
 - Standard I/O via the `fs` global object
 
-### WASM Limitations
-
-The WASM build excludes features that depend on capabilities the host must provide:
+### WASM Feature Matrix
 
 | Feature | Native | WASM | Notes |
 |---------|--------|------|-------|
-| SQLite persistence | Yes | Yes | Host provides SQLite via import namespace |
+| SQLite persistence | Yes | Yes | Host provides SQLite via `wasmsql` namespace |
 | stdin/stdout I/O | Yes | Yes | Host bridges to OS streams |
 | `-e` flag | Yes | Yes | |
 | Pipe input via stdin | Yes | Yes | |
+| LLM providers | Yes | Yes | Host provides `net/http` via `WithFetch()` |
 | `-f` flag (file loading) | Yes | No | Requires `fs.open` in host |
 | Interactive REPL | Yes | No | No terminal support in WASM |
-| LLM providers | Yes | No | See below |
-| `net/http` | Yes | No | See below |
 
-**LLM providers** and **`net/http`** are not available in the default WASM build. It is up to the WASM host to provide network access if needed. A host could implement HTTP support through additional import namespaces, making LLM providers available to the guest module.
+**LLM providers** work in WASM when the host enables the Fetch API (`gigwasm.WithFetch()`), which provides a synchronous `net/http` implementation. All three providers (Ollama, OpenRouter, Anthropic) compile for WASM without build tags.
 
 **File system access** is not implemented in the default host. The `-f` flag and any file I/O operations will not work. Programs should be passed via `-e` or piped through stdin.
 
-### How the SQLite Bridge Works
+### How the wasmsql Database Bridge Works
 
-The WASM build replaces the native SQLite driver with a thin shim (`wasmsql/driver.go`) that uses `//go:wasmimport` to call 19 host functions in the `sqlite3` namespace (open, prepare, step, column_text, etc.). The host side (`sqlitehost.go`) translates these into `database/sql` calls against a real SQLite database. From losp's perspective, `database/sql` works identically in both builds.
+The WASM build replaces the native SQLite driver (`modernc.org/sqlite`) with gigwasm's `wasmsql` — a 6-function binary protocol that passes SQL operations across the WASM boundary. From losp's perspective, `database/sql` works identically in both builds.
+
+**Guest side** (`gigwasm/wasmsql/driver.go`): A `database/sql/driver` implementation that uses `//go:wasmimport` to call 6 host functions in the `wasmsql` namespace. Imported by losp via `internal/store/sqlite_driver_wasm.go`:
+
+```go
+//go:build js && wasm
+import _ "nickandperla.net/gigwasm/wasmsql"
+const driverName = "wasmsql"
+```
+
+**Host side** (`gigwasm.WasmSQLNamespace(driverName)`): Translates the 6 wasmsql calls into `database/sql` operations against any backend driver. Enabled when creating a WASM instance:
+
+```go
+inst, _ := gigwasm.NewInstance(wasmBytes,
+    gigwasm.WithImportNamespace(gigwasm.WasmSQLNamespace("sqlite")),
+)
+```
+
+**The 6 wasmsql functions:**
+
+| Function | Description |
+|----------|-------------|
+| `open(path, pathLen)` | Opens a database connection via `sql.Open(driverName, dsn)` |
+| `close(db)` | Closes database and any open result sets |
+| `exec(db, sql, sqlLen, params, paramsLen, result, resultLen)` | Non-row statements; returns last insert ID + rows affected |
+| `query(db, sql, sqlLen, params, paramsLen, result, resultLen)` | Row-returning queries; returns result handle + column metadata |
+| `next(handle, row, rowLen)` | Streams next row from a result handle |
+| `close_rows(handle)` | Closes result handle, frees host resources |
+
+Parameters and results use a binary TLV (type-length-value) wire format with little-endian byte order. Supported types: null, int64, float64, text, blob, bool. Buffers resize dynamically — if a result doesn't fit, the host returns the required size and the guest retries with a larger buffer.
 
 ### Build Tags
 
-The native/WASM split is handled entirely through Go build tags (`//go:build js && wasm` / `//go:build !(js && wasm)`). The following files have platform-specific variants:
+The native/WASM split is handled through Go build tags (`//go:build js && wasm` / `//go:build !(js && wasm)`). Platform-specific files:
 
 | Concern | Native file | WASM file |
 |---------|------------|-----------|
 | SQLite driver import | `internal/store/sqlite_driver_native.go` | `internal/store/sqlite_driver_wasm.go` |
-| LLM provider config | `cmd/losp/provider_native.go` | `cmd/losp/provider_wasm.go` |
 | REPL | `cmd/losp/repl.go` | `cmd/losp/repl_wasm.go` |
-| Provider options | `pkg/losp/options_native.go` | _(none needed)_ |
-| Provider packages | `internal/provider/*.go` | _(excluded by build tag)_ |
 
-All shared logic (the interpreter, store, builtins, expression system) compiles identically for both targets.
+All other code — the interpreter, store, builtins, expression system, providers, and CLI — compiles identically for both targets.
 
 ## Running Tests
 
@@ -79,13 +107,13 @@ All shared logic (the interpreter, store, builtins, expression system) compiles 
 go test ./...
 
 # Conformance suite (native)
-LOSP_BIN=./losp ./tests/conformance/run_tests.sh
+go generate ./internal/stdlib/ && go build -o ./losp ./cmd/losp && LOSP_BIN=./losp ./tests/conformance/run_tests.sh
 
-# Conformance suite (WASM) - 117/123 pass
-# 2 failures: -f flag tests (no filesystem)
-# 4 failures: GENERATE tests (no LLM provider)
-LOSP_BIN="./wasm-losp -wasm losp.wasm" ./tests/conformance/run_tests.sh
+# Conformance suite (WASM via gigwasm)
+cd tests/wasm && rm -f losp.wasm && go test -v -count=1 -timeout 600s
 ```
+
+The WASM conformance test (`tests/wasm/wasm_conformance_test.go`) uses gigwasm to compile losp to WASM, pre-compiles the module for reuse across tests, and runs every `.losp` file in `tests/conformance/` through the WASM runtime with SQLite and Fetch support enabled. The compiled `losp.wasm` is cached on disk — delete it to force recompilation after code changes.
 
 ## Docker
 
