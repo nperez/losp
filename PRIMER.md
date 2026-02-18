@@ -84,9 +84,9 @@ The `▲X` inside Expression is not resolved until `▶Expression ◆` executes.
 ```losp
 ▽Expression ◯△X ◆ ◆   # Stores the expression △X itself, not its value
 ▽X first ◆
-▲Expression         # NOW △X resolves → "first"
+▲Expression         # NOW △X resolves → "first" (△X fires and is consumed, body becomes "first")
 ▽X second ◆
-▲Expression         # NOW △X resolves → "second", but ▲Expression still has "first" since retrieving the expression parses it and immediate operators are consumed each each parse.
+▲Expression         # Returns "first" — △X was consumed on the previous retrieve, body is now the literal text "first"
 ```
 
 Without `◯`, the `△X` would resolve at parse time and the expression would always return whatever X was when the line was parsed.

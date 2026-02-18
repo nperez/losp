@@ -9,7 +9,7 @@ require (
 	nickandperla.net/gigwasm v0.0.0
 )
 
-replace nickandperla.net/gigwasm => /home/nicholas/code/wasm/gigwasm
+replace nickandperla.net/gigwasm => github.com/nperez/gigwasm v0.0.0-20260213204420-7e3717f733ce
 
 require (
 	github.com/chewxy/math32 v1.10.1 // indirect

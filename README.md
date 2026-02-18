@@ -1,10 +1,10 @@
 # losp
 
-This is losp, a streaming programming langugage specifically designed for LLM structured metacognition. It is influenced by Lisp, FORTH, brainfuck, Perl but with a healthy dose of novelty.
+This is losp, a streaming programming language specifically designed for LLM structured metacognition. It is influenced by Lisp, FORTH, brainfuck, Perl but with a healthy dose of novelty.
 
 ## wtf?
 
-What the fuck does all of that nonsense above even mean? Let's start with the problem that is being solved. LLMs do not have infinite context. In fact, the vast majority of the work of prompting an LLM is managing that context. And programatically doing that with trad programming languages is very verbose and you spend a lot of time writing a bunch of code to glue together some kinda of template system (or use a trad server-side rendering text templating from the early web days). What's worse is that if you want to do some kind of metaprompting or workflow that requires you to ouroborus the LLM output or make decisions based on it, you're now writing even more of that glue code to solidify that workflow. And it becomes rigid and difficult to mutate. And while you're probably using another LLM to manage this glue code, you're still dealing with the underlying abstraction to effect the orchestration.  
+What the fuck does all of that nonsense above even mean? Let's start with the problem that is being solved. LLMs do not have infinite context. In fact, the vast majority of the work of prompting an LLM is managing that context. And programmatically doing that with trad programming languages is very verbose and you spend a lot of time writing a bunch of code to glue together some kind of template system (or use a trad server-side rendering text templating from the early web days). What's worse is that if you want to do some kind of metaprompting or workflow that requires you to ouroborus the LLM output or make decisions based on it, you're now writing even more of that glue code to solidify that workflow. And it becomes rigid and difficult to mutate. And while you're probably using another LLM to manage this glue code, you're still dealing with the underlying abstraction to effect the orchestration.  
 
 So what if we designed a very specific DSL for doing all of this? What would that language look like? It would need to allow you dynamically create templates and smoothly incorporate LLM calls as a fundamental component of the language. It would allow you to build larger abstractions on top of a small set of operators and semantics. It would allow you to nest LLM calls, flow control on their output, keep state, and express really complicated ideas and shape context naturally. 
 
@@ -14,11 +14,11 @@ Finally, it would be specified sufficiently to feed it to an LLM and to achieve 
 
 Okay, yeah, sure, you're saying. You made a weird template language for prompting. Big deal. What is this metacognition bullshit? Well, I have a hypothesis that I am specifically testing with this language. Can we model internal mental processes sufficiently to really "embue" an LLM with "soul"? Like, could we basically take the idea from that Pixar movie, Inside-Out and make a very convincing automaton that would evolve? And where would we start? 
 
-Introspection. Let me give an example. Imagine we're making a little LLM game about a robot and the robot has two attributes of state: battery, and physical condition. And this little robot is traveling through a post-apocalyptic landscape trying to survive. The player describes that actions it wants the robot to do in the face of encounters. If this robot encounters a group of raiders, for example, and it has full power and pristine phyiscal condition, odds will be good it can escape or fight and survive. You can play this little game by hand with an LLM actually. And if you vary the attributes on the robot and ask it about the probability if it can successfully fight off the raiders or run away it will change its answer. So we can interrogate the state of the game with an LLM and derive useful outcomes from that. So all we need to do is get the state into the prompt. And of course, if something damages the robot or the robot's solar panels break, the state of their attributes will need to change. And you can directly interrogate the LLM about that too. And this is when it clicks: What is really playing pretend all about? Some agreed upon context and "rules" that you need to mentally process to stay consistent and continue the play. This is all acting is too. So can we make the LLMs play pretend in a structured way with state they control?
+Introspection. Let me give an example. Imagine we're making a little LLM game about a robot and the robot has two attributes of state: battery, and physical condition. And this little robot is traveling through a post-apocalyptic landscape trying to survive. The player describes that actions it wants the robot to do in the face of encounters. If this robot encounters a group of raiders, for example, and it has full power and pristine physical condition, odds will be good it can escape or fight and survive. You can play this little game by hand with an LLM actually. And if you vary the attributes on the robot and ask it about the probability if it can successfully fight off the raiders or run away it will change its answer. So we can interrogate the state of the game with an LLM and derive useful outcomes from that. So all we need to do is get the state into the prompt. And of course, if something damages the robot or the robot's solar panels break, the state of their attributes will need to change. And you can directly interrogate the LLM about that too. And this is when it clicks: What is really playing pretend all about? Some agreed upon context and "rules" that you need to mentally process to stay consistent and continue the play. This is all acting is too. So can we make the LLMs play pretend in a structured way with state they control?
 
 ## How the fuck do you get a LLM to play pretend?
 
-An engine that drives the loop of crystalized thoughts is enough, really. You start with modeling the basic flow and very heavily leverage the LLM to introspect, consider, synthesize, and mutate its own state. And once you realize that for just the little robot game above to have any fidelity to it, you need to make quite a few (nested) prompts and loops and give it a way to affect state, so tools or whatever. Doing this in a trad langauge is incredibly cumbersome. And this is where losp comes in.
+An engine that drives the loop of crystallized thoughts is enough, really. You start with modeling the basic flow and very heavily leverage the LLM to introspect, consider, synthesize, and mutate its own state. And once you realize that for just the little robot game above to have any fidelity to it, you need to make quite a few (nested) prompts and loops and give it a way to affect state, so tools or whatever. Doing this in a trad language is incredibly cumbersome. And this is where losp comes in.
 
 ## What is losp?
 
@@ -117,9 +117,9 @@ But what if we don't want the immediate operators to fire at definition, but ins
 ```losp
 ▽Snapshot ◯△X ◆ ◆   # Stores the Snapshot △X itself, not its value
 ▽X first ◆
-▲Snapshot         # NOW △X resolves → `first`
+▲Snapshot         # NOW △X resolves → `first` (△X fires and is consumed, body becomes "first")
 ▽X second ◆
-▲Snapshot         # NOW △X resolves → `second` but we've already exhausted all of the immediate operators in Snapshot and Snapshot still has `first`. 
+▲Snapshot         # Returns `first` — △X was consumed on the previous retrieve, body is now the literal text "first"
 ```
 
 Without `◯`, the `△X` would resolve at parse time and the expression would always return whatever X was when the line was parsed.
@@ -147,7 +147,7 @@ docker build -t losp .
 Run a `.losp` file (mount it into `/app`):
 
 ```bash
-docker run --rm -v "$PWD/examples:/app" losp -f adventure.losp
+docker run --rm -v "$PWD/examples:/app" losp -f wasteland.losp
 ```
 
 Interactive REPL:

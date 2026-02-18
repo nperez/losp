@@ -2,3 +2,11 @@ bin/
 *.db
 *.wasm
 internal/stdlib/*.md
+.DS_Store
+.env
+*.test
+*.out
+.vscode/
+.idea/
+*.swp
+*~
