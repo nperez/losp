@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (c) 2023-2026 Nicholas R. Perez
+
 // Package eval implements the losp evaluator.
 package eval
 

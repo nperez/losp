@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (c) 2023-2026 Nicholas R. Perez
+
 // Package scanner provides a streaming Unicode-aware lexer for losp.
 package scanner
 

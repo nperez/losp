@@ -1,4 +1,7 @@
 #!/bin/bash
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (c) 2023-2026 Nicholas R. Perez
+
 # Primer Fidelity Test Harness
 # Tests how well a small model can write losp using only PRIMER_COMPACT.md
 
