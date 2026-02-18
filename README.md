@@ -132,44 +132,10 @@ Well, think about it a bit if you really wanted to model thinking. Thoughts are 
 
 ## What now?
 
-Well, this is the end of the README. If this crazy ass idea resonates with you for building structured metacognition workflows, take a look at PRIMER.md for the language specification that was used to vibe code this whole damn thing. And also look at CLAUDE.md for what additional instructions you need to feed the LLMs in order to get them to "understand" losp and write it cogently. 
+Well, this is the end of the README. If this crazy ass idea resonates with you for building structured metacognition workflows, take a look at [PRIMER.md](PRIMER.md) for the language specification that was used to vibe code this whole damn thing. And also look at [CLAUDE.md](CLAUDE.md) for what additional instructions you need to feed the LLMs in order to get them to "understand" losp and write it cogently.
 
-If you want to make a new implementation of losp, snag the language PRIMER.md and the conformance tests (stand alone losp programs run with a bash harness that uses whatever binary you want) and let your favorite robots get to work building.
+If you want to make a new implementation of losp, snag the language [PRIMER.md](PRIMER.md) and the conformance tests (stand alone losp programs run with a bash harness that uses whatever binary you want) and let your favorite robots get to work building.
 
-## Docker
+Finally, to just play with the language a little bit and satisfy your curiosity follow the directions in [GETTING_STARTED.md](GETTING_STARTED.md)
 
-Build the image:
-
-```bash
-docker build -t losp .
-```
-
-Run a `.losp` file (mount it into `/app`):
-
-```bash
-docker run --rm -v "$PWD/examples:/app" losp -f wasteland.losp
-```
-
-Interactive REPL:
-
-```bash
-docker run --rm -it losp
-```
-
-Evaluate an inline expression:
-
-```bash
-docker run --rm losp -e '▽X hello ◆ ▲X'
-```
-
-With Ollama running on the host:
-
-```bash
-docker run --rm -it --network=host losp -f game.losp -provider ollama
-```
-
-With an API key:
-
-```bash
-docker run --rm -it -e ANTHROPIC_API_KEY losp -f game.losp -provider anthropic
 ```

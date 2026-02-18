@@ -3,7 +3,7 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 go build -o /losp ./cmd/losp
+RUN go generate ./internal/stdlib/ && CGO_ENABLED=0 go build -o /losp ./cmd/losp
 
 FROM debian:bookworm-slim
 COPY --from=build /losp /usr/local/bin/losp
