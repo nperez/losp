@@ -61,13 +61,17 @@ But the LLMs and the myriad of interfaces really hate these emojis and it would 
 
 ▼ChatLoopWithInput
     □_cli_input
-    ▶APPEND History User: ▲_cli_input ◆
+    ▶APPEND History 
+        User: ▲_cli_input 
+    ◆
     ▼_cli_response ▶PROMPT
         You are a helpful assistant.
         ▲History
     ◆ ◆
     ▶SAY Assistant: ▶_cli_response ◆ ◆
-    ▶APPEND History Assistant: ▶_cli_response ◆ ◆
+    ▶APPEND History 
+        Assistant: ▶_cli_response ◆ 
+    ◆
     ▶PERSIST History ◆
     ▶ChatLoop ◆
 ◆
