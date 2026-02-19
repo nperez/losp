@@ -138,4 +138,3 @@ If you want to make a new implementation of losp, snag the language [PRIMER.md](
 
 Finally, to just play with the language a little bit and satisfy your curiosity follow the directions in [GETTING_STARTED.md](GETTING_STARTED.md)
 
-```
