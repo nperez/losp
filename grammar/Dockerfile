@@ -26,7 +26,7 @@ RUN java -jar antlr4.jar \
 # ---------------------------------------------------------------------------
 # Stage 2: Build
 # ---------------------------------------------------------------------------
-FROM golang:1.22-bookworm AS build
+FROM golang:1.24-bookworm AS build
 
 WORKDIR /work
 
