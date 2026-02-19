@@ -3,4 +3,4 @@
 ▽c ▶CORPUS empty_search ◆ ◆
 ▶ADD ▲c doc ◆
 ▶INDEX ▲c ◆
-▶COMPARE ▶SEARCH ▲c xyznonexistent ◆ ▶EMPTY ◆
+▶COMPARE ▶SEARCH ▲c xyznonexistent ◆ ▶EMPTY ◆ ◆
