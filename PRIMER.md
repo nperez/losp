@@ -1069,13 +1069,15 @@ This keeps the defer semantics predictable and avoids "escaping hell" when combi
 
 ▼ChatLoopWithInput
     □_cli_input
-    ▶APPEND History User: ▲_cli_input ◆
+    ▶APPEND History 
+        User: ▲_cli_input ◆
     ▼_cli_response ▶PROMPT
         You are a helpful assistant.
         ▲History
     ◆ ◆
     ▶SAY Assistant: ▶_cli_response ◆ ◆
-    ▶APPEND History Assistant: ▶_cli_response ◆ ◆
+    ▶APPEND History 
+        Assistant: ▶_cli_response ◆ ◆
     ▶PERSIST History ◆
     ▶ChatLoop ◆
 ◆
