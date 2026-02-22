@@ -5,6 +5,6 @@ beta
 gamma
 ◆
 ▼__startup__
-    ▷GENERATE Write a losp expression named CountIt with one placeholder named _input. The body should use the COUNT builtin on the deferred retrieve of _input. Use deferred operators only. ◆
+    ▷GENERATE Write a losp expression: DEF CountIt ARG _input RUN COUNT GET _input END END ◆
     ▶SAY ▶CountIt ▲Data ◆ ◆
 ◆

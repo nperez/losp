@@ -1,6 +1,5 @@
 # EXPECTED: first
 # EXPECTED: second
-▼__startup__
-    ▷GENERATE Write losp code that does the following: First use immediate store to set MyList to the text first. Then use the APPEND builtin to append the text second to MyList. Remember APPEND takes its arguments on separate lines: the name on one line, the content on the next. ◆
-    ▶SAY ▲MyList ◆
-◆
+▼_run ▷GENERATE Write losp code: IDEF MyList first END then RUN APPEND with two arguments on separate lines: the text MyList on one line and the text second on the next line, then END. The first argument to APPEND is the name MyList as plain text, not a GET operator. ◆ ◆
+▶_run ◆
+▶SAY ▲MyList ◆

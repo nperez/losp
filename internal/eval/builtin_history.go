@@ -59,10 +59,10 @@ func builtinHistory(e *Evaluator, argsRaw string) (expr.Expr, error) {
 		}
 
 		// Store as a Stored expression in the namespace (NOT persisted)
-		e.namespace.Set(vName, expr.Stored{Body: expr.Text{Value: body}})
+		e.namespace.Set(vName, expr.Stored{Body: body})
 	}
 
-	return expr.Text{Value: strings.Join(names, "\n")}, nil
+	return expr.Stored{Body: strings.Join(names, "\n")}, nil
 }
 
 // historyStore type-asserts the evaluator's store to HistoryStore.

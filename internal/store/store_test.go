@@ -16,7 +16,7 @@ func TestMemoryStore(t *testing.T) {
 	defer s.Close()
 
 	// Test Put and Get
-	err := s.Put("test", expr.Text{Value: "hello"})
+	err := s.Put("test", expr.Stored{Body: "hello"})
 	if err != nil {
 		t.Fatalf("Put failed: %v", err)
 	}
@@ -60,7 +60,7 @@ func TestSQLiteStore(t *testing.T) {
 	}
 
 	// Test Put and Get
-	err = s.Put("test", expr.Text{Value: "world"})
+	err = s.Put("test", expr.Stored{Body: "world"})
 	if err != nil {
 		t.Fatalf("Put failed: %v", err)
 	}
@@ -95,21 +95,21 @@ func TestMemoryVersioning(t *testing.T) {
 	s := NewMemory()
 
 	// Put creates version 1
-	s.Put("X", expr.Text{Value: "first"})
+	s.Put("X", expr.Stored{Body: "first"})
 	got, _ := s.Get("X")
 	if got.String() != "first" {
 		t.Errorf("expected 'first', got '%s'", got.String())
 	}
 
 	// Put again with different value creates version 2
-	s.Put("X", expr.Text{Value: "second"})
+	s.Put("X", expr.Stored{Body: "second"})
 	got, _ = s.Get("X")
 	if got.String() != "second" {
 		t.Errorf("expected 'second', got '%s'", got.String())
 	}
 
 	// Put with same value is a no-op (dedup)
-	s.Put("X", expr.Text{Value: "second"})
+	s.Put("X", expr.Stored{Body: "second"})
 
 	// GetHistory returns newest-first
 	entries, err := s.GetHistory("X", 0)
@@ -174,21 +174,21 @@ func TestSQLiteVersioning(t *testing.T) {
 	defer s.Close()
 
 	// First put creates version 1
-	s.Put("X", expr.Text{Value: "first"})
+	s.Put("X", expr.Stored{Body: "first"})
 	got, _ := s.Get("X")
 	if got.String() != "first" {
 		t.Errorf("expected 'first', got '%s'", got.String())
 	}
 
 	// Second put with different value creates version 2
-	s.Put("X", expr.Text{Value: "second"})
+	s.Put("X", expr.Stored{Body: "second"})
 	got, _ = s.Get("X")
 	if got.String() != "second" {
 		t.Errorf("expected 'second', got '%s'", got.String())
 	}
 
 	// Same value is a no-op
-	s.Put("X", expr.Text{Value: "second"})
+	s.Put("X", expr.Stored{Body: "second"})
 
 	// GetHistory returns newest first
 	entries, err := s.GetHistory("X", 0)
@@ -278,7 +278,7 @@ func TestSQLiteMigrationV2toV3(t *testing.T) {
 	}
 
 	// New puts should version correctly
-	s.Put("MyExpr", expr.Text{Value: "updated"})
+	s.Put("MyExpr", expr.Stored{Body: "updated"})
 	entries, _ = s.GetHistory("MyExpr", 0)
 	if len(entries) != 2 {
 		t.Fatalf("expected 2 entries after update, got %d", len(entries))

@@ -92,11 +92,11 @@ func getBuiltin(name string) BuiltinFunc {
 }
 
 func builtinTrue(e *Evaluator, argsRaw string) (expr.Expr, error) {
-	return expr.Text{Value: "TRUE"}, nil
+	return expr.Stored{Body: "TRUE"}, nil
 }
 
 func builtinFalse(e *Evaluator, argsRaw string) (expr.Expr, error) {
-	return expr.Text{Value: "FALSE"}, nil
+	return expr.Stored{Body: "FALSE"}, nil
 }
 
 func builtinEmpty(e *Evaluator, argsRaw string) (expr.Expr, error) {
@@ -127,13 +127,13 @@ func builtinIf(e *Evaluator, argsRaw string) (expr.Expr, error) {
 
 	if condResult == "TRUE" {
 		// Return then-expr as text (use dynamic execute to evaluate if needed)
-		return expr.Text{Value: thenExpr}, nil
+		return expr.Stored{Body: thenExpr}, nil
 	} else {
 		// Return else-expr as text
 		if elseExpr == "" {
 			return expr.Empty{}, nil
 		}
-		return expr.Text{Value: elseExpr}, nil
+		return expr.Stored{Body: elseExpr}, nil
 	}
 }
 
@@ -145,13 +145,13 @@ func builtinCompare(e *Evaluator, argsRaw string) (expr.Expr, error) {
 	}
 
 	if len(args) < 2 {
-		return expr.Text{Value: "FALSE"}, nil
+		return expr.Stored{Body: "FALSE"}, nil
 	}
 
 	if args[0] == args[1] {
-		return expr.Text{Value: "TRUE"}, nil
+		return expr.Stored{Body: "TRUE"}, nil
 	}
-	return expr.Text{Value: "FALSE"}, nil
+	return expr.Stored{Body: "FALSE"}, nil
 }
 
 func builtinForeach(e *Evaluator, argsRaw string) (expr.Expr, error) {
@@ -192,14 +192,14 @@ func builtinForeach(e *Evaluator, argsRaw string) (expr.Expr, error) {
 		if s, ok := stored.(expr.Stored); ok {
 			// Bind item to first parameter
 			if len(s.Params) > 0 {
-				e.namespace.Set(s.Params[0], expr.Text{Value: item})
+				e.namespace.Set(s.Params[0], expr.Stored{Body: item})
 			}
-			result := mustEval(e, s.Body.String())
+			result := mustEval(e, s.Body)
 			results = append(results, result)
 		}
 	}
 
-	return expr.Text{Value: strings.Join(results, "\n")}, nil
+	return expr.Stored{Body: strings.Join(results, "\n")}, nil
 }
 
 func builtinSay(e *Evaluator, argsRaw string) (expr.Expr, error) {
@@ -235,7 +235,7 @@ func builtinRead(e *Evaluator, argsRaw string) (expr.Expr, error) {
 		return nil, err
 	}
 
-	return expr.Text{Value: strings.TrimSpace(input)}, nil
+	return expr.Stored{Body: strings.TrimSpace(input)}, nil
 }
 
 func builtinCount(e *Evaluator, argsRaw string) (expr.Expr, error) {
@@ -247,11 +247,11 @@ func builtinCount(e *Evaluator, argsRaw string) (expr.Expr, error) {
 
 	text := strings.TrimSpace(result)
 	if text == "" {
-		return expr.Text{Value: "0"}, nil
+		return expr.Stored{Body: "0"}, nil
 	}
 
 	lines := strings.Split(text, "\n")
-	return expr.Text{Value: fmt.Sprintf("%d", len(lines))}, nil
+	return expr.Stored{Body: fmt.Sprintf("%d", len(lines))}, nil
 }
 
 func builtinRandom(e *Evaluator, argsRaw string) (expr.Expr, error) {
@@ -280,7 +280,7 @@ func builtinRandom(e *Evaluator, argsRaw string) (expr.Expr, error) {
 	}
 
 	index := rand.Intn(len(items))
-	return expr.Text{Value: strings.TrimSpace(items[index])}, nil
+	return expr.Stored{Body: strings.TrimSpace(items[index])}, nil
 }
 
 func builtinAppend(e *Evaluator, argsRaw string) (expr.Expr, error) {
@@ -306,7 +306,7 @@ func builtinAppend(e *Evaluator, argsRaw string) (expr.Expr, error) {
 		newValue = content
 	}
 
-	e.namespace.Set(name, expr.Text{Value: newValue})
+	e.namespace.Set(name, expr.Stored{Body: newValue})
 
 	// Auto-persist in ALWAYS mode
 	if e.persistMode == PersistAlways && e.store != nil {
@@ -345,9 +345,7 @@ func formatAsDefinition(name string, val expr.Expr) string {
 	}
 
 	// Add body
-	if stored.Body != nil {
-		sb.WriteString(stored.Body.String())
-	}
+	sb.WriteString(stored.Body)
 
 	sb.WriteRune(token.RuneTerminator) // ◆
 
@@ -379,7 +377,7 @@ func builtinPersist(e *Evaluator, argsRaw string) (expr.Expr, error) {
 
 	// Format as full definition so we can reconstruct on LOAD
 	fullDef := formatAsDefinition(name, val)
-	if err := e.store.Put(name, expr.Text{Value: fullDef}); err != nil {
+	if err := e.store.Put(name, expr.Stored{Body: fullDef}); err != nil {
 		return nil, err
 	}
 
@@ -431,14 +429,14 @@ func builtinLoad(e *Evaluator, argsRaw string) (expr.Expr, error) {
 			}
 		} else {
 			// Plain text value, just set it directly
-			e.namespace.Set(name, expr.Text{Value: text})
+			e.namespace.Set(name, expr.Stored{Body: text})
 		}
 		return expr.Empty{}, nil
 	}
 
 	// Otherwise use default if provided
 	if defaultVal != "" {
-		e.namespace.Set(name, expr.Text{Value: defaultVal})
+		e.namespace.Set(name, expr.Stored{Body: defaultVal})
 	}
 
 	return expr.Empty{}, nil
@@ -508,7 +506,7 @@ func builtinExtract(e *Evaluator, argsRaw string) (expr.Expr, error) {
 	if extracted == "" {
 		return expr.Empty{}, nil
 	}
-	return expr.Text{Value: extracted}, nil
+	return expr.Stored{Body: extracted}, nil
 }
 
 func builtinPrompt(e *Evaluator, argsRaw string) (expr.Expr, error) {
@@ -541,7 +539,7 @@ func builtinPrompt(e *Evaluator, argsRaw string) (expr.Expr, error) {
 		return nil, err
 	}
 
-	return expr.Text{Value: response}, nil
+	return expr.Stored{Body: response}, nil
 }
 
 func builtinSystem(e *Evaluator, argsRaw string) (expr.Expr, error) {
@@ -568,12 +566,12 @@ func builtinSystem(e *Evaluator, argsRaw string) (expr.Expr, error) {
 		if value != "" {
 			mode, ok := ParsePersistMode(value)
 			if !ok {
-				return expr.Text{Value: "UNKNOWN"}, nil
+				return expr.Stored{Body: "UNKNOWN"}, nil
 			}
 			e.SetPersistMode(mode)
 			return expr.Empty{}, nil
 		}
-		return expr.Text{Value: e.PersistMode().String()}, nil
+		return expr.Stored{Body: e.PersistMode().String()}, nil
 
 	case "MODEL":
 		if cfg, ok := e.provider.(Configurable); ok {
@@ -581,7 +579,7 @@ func builtinSystem(e *Evaluator, argsRaw string) (expr.Expr, error) {
 				cfg.SetModel(value)
 				return expr.Empty{}, nil
 			}
-			return expr.Text{Value: cfg.GetModel()}, nil
+			return expr.Stored{Body: cfg.GetModel()}, nil
 		}
 		return expr.Empty{}, nil
 
@@ -590,7 +588,7 @@ func builtinSystem(e *Evaluator, argsRaw string) (expr.Expr, error) {
 			name := strings.ToUpper(value)
 			factory, ok := e.providerFactories[name]
 			if !ok {
-				return expr.Text{Value: "UNKNOWN_PROVIDER"}, nil
+				return expr.Stored{Body: "UNKNOWN_PROVIDER"}, nil
 			}
 			// Copy inference params from old provider to new one
 			var oldParams map[string]string
@@ -615,7 +613,7 @@ func builtinSystem(e *Evaluator, argsRaw string) (expr.Expr, error) {
 		}
 		// Get current provider name
 		if cfg, ok := e.provider.(Configurable); ok {
-			return expr.Text{Value: cfg.ProviderName()}, nil
+			return expr.Stored{Body: cfg.ProviderName()}, nil
 		}
 		return expr.Empty{}, nil
 
@@ -625,7 +623,7 @@ func builtinSystem(e *Evaluator, argsRaw string) (expr.Expr, error) {
 				cfg.SetParam(setting, value)
 				return expr.Empty{}, nil
 			}
-			return expr.Text{Value: cfg.GetParam(setting)}, nil
+			return expr.Stored{Body: cfg.GetParam(setting)}, nil
 		}
 		return expr.Empty{}, nil
 
@@ -634,21 +632,21 @@ func builtinSystem(e *Evaluator, argsRaw string) (expr.Expr, error) {
 			e.SetSetting("SEARCH_LIMIT", value)
 			return expr.Empty{}, nil
 		}
-		return expr.Text{Value: e.GetSetting("SEARCH_LIMIT", "10")}, nil
+		return expr.Stored{Body: e.GetSetting("SEARCH_LIMIT", "10")}, nil
 
 	case "HISTORY_LIMIT":
 		if value != "" {
 			n, err := strconv.Atoi(value)
 			if err != nil {
-				return expr.Text{Value: "INVALID"}, nil
+				return expr.Stored{Body: "INVALID"}, nil
 			}
 			e.historyLimit = n
 			return expr.Empty{}, nil
 		}
-		return expr.Text{Value: strconv.Itoa(e.historyLimit)}, nil
+		return expr.Stored{Body: strconv.Itoa(e.historyLimit)}, nil
 
 	default:
-		return expr.Text{Value: "UNKNOWN_SETTING"}, nil
+		return expr.Stored{Body: "UNKNOWN_SETTING"}, nil
 	}
 }
 
@@ -667,7 +665,7 @@ func builtinUpper(e *Evaluator, argsRaw string) (expr.Expr, error) {
 		results = append(results, strings.ToUpper(arg))
 	}
 
-	return expr.Text{Value: strings.Join(results, "\n")}, nil
+	return expr.Stored{Body: strings.Join(results, "\n")}, nil
 }
 
 func builtinLower(e *Evaluator, argsRaw string) (expr.Expr, error) {
@@ -685,7 +683,7 @@ func builtinLower(e *Evaluator, argsRaw string) (expr.Expr, error) {
 		results = append(results, strings.ToLower(arg))
 	}
 
-	return expr.Text{Value: strings.Join(results, "\n")}, nil
+	return expr.Stored{Body: strings.Join(results, "\n")}, nil
 }
 
 func builtinTrim(e *Evaluator, argsRaw string) (expr.Expr, error) {
@@ -710,7 +708,7 @@ func builtinTrim(e *Evaluator, argsRaw string) (expr.Expr, error) {
 		return expr.Empty{}, nil
 	}
 
-	return expr.Text{Value: strings.Join(results, "\n")}, nil
+	return expr.Stored{Body: strings.Join(results, "\n")}, nil
 }
 
 func builtinGenerate(e *Evaluator, argsRaw string) (expr.Expr, error) {
@@ -736,5 +734,5 @@ func builtinGenerate(e *Evaluator, argsRaw string) (expr.Expr, error) {
 		return nil, err
 	}
 
-	return expr.Text{Value: strings.TrimSpace(response)}, nil
+	return expr.Stored{Body: strings.TrimSpace(response)}, nil
 }

@@ -1403,7 +1403,7 @@ type memoryStoreWrapper struct {
 
 func (m *memoryStoreWrapper) Get(name string) (expr.Expr, error) {
 	if v, ok := m.data[name]; ok {
-		return expr.Text{Value: v}, nil
+		return expr.Stored{Body: v}, nil
 	}
 	return nil, nil
 }

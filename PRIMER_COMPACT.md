@@ -16,6 +16,34 @@ losp is a streaming expression language using Unicode operators instead of paren
 | `◯` | Defer | — | Prevent immediate resolution (consumed on use) |
 | `◆` | Terminator | — | End ONE operator's scope |
 
+**ASCII shorthand** (for use in prompts where Unicode operators cannot appear):
+
+| ASCII | Unicode | Meaning |
+|-------|---------|---------|
+| DEF | `▼` | Store (define expression) |
+| IDEF | `▽` | ImmStore (evaluate & store) |
+| GET | `▲` | Retrieve |
+| IGET | `△` | ImmRetrieve |
+| RUN | `▶` | Execute |
+| IRUN | `▷` | ImmExec |
+| ARG | `□` | Placeholder |
+| END | `◆` | Terminator |
+
+When a prompt describes a pattern using these ASCII names, output the corresponding Unicode operators.
+
+Example prompt: "DEF _tpl ARG _a ARG _n ARG _m RUN SAY The GET _a GET _n is made of GET _m. END END"
+Correct output:
+```losp
+▼_tpl □_a □_n □_m ▶SAY The ▲_a ▲_n is made of ▲_m. ◆ ◆
+```
+
+**Numbered arguments:** `ARG1` through `ARG9` in text become `▲_a` through `▲_i`. The expression gets one `□` per ARGn used.
+
+Example: "Convert to losp expression _tpl: ARG1 called ARG2 about ARG3."
+```losp
+▼_tpl □_a □_b □_c ▶SAY ▲_a called ▲_b about ▲_c. ◆ ◆
+```
+
 **Timing rules:**
 - **Immediate** (`△` `▷` `▽`): Fire as encountered during parsing. Result spliced into stream.
 - **Deferred** (`▲` `▶` `▼`): Stored as-is. Resolved when executed.
@@ -241,6 +269,34 @@ ShowItem
 ◆
 ```
 Output: `[a]\n[b]\n[c]`
+
+### RANDOM (pick one from a list)
+```losp
+▼Colors
+red
+green
+blue
+◆
+▶RANDOM ▲Colors ◆
+```
+Output: one of `red`, `green`, or `blue` (random each time).
+
+`▶RANDOM` takes one argument: an expression whose lines are the items to pick from. Use `▲` to retrieve the list. Returns EMPTY if empty.
+
+**Multiple RANDOM picks in one expression:**
+```losp
+▼Colors red
+green
+blue
+◆
+▼Animals cat
+dog
+bird
+◆
+▼Sentence The ▶RANDOM ▲Colors ◆ ▶RANDOM ▲Animals ◆ runs fast. ◆
+▶Sentence ◆
+```
+Output: `The green cat runs fast.` (random each time). Each `▶RANDOM ▲list ◆` is a separate operator with its own `◆`.
 
 ### APPEND (arguments on separate lines)
 ```losp

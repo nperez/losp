@@ -1,6 +1,6 @@
 # EXPECTED: Bob greets Alice
 ▼__startup__
-    ▷GENERATE Write a losp expression named Greet with two placeholders _who and _target. When executed it should produce the text: the first argument, then greets, then the second argument. Use deferred operators. ◆
+    ▷GENERATE Write a losp expression: DEF Greet ARG _who ARG _target GET _who greets GET _target END ◆
     ▶SAY ▶Greet
 Bob
 Alice

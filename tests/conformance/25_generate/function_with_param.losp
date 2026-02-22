@@ -1,5 +1,5 @@
 # EXPECTED: Hello Alice
 ▼__startup__
-    ▷GENERATE Write a losp expression named FOO with one placeholder parameter named _name whose body is the text Hello followed by a space followed by the deferred retrieve of _name ◆
+    ▷GENERATE Write a losp expression: DEF FOO ARG _name Hello GET _name END. Hello is literal body text followed by a space then the retrieved placeholder value. Do not use SAY. ◆
     ▶SAY ▶FOO Alice ◆◆
 ◆

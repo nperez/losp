@@ -7,7 +7,7 @@ y
 z
 ◆
 ▼__startup__
-    ▷GENERATE Write a losp expression named Wrap with one placeholder _item. When executed it should return the placeholder value wrapped in square brackets like [value]. Use deferred operators. ◆
+    ▷GENERATE Write a losp expression: DEF Wrap ARG _item [GET _item] END. The square brackets around GET _item are literal text characters that must appear in the output. ◆
     ▶SAY ▶FOREACH
 ▲Items
 Wrap

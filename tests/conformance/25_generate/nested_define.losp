@@ -1,6 +1,15 @@
 # EXPECTED: inner works
+▶SYSTEM
+TEMPERATURE
+0
+◆
+▶SYSTEM
+MAX_TOKENS
+100
+◆
+▼_run ▷GENERATE Write a losp expression: DEF Setup DEF Inner inner works END END. Inner has no placeholders. Its body is the literal text inner works. Output only the expression, nothing else. ◆ ◆
 ▼__startup__
-    ▷GENERATE Write a losp expression named Setup. The body of Setup should define another expression named Inner whose body is the literal text inner works with no operators. Use deferred store for both definitions. ◆
+    ▶_run ◆
     ▶Setup ◆
     ▶SAY ▶Inner ◆ ◆
 ◆

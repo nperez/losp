@@ -24,14 +24,6 @@ type Empty struct{}
 func (e Empty) String() string { return "" }
 func (e Empty) IsEmpty() bool  { return true }
 
-// Text represents literal text content.
-type Text struct {
-	Value string
-}
-
-func (t Text) String() string { return t.Value }
-func (t Text) IsEmpty() bool  { return t.Value == "" }
-
 // Placeholder represents an argument slot (□name).
 type Placeholder struct {
 	Name string
@@ -79,19 +71,16 @@ func (o Operator) String() string {
 }
 func (o Operator) IsEmpty() bool { return false }
 
-// Stored represents a stored expression with parameters.
+// Stored represents a stored expression with optional parameters.
+// This is the universal value type for the namespace — all values
+// (plain text, parameterized expressions, APPEND results) are Stored.
 type Stored struct {
-	Params []string // Placeholder names in order
-	Body   Expr     // The expression body
+	Params []string // Placeholder names in order (nil for plain values)
+	Body   string   // The expression body text
 }
 
-func (s Stored) String() string {
-	if s.Body == nil {
-		return ""
-	}
-	return s.Body.String()
-}
-func (s Stored) IsEmpty() bool { return s.Body == nil || s.Body.IsEmpty() }
+func (s Stored) String() string { return s.Body }
+func (s Stored) IsEmpty() bool  { return s.Body == "" }
 
 // Compound represents a sequence of expressions.
 type Compound struct {
@@ -114,12 +103,12 @@ func (c Compound) IsEmpty() bool {
 	return true
 }
 
-// NewText creates a new Text expression, returning Empty if the value is empty.
+// NewText creates a new Stored expression, returning Empty if the value is empty.
 func NewText(value string) Expr {
 	if value == "" {
 		return Empty{}
 	}
-	return Text{Value: value}
+	return Stored{Body: value}
 }
 
 // NewCompound creates a new Compound from expressions, simplifying if possible.

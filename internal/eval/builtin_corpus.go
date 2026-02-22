@@ -81,7 +81,7 @@ func builtinCorpus(e *Evaluator, argsRaw string) (expr.Expr, error) {
 	}
 
 	handleID := e.corpusRegistry.GetOrCreate(name)
-	return expr.Text{Value: handleID}, nil
+	return expr.Stored{Body: handleID}, nil
 }
 
 func builtinAdd(e *Evaluator, argsRaw string) (expr.Expr, error) {
@@ -179,7 +179,7 @@ func builtinSearch(e *Evaluator, argsRaw string) (expr.Expr, error) {
 	if len(results) == 0 {
 		return expr.Empty{}, nil
 	}
-	return expr.Text{Value: strings.Join(results, "\n")}, nil
+	return expr.Stored{Body: strings.Join(results, "\n")}, nil
 }
 
 func builtinEmbed(e *Evaluator, argsRaw string) (expr.Expr, error) {
@@ -297,7 +297,7 @@ func builtinSimilar(e *Evaluator, argsRaw string) (expr.Expr, error) {
 	for _, r := range results {
 		names = append(names, r.Key)
 	}
-	return expr.Text{Value: strings.Join(names, "\n")}, nil
+	return expr.Stored{Body: strings.Join(names, "\n")}, nil
 }
 
 // corpusStore type-asserts the evaluator's store to CorpusStore.

@@ -1,5 +1,5 @@
 # EXPECTED: big
 ▼__startup__
-    ▷GENERATE Write a losp expression named Size with one placeholder _n. It should compare _n to 10 and return big if they match or small if they do not. Use deferred operators. ◆
+    ▷GENERATE Write a losp expression: DEF Size ARG _n RUN IF RUN COMPARE GET _n 10 END big small END END ◆
     ▶SAY ▶Size 10 ◆ ◆
 ◆

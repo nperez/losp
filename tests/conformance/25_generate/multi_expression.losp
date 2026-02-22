@@ -1,5 +1,5 @@
 # EXPECTED: HELLO
 ▼__startup__
-    ▷GENERATE Write two losp expression definitions. First, define Transform with one placeholder _text that returns it uppercased using UPPER. Second, define Main whose body executes Transform with hello. Each definition needs its own closing terminator. Use deferred operators. ◆
+    ▷GENERATE Write two losp expressions: DEF Transform ARG _text RUN UPPER GET _text END END DEF Main RUN Transform hello END END ◆
     ▶SAY ▶Main ◆ ◆
 ◆

@@ -44,7 +44,7 @@ func builtinAsync(e *Evaluator, argsRaw string) (expr.Expr, error) {
 		h.result = strings.TrimSpace(result.String())
 	}()
 
-	return expr.Text{Value: h.id}, nil
+	return expr.Stored{Body: h.id}, nil
 }
 
 func builtinAwait(e *Evaluator, argsRaw string) (expr.Expr, error) {
@@ -67,29 +67,29 @@ func builtinAwait(e *Evaluator, argsRaw string) (expr.Expr, error) {
 	if h.err != nil || h.result == "" {
 		return expr.Empty{}, nil
 	}
-	return expr.Text{Value: h.result}, nil
+	return expr.Stored{Body: h.result}, nil
 }
 
 func builtinCheck(e *Evaluator, argsRaw string) (expr.Expr, error) {
 	args, err := e.parseArgs(argsRaw)
 	if err != nil {
-		return expr.Text{Value: "FALSE"}, nil
+		return expr.Stored{Body: "FALSE"}, nil
 	}
 	if len(args) < 1 {
-		return expr.Text{Value: "FALSE"}, nil
+		return expr.Stored{Body: "FALSE"}, nil
 	}
 
 	id := args[0]
 	h := e.asyncRegistry.Get(id)
 	if h == nil {
-		return expr.Text{Value: "FALSE"}, nil
+		return expr.Stored{Body: "FALSE"}, nil
 	}
 
 	select {
 	case <-h.done:
-		return expr.Text{Value: "TRUE"}, nil
+		return expr.Stored{Body: "TRUE"}, nil
 	default:
-		return expr.Text{Value: "FALSE"}, nil
+		return expr.Stored{Body: "FALSE"}, nil
 	}
 }
 
@@ -130,32 +130,32 @@ func builtinTimer(e *Evaluator, argsRaw string) (expr.Expr, error) {
 		h.result = strings.TrimSpace(result.String())
 	})
 
-	return expr.Text{Value: h.id}, nil
+	return expr.Stored{Body: h.id}, nil
 }
 
 func builtinTicks(e *Evaluator, argsRaw string) (expr.Expr, error) {
 	args, err := e.parseArgs(argsRaw)
 	if err != nil {
-		return expr.Text{Value: "0"}, nil
+		return expr.Stored{Body: "0"}, nil
 	}
 	if len(args) < 1 {
-		return expr.Text{Value: "0"}, nil
+		return expr.Stored{Body: "0"}, nil
 	}
 
 	id := args[0]
 	h := e.asyncRegistry.Get(id)
 	if h == nil {
-		return expr.Text{Value: "0"}, nil
+		return expr.Stored{Body: "0"}, nil
 	}
 
 	// Non-timer or already completed: return 0
 	if !h.isTimer {
-		return expr.Text{Value: "0"}, nil
+		return expr.Stored{Body: "0"}, nil
 	}
 
 	select {
 	case <-h.done:
-		return expr.Text{Value: "0"}, nil
+		return expr.Stored{Body: "0"}, nil
 	default:
 	}
 
@@ -163,7 +163,7 @@ func builtinTicks(e *Evaluator, argsRaw string) (expr.Expr, error) {
 	if remaining < 0 {
 		remaining = 0
 	}
-	return expr.Text{Value: fmt.Sprintf("%d", remaining.Milliseconds())}, nil
+	return expr.Stored{Body: fmt.Sprintf("%d", remaining.Milliseconds())}, nil
 }
 
 func builtinSleep(e *Evaluator, argsRaw string) (expr.Expr, error) {

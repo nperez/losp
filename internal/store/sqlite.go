@@ -158,7 +158,7 @@ func (s *SQLite) Get(name string) (expr.Expr, error) {
 		return nil, err
 	}
 
-	return expr.Text{Value: value}, nil
+	return expr.Stored{Body: value}, nil
 }
 
 // Put appends a new version of an expression (if the value changed).

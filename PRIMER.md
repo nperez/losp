@@ -26,6 +26,50 @@ losp is interpreted in a single streaming pass. There is no separate parse phase
 | `◯` | U+25EF | Defer | — | Prevent parse-time resolution |
 | `◆` | U+25C6 | Terminator | — | End current operator's scope |
 
+### ASCII Shorthand
+
+For use in prompts where Unicode operators cannot appear (e.g., inside GENERATE instructions), these ASCII names map to Unicode operators:
+
+| ASCII | Unicode | Meaning |
+|-------|---------|---------|
+| DEF | `▼` | Store (define expression) |
+| IDEF | `▽` | ImmStore (evaluate & store) |
+| GET | `▲` | Retrieve |
+| IGET | `△` | ImmRetrieve |
+| RUN | `▶` | Execute |
+| IRUN | `▷` | ImmExec |
+| ARG | `□` | Placeholder |
+| END | `◆` | Terminator |
+
+When a prompt describes a pattern using these ASCII names, output the corresponding Unicode operators.
+
+**Example prompt:** "DEF _tpl ARG _a ARG _n ARG _m RUN SAY The GET _a GET _n is made of GET _m. END END"
+
+**Correct output:**
+```losp
+▼_tpl □_a □_n □_m ▶SAY The ▲_a ▲_n is made of ▲_m. ◆ ◆
+```
+
+### Numbered Arguments
+
+`ARG1` through `ARG9` in text are shorthand for numbered placeholder positions. When converting text containing ARGn markers into a losp expression:
+
+- Each ARGn maps to a placeholder: `ARG1` → `□_a` / `▲_a`, `ARG2` → `□_b` / `▲_b`, ... `ARG9` → `□_i` / `▲_i`
+- The expression declares one `□` per ARGn used
+- Each ARGn in the text body becomes the corresponding `▲` retrieval
+
+**Example:** "Convert to losp expression _tpl: ARG1 called ARG2 about ARG3."
+
+```losp
+▼_tpl □_a □_b □_c ▶SAY ▲_a called ▲_b about ▲_c. ◆ ◆
+```
+
+**Example with 6 arguments:** "Convert to losp expression _desc: The ARG1 ARG2 of ARG3 was built from ARG4. The air carried ARG5 beneath a pall of ARG6."
+
+```losp
+▼_desc □_a □_b □_c □_d □_e □_f ▶SAY The ▲_a ▲_b of ▲_c was built from ▲_d. The air carried ▲_e beneath a pall of ▲_f. ◆ ◆
+```
+
 ---
 
 ## Core Concept: Parse-Time vs Execution-Time

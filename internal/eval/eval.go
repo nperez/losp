@@ -246,7 +246,7 @@ func (e *Evaluator) evalStream(scan *scanner.Scanner, stopAtTerminator bool) (ex
 
 		case token.TEXT:
 			if item.Value != "" {
-				results = append(results, expr.Text{Value: item.Value})
+				results = append(results, expr.Stored{Body: item.Value})
 			}
 
 		case token.DEFER:
@@ -259,7 +259,7 @@ func (e *Evaluator) evalStream(scan *scanner.Scanner, stopAtTerminator bool) (ex
 					return nil, err
 				}
 				// Reconstruct the ◯ wrapper so it survives to the next parse
-				results = append(results, expr.Text{Value: string(token.RuneDefer) + result.String() + string(token.RuneTerminator)})
+				results = append(results, expr.Stored{Body: string(token.RuneDefer) + result.String() + string(token.RuneTerminator)})
 			} else {
 				// At top level: ◯ is CONSUMED - only the deferred content is returned
 				e.deferDepth++
@@ -298,14 +298,14 @@ func (e *Evaluator) evalStream(scan *scanner.Scanner, stopAtTerminator bool) (ex
 					if err != nil {
 						return nil, err
 					}
-					e.namespace.Set(name, expr.Text{Value: evaluated})
+					e.namespace.Set(name, expr.Stored{Body: evaluated})
 				} else {
 					// Inside ◯: store as deferred expression
 					bodyExpr, params, err := e.parseBody(body)
 					if err != nil {
 						return nil, err
 					}
-					e.namespace.Set(name, expr.Stored{Params: params, Body: bodyExpr})
+					e.namespace.Set(name, expr.Stored{Params: params, Body: bodyExpr.String()})
 				}
 			} else {
 				// ▼ - Deferred store: process body, evaluating immediate operators
@@ -320,7 +320,7 @@ func (e *Evaluator) evalStream(scan *scanner.Scanner, stopAtTerminator bool) (ex
 				if err != nil {
 					return nil, err
 				}
-				stored := expr.Stored{Params: params, Body: expr.Text{Value: body}}
+				stored := expr.Stored{Params: params, Body: body}
 				e.namespace.Set(name, stored)
 			}
 
@@ -349,12 +349,12 @@ func (e *Evaluator) evalStream(scan *scanner.Scanner, stopAtTerminator bool) (ex
 
 				// Update stored body with parsed result (ephemeral semantic)
 				if s, ok := val.(expr.Stored); ok {
-					e.namespace.Set(name, expr.Stored{Params: s.Params, Body: expr.Text{Value: result}})
+					e.namespace.Set(name, expr.Stored{Params: s.Params, Body: result})
 				} else {
-					e.namespace.Set(name, expr.Text{Value: result})
+					e.namespace.Set(name, expr.Stored{Body: result})
 				}
 
-				results = append(results, expr.Text{Value: result})
+				results = append(results, expr.Stored{Body: result})
 			} else if e.deferDepth == 0 {
 				// △ - IMMEDIATE retrieve at parse time: only immediate ops fire
 				e.autoLoad(name)
@@ -366,12 +366,12 @@ func (e *Evaluator) evalStream(scan *scanner.Scanner, stopAtTerminator bool) (ex
 
 				// Update stored body - any immediate ops that fired are now replaced
 				if s, ok := val.(expr.Stored); ok {
-					e.namespace.Set(name, expr.Stored{Params: s.Params, Body: expr.Text{Value: result}})
+					e.namespace.Set(name, expr.Stored{Params: s.Params, Body: result})
 				} else {
-					e.namespace.Set(name, expr.Text{Value: result})
+					e.namespace.Set(name, expr.Stored{Body: result})
 				}
 
-				results = append(results, expr.Text{Value: result})
+				results = append(results, expr.Stored{Body: result})
 			} else {
 				// △ inside ◯ - return the operator itself
 				results = append(results, expr.Operator{
@@ -401,7 +401,7 @@ func (e *Evaluator) evalStream(scan *scanner.Scanner, stopAtTerminator bool) (ex
 					if err != nil {
 						return nil, err
 					}
-					results = append(results, expr.Text{Value: evaluated})
+					results = append(results, expr.Stored{Body: evaluated})
 				} else {
 					results = append(results, result)
 				}
@@ -410,7 +410,7 @@ func (e *Evaluator) evalStream(scan *scanner.Scanner, stopAtTerminator bool) (ex
 				results = append(results, expr.Operator{
 					Op:   item.Token,
 					Name: name,
-					Body: expr.Text{Value: argsRaw},
+					Body: expr.Stored{Body: argsRaw},
 				})
 			}
 		}
@@ -441,7 +441,7 @@ func (e *Evaluator) parseBody(body string) (expr.Expr, []string, error) {
 			params = append(params, name)
 			// Don't add placeholder to body - it's just a parameter declaration
 		} else if item.Token == token.TEXT {
-			exprs = append(exprs, expr.Text{Value: item.Value})
+			exprs = append(exprs, expr.Stored{Body: item.Value})
 		} else if item.Token.NeedsTerminator() {
 			// Operators with terminators (▼, ▽, ▶, ▷): preserve full syntax
 			// including name, body, and terminator
@@ -455,7 +455,7 @@ func (e *Evaluator) parseBody(body string) (expr.Expr, []string, error) {
 			}
 			// Reconstruct the full operator syntax as text
 			fullOp := item.Value + name + body + string(token.RuneTerminator)
-			exprs = append(exprs, expr.Text{Value: fullOp})
+			exprs = append(exprs, expr.Stored{Body: fullOp})
 		} else if item.Token == token.RETRIEVE || item.Token == token.IMM_RETRIEVE {
 			// Retrieve operators have a name but no terminator
 			name, err := scan.ScanName()
@@ -463,10 +463,10 @@ func (e *Evaluator) parseBody(body string) (expr.Expr, []string, error) {
 				return nil, nil, err
 			}
 			fullOp := item.Value + name
-			exprs = append(exprs, expr.Text{Value: fullOp})
+			exprs = append(exprs, expr.Stored{Body: fullOp})
 		} else {
 			// For other operators (DEFER, TERMINATOR), include just the rune
-			exprs = append(exprs, expr.Text{Value: item.Value})
+			exprs = append(exprs, expr.Stored{Body: item.Value})
 		}
 	}
 
@@ -633,7 +633,7 @@ func (e *Evaluator) evalBodyForDeferredStore(scan *scanner.Scanner, opName strin
 				if err != nil {
 					return "", nil, err
 				}
-				e.namespace.Set(name, expr.Text{Value: evaluated})
+				e.namespace.Set(name, expr.Stored{Body: evaluated})
 				// Auto-persist in ALWAYS mode
 				if e.persistMode == PersistAlways && e.store != nil {
 					e.autoPersist(name)
@@ -786,32 +786,34 @@ func (e *Evaluator) execute(name string, argsRaw string) (expr.Expr, error) {
 		return nil, err
 	}
 
+	// Extract params and body — all expression types go through the same 4-phase pipeline.
+	var params []string
+	var bodyStr string
 	if s, ok := stored.(expr.Stored); ok {
-		// 2. PARSE - fire immediate operators BEFORE binding placeholders
-		// This is critical: per PRIMER.md, immediate operators fire at PARSE time,
-		// which is BEFORE placeholders are bound at POPULATE time.
-		parsedBody, err := e.parseBodyImmediateOnly(s.Body.String())
-		if err != nil {
-			return nil, err
-		}
-
-		// EPHEMERAL: Update stored body - immediate operators are consumed
-		// The body now contains only what remains after immediate operators fired
-		e.namespace.Set(name, expr.Stored{Params: s.Params, Body: expr.Text{Value: parsedBody}})
-
-		// 3. POPULATE - bind arguments to placeholders
-		for i, param := range s.Params {
-			if i < len(args) {
-				e.namespace.Set(param, expr.Text{Value: args[i]})
-			}
-		}
-
-		// 4. EXECUTE - evaluate the body (deferred operators run now)
-		return expr.Text{Value: mustEval(e, parsedBody)}, nil
+		params = s.Params
+		bodyStr = s.Body
+	} else {
+		bodyStr = stored.String()
 	}
 
-	// If it's just text, return it
-	return stored, nil
+	// 2. PARSE - fire immediate operators BEFORE binding placeholders
+	parsedBody, err := e.parseBodyImmediateOnly(bodyStr)
+	if err != nil {
+		return nil, err
+	}
+
+	// EPHEMERAL: Update stored body - immediate operators are consumed
+	e.namespace.Set(name, expr.Stored{Params: params, Body: parsedBody})
+
+	// 3. POPULATE - bind arguments to placeholders
+	for i, param := range params {
+		if i < len(args) {
+			e.namespace.Set(param, expr.Stored{Body: args[i]})
+		}
+	}
+
+	// 4. EXECUTE - evaluate the body (deferred operators run now)
+	return expr.Stored{Body: mustEval(e, parsedBody)}, nil
 }
 
 // parseBodyImmediateOnly processes a body string, firing immediate operators
@@ -930,7 +932,7 @@ func (e *Evaluator) parseBodyImmediateOnly(body string) (string, error) {
 				if err != nil {
 					return "", err
 				}
-				e.namespace.Set(name, expr.Text{Value: evaluated})
+				e.namespace.Set(name, expr.Stored{Body: evaluated})
 				// Auto-persist in ALWAYS mode
 				if e.persistMode == PersistAlways && e.store != nil {
 					e.autoPersist(name)
@@ -1021,12 +1023,7 @@ func (e *Evaluator) parseArgs(argsRaw string) ([]string, error) {
 			}
 			e.autoLoad(name)
 			val := e.namespace.Get(name)
-			var result string
-			if s, ok := val.(expr.Stored); ok {
-				result, _ = e.parseBodyImmediateOnly(s.Body.String())
-			} else {
-				result, _ = e.parseBodyImmediateOnly(val.String())
-			}
+			result, _ := e.parseBodyImmediateOnly(val.String())
 			args = append(args, strings.TrimSpace(result))
 		case token.EXECUTE:
 			// Operators always produce an argument, even if empty
@@ -1091,7 +1088,7 @@ func (e *Evaluator) concatResults(exprs []expr.Expr) expr.Expr {
 	if len(parts) == 0 {
 		return expr.Empty{}
 	}
-	return expr.Text{Value: strings.Join(parts, "")}
+	return expr.Stored{Body: strings.Join(parts, "")}
 }
 
 // scanNameOrDynamic scans a name, supporting dynamic naming with operators.
@@ -1266,7 +1263,7 @@ func (e *Evaluator) autoPersist(name string) {
 	}
 	val := e.namespace.Get(name)
 	fullDef := formatAsDefinition(name, val)
-	e.store.Put(name, expr.Text{Value: fullDef})
+	e.store.Put(name, expr.Stored{Body: fullDef})
 }
 
 // autoLoad loads a value from the store into the namespace when PersistAlways is active.
@@ -1298,6 +1295,6 @@ func (e *Evaluator) autoLoad(name string) {
 		e.Eval(text)
 	} else {
 		// Plain text value
-		e.namespace.Set(name, expr.Text{Value: text})
+		e.namespace.Set(name, expr.Stored{Body: text})
 	}
 }
