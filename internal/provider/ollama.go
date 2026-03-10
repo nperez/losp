@@ -78,6 +78,7 @@ type ollamaRequest struct {
 	Model     string                 `json:"model"`
 	Messages  []ollamaMessage        `json:"messages"`
 	Stream    bool                   `json:"stream"`
+	Think     *bool                  `json:"think,omitempty"`
 	Options   map[string]interface{} `json:"options,omitempty"`
 	KeepAlive string                 `json:"keep_alive,omitempty"`
 }
@@ -127,10 +128,12 @@ func (o *Ollama) Prompt(system, user string) (string, error) {
 		}
 	}
 
+	thinkFalse := false
 	reqBody := ollamaRequest{
 		Model:     o.Model,
 		Messages:  messages,
 		Stream:    o.StreamCb != nil,
+		Think:     &thinkFalse,
 		Options:   options,
 		KeepAlive: "5m",
 	}

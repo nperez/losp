@@ -3,12 +3,19 @@
 # Copyright (c) 2023-2026 Nicholas R. Perez
 
 # losp Conformance Test Runner
-# Usage: LOSP_BIN=/path/to/losp ./run_tests.sh [category]
+# Usage: LOSP_BIN=/path/to/losp [LOSP_PROVIDER=ollama] [LOSP_MODEL=model] ./run_tests.sh [category]
 
 set -e
 
 LOSP_BIN="${LOSP_BIN:-losp}"
+LOSP_PROVIDER="${LOSP_PROVIDER:-}"
+LOSP_MODEL="${LOSP_MODEL:-}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Build extra flags from environment
+LOSP_EXTRA_FLAGS=""
+[[ -n "$LOSP_PROVIDER" ]] && LOSP_EXTRA_FLAGS="$LOSP_EXTRA_FLAGS -provider $LOSP_PROVIDER"
+[[ -n "$LOSP_MODEL" ]] && LOSP_EXTRA_FLAGS="$LOSP_EXTRA_FLAGS -model $LOSP_MODEL"
 PASSED=0
 FAILED=0
 SKIPPED=0
@@ -51,10 +58,10 @@ run_test() {
         # Use file-based execution with separate stdin for READ
         local tmpcode=$(mktemp)
         echo "$code" > "$tmpcode"
-        actual=$(echo "$input" | "$LOSP_BIN" -db "$tmpdb" -f "$tmpcode" 2>&1) || true
+        actual=$(echo "$input" | "$LOSP_BIN" -db "$tmpdb" $LOSP_EXTRA_FLAGS -f "$tmpcode" 2>&1) || true
         rm -f "$tmpcode"
     else
-        actual=$(echo "$code" | "$LOSP_BIN" -db "$tmpdb" 2>&1) || true
+        actual=$(echo "$code" | "$LOSP_BIN" -db "$tmpdb" $LOSP_EXTRA_FLAGS 2>&1) || true
     fi
     rm -f "$tmpdb"
 
@@ -72,7 +79,7 @@ run_test() {
 
 # Export function for use in subshell
 export -f run_test
-export LOSP_BIN SCRIPT_DIR RED GREEN YELLOW NC
+export LOSP_BIN LOSP_EXTRA_FLAGS SCRIPT_DIR RED GREEN YELLOW NC
 
 # Find and run tests
 if [[ -n "$1" ]]; then

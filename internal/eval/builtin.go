@@ -725,8 +725,14 @@ func builtinGenerate(e *Evaluator, argsRaw string) (expr.Expr, error) {
 		return expr.Empty{}, nil
 	}
 
-	// Use compact primer to fit within model context limits
+	// Use compact primer to fit within model context limits.
+	// Select model-specific primer when available.
 	system := stdlib.PrimerCompact
+	if cfg, ok := e.provider.(Configurable); ok {
+		if strings.Contains(strings.ToLower(cfg.GetModel()), "nemotron") {
+			system = stdlib.PrimerCompactNemotron
+		}
+	}
 	user := request + "\n\nOutput ONLY losp code. No markdown. No explanation."
 
 	response, err := e.provider.Prompt(system, user)
