@@ -733,7 +733,7 @@ func builtinGenerate(e *Evaluator, argsRaw string) (expr.Expr, error) {
 			system = stdlib.PrimerCompactNemotron
 		}
 	}
-	user := request + "\n\nOutput ONLY losp code. No markdown. No explanation."
+	user := request + "\n\nOutput ONLY raw losp code. Do NOT wrap in markdown code fences. No ``` blocks. No explanation. Just the raw losp operators and text."
 
 	response, err := e.provider.Prompt(system, user)
 	if err != nil {

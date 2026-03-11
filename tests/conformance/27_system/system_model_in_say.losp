@@ -1,2 +1,6 @@
-# EXPECTED: model=qwen3:30b-a3b-instruct-2507-q4_K_M
+# EXPECTED: model=test-model-456
+▶SYSTEM
+MODEL
+test-model-456
+◆
 ▶SAY model=▶SYSTEM MODEL ◆ ◆

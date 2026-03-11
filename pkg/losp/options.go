@@ -211,3 +211,22 @@ func WithAnthropic(model string) Option {
 		}
 	}
 }
+
+// WithClaudeCLI configures the Claude CLI LLM provider.
+func WithClaudeCLI(model string) Option {
+	return func(r *Runtime) {
+		opts := []provider.ClaudeCLIOption{}
+		if model != "" {
+			opts = append(opts, provider.WithClaudeCLIModel(model))
+		}
+		r.provider = provider.NewClaudeCLI(opts...)
+		// Register factory for runtime switching
+		r.providerFactories["CLAUDE_CLI"] = func(streamCb eval.StreamCallback) eval.Provider {
+			fOpts := []provider.ClaudeCLIOption{}
+			if streamCb != nil {
+				fOpts = append(fOpts, provider.WithClaudeCLIStreamCallback(provider.StreamCallback(streamCb)))
+			}
+			return provider.NewClaudeCLI(fOpts...)
+		}
+	}
+}

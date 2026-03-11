@@ -6,6 +6,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 
 	"nickandperla.net/losp/internal/provider"
 	"nickandperla.net/losp/pkg/losp"
@@ -19,6 +20,8 @@ func configureProvider(opts *[]losp.Option, providerF, ollamaURL, model string) 
 		*opts = append(*opts, losp.WithOpenRouter(model))
 	case "anthropic":
 		*opts = append(*opts, losp.WithAnthropic(model))
+	case "claude":
+		*opts = append(*opts, losp.WithClaudeCLI(model))
 	case "":
 		// Default to ollama if available
 		*opts = append(*opts, losp.WithOllama(ollamaURL, model))
@@ -61,6 +64,18 @@ func configureProvider(opts *[]losp.Option, providerF, ollamaURL, model string) 
 					fOpts = append(fOpts, provider.WithAnthropicStreamCallback(provider.StreamCallback(streamCb)))
 				}
 				return provider.NewAnthropic(fOpts...)
+			}))
+		}
+	}
+	if providerF != "claude" {
+		// Claude CLI is always available if the binary is in PATH
+		if _, err := exec.LookPath("claude"); err == nil {
+			*opts = append(*opts, losp.WithProviderFactory("CLAUDE_CLI", func(streamCb losp.StreamCallback) losp.Provider {
+				fOpts := []provider.ClaudeCLIOption{}
+				if streamCb != nil {
+					fOpts = append(fOpts, provider.WithClaudeCLIStreamCallback(provider.StreamCallback(streamCb)))
+				}
+				return provider.NewClaudeCLI(fOpts...)
 			}))
 		}
 	}
