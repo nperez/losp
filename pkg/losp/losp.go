@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"nickandperla.net/losp/internal/eval"
+	"nickandperla.net/losp/internal/provider"
 )
 
 // Runtime is the losp interpreter runtime.
@@ -16,6 +17,7 @@ type Runtime struct {
 	evaluator         *eval.Evaluator
 	store             eval.Store
 	provider          eval.Provider
+	embeddingProvider provider.EmbeddingProvider
 	streamCb          func(token string)
 	inputReader       func(prompt string) (string, error)
 	outputWriter      func(text string) error
@@ -44,6 +46,9 @@ func New(opts ...Option) *Runtime {
 	}
 	if r.provider != nil {
 		evalOpts = append(evalOpts, eval.WithProvider(r.provider))
+	}
+	if r.embeddingProvider != nil {
+		evalOpts = append(evalOpts, eval.WithEmbeddingProvider(r.embeddingProvider))
 	}
 	if r.streamCb != nil {
 		evalOpts = append(evalOpts, eval.WithStreamCallback(r.streamCb))

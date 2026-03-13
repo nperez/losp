@@ -30,6 +30,9 @@ func configureProvider(opts *[]losp.Option, providerF, ollamaURL, model string) 
 		os.Exit(1)
 	}
 
+	// Always configure Ollama for embeddings (CPU-only, independent of main provider)
+	*opts = append(*opts, losp.WithOllamaEmbedding(ollamaURL, ""))
+
 	// Register additional provider factories for runtime switching.
 	// WithOllama/WithOpenRouter/WithAnthropic already register their own factory,
 	// so we only register factories for providers NOT already selected.

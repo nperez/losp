@@ -11,7 +11,6 @@ import (
 
 	"github.com/coder/hnsw"
 	"nickandperla.net/losp/internal/expr"
-	"nickandperla.net/losp/internal/provider"
 	"nickandperla.net/losp/internal/store"
 )
 
@@ -197,10 +196,10 @@ func builtinEmbed(e *Evaluator, argsRaw string) (expr.Expr, error) {
 		return expr.Empty{}, nil
 	}
 
-	ep, ok := e.provider.(provider.EmbeddingProvider)
-	if !ok {
-		return nil, fmt.Errorf("current provider does not support embeddings")
+	if e.embeddingProvider == nil {
+		return nil, fmt.Errorf("no embedding provider configured")
 	}
+	ep := e.embeddingProvider
 
 	// Collect texts that need embedding
 	var toEmbed []string
@@ -272,10 +271,10 @@ func builtinSimilar(e *Evaluator, argsRaw string) (expr.Expr, error) {
 		return expr.Empty{}, nil
 	}
 
-	ep, ok := e.provider.(provider.EmbeddingProvider)
-	if !ok {
-		return nil, fmt.Errorf("current provider does not support embeddings")
+	if e.embeddingProvider == nil {
+		return nil, fmt.Errorf("no embedding provider configured")
 	}
+	ep := e.embeddingProvider
 
 	// Embed the query
 	vectors, err := ep.Embed([]string{query})

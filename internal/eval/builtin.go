@@ -617,7 +617,7 @@ func builtinSystem(e *Evaluator, argsRaw string) (expr.Expr, error) {
 		}
 		return expr.Empty{}, nil
 
-	case "TEMPERATURE", "NUM_CTX", "TOP_K", "TOP_P", "MAX_TOKENS", "EMBED_MODEL":
+	case "TEMPERATURE", "NUM_CTX", "TOP_K", "TOP_P", "MAX_TOKENS":
 		if cfg, ok := e.provider.(Configurable); ok {
 			if value != "" {
 				cfg.SetParam(setting, value)
@@ -626,6 +626,19 @@ func builtinSystem(e *Evaluator, argsRaw string) (expr.Expr, error) {
 			return expr.Stored{Body: cfg.GetParam(setting)}, nil
 		}
 		return expr.Empty{}, nil
+
+	case "EMBED_MODEL":
+		if value != "" {
+			e.SetSetting("EMBED_MODEL", value)
+			// Update the embedding provider's model
+			if e.embeddingProvider != nil {
+				if cfg, ok := e.embeddingProvider.(Configurable); ok {
+					cfg.SetParam("EMBED_MODEL", value)
+				}
+			}
+			return expr.Empty{}, nil
+		}
+		return expr.Stored{Body: e.GetSetting("EMBED_MODEL", "nomic-embed-text:latest")}, nil
 
 	case "SEARCH_LIMIT":
 		if value != "" {

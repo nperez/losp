@@ -230,3 +230,18 @@ func WithClaudeCLI(model string) Option {
 		}
 	}
 }
+
+// WithOllamaEmbedding configures a dedicated Ollama embedding provider.
+func WithOllamaEmbedding(url, model string) Option {
+	return func(r *Runtime) {
+		opts := []provider.OllamaOption{}
+		if url != "" {
+			opts = append(opts, provider.WithOllamaURL(url))
+		}
+		o := provider.NewOllama(opts...)
+		if model != "" {
+			o.SetParam("EMBED_MODEL", model)
+		}
+		r.embeddingProvider = o
+	}
+}

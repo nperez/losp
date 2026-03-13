@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"nickandperla.net/losp/internal/expr"
+	"nickandperla.net/losp/internal/provider"
 	"nickandperla.net/losp/internal/scanner"
 	"nickandperla.net/losp/internal/token"
 )
@@ -99,6 +100,7 @@ type Evaluator struct {
 	namespace         *Namespace
 	store             Store
 	provider          Provider
+	embeddingProvider provider.EmbeddingProvider // Dedicated embedding provider (Ollama)
 	streamCb          StreamCallback
 	inputReader       InputReader
 	outputWriter      OutputWriter
@@ -125,6 +127,11 @@ func WithStore(s Store) Option {
 // WithProvider sets the LLM provider.
 func WithProvider(p Provider) Option {
 	return func(e *Evaluator) { e.provider = p }
+}
+
+// WithEmbeddingProvider sets the dedicated embedding provider.
+func WithEmbeddingProvider(ep provider.EmbeddingProvider) Option {
+	return func(e *Evaluator) { e.embeddingProvider = ep }
 }
 
 // WithStreamCallback sets the streaming callback.
@@ -189,6 +196,7 @@ func (e *Evaluator) forkForAsync() *Evaluator {
 		namespace:         e.namespace.Clone(),
 		store:             e.store,
 		provider:          e.provider,
+		embeddingProvider: e.embeddingProvider,
 		asyncRegistry:     e.asyncRegistry,
 		corpusRegistry:    e.corpusRegistry,
 		persistMode:       e.persistMode,
