@@ -5,7 +5,7 @@ losp builds as a standard Go binary and can also be cross-compiled to WebAssembl
 ## Native Build
 
 ```bash
-go build -o losp ./cmd/losp/
+go generate ./internal/stdlib/ && go build -o losp ./cmd/losp/
 ```
 
 This produces a fully-featured binary with:
