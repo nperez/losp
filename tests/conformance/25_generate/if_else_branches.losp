@@ -1,5 +1,9 @@
 # EXPECTED: nope
+▶SYSTEM
+TEMPERATURE
+0
+◆
 ▼__startup__
-    ▷GENERATE Write a losp expression: DEF Check ARG _val RUN IF RUN COMPARE GET _val YES END yep nope END END ◆
+    ▷GENERATE Write a losp expression named Check that takes one argument and returns yep when the argument equals YES, otherwise nope. ◆
     ▶SAY ▶LOWER ▶Check NO ◆ ◆ ◆
 ◆

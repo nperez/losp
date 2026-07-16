@@ -1,5 +1,9 @@
 # EXPECTED: quiet
+▶SYSTEM
+TEMPERATURE
+0
+◆
 ▼__startup__
-    ▷GENERATE Write a losp expression: DEF Whisper ARG _text RUN LOWER GET _text END END ◆
+    ▷GENERATE Write a losp expression named Whisper that takes one argument and returns it lowercased. ◆
     ▶SAY ▶Whisper QUIET ◆ ◆
 ◆

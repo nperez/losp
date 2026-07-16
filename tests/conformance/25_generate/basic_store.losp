@@ -1,5 +1,9 @@
 # EXPECTED: hello world
+▶SYSTEM
+TEMPERATURE
+0
+◆
 ▼__startup__
-    ▷GENERATE Write a losp expression: DEF FOO hello world END ◆
+    ▷GENERATE Write a losp expression named FOO whose body is the text hello world. ◆
     ▶SAY ▶FOO ◆◆
 ◆

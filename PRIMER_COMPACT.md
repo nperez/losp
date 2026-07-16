@@ -2,6 +2,10 @@
 
 losp is a streaming expression language using Unicode operators instead of parentheses. Operators consume tokens until the `◆` terminator.
 
+This reference has two parts: **Part 1 — The Language** (operators, builtins, patterns) and **Part 2 — Interpreting Requests** (how to turn a request into losp code).
+
+# Part 1 — The Language
+
 ## Operators
 
 | Op | Name | Timing | Description |
@@ -16,39 +20,52 @@ losp is a streaming expression language using Unicode operators instead of paren
 | `◯` | Defer | — | Prevent immediate resolution (consumed on use) |
 | `◆` | Terminator | — | End ONE operator's scope |
 
-**ASCII shorthand** (for use in prompts where Unicode operators cannot appear):
-
-| ASCII | Unicode | Meaning |
-|-------|---------|---------|
-| DEF | `▼` | Store (define expression) |
-| IDEF | `▽` | ImmStore (evaluate & store) |
-| GET | `▲` | Retrieve |
-| IGET | `△` | ImmRetrieve |
-| RUN | `▶` | Execute |
-| IRUN | `▷` | ImmExec |
-| ARG | `□` | Placeholder |
-| END | `◆` | Terminator |
-
-When a prompt describes a pattern using these ASCII names, output the corresponding Unicode operators.
-
-Example prompt: "DEF _tpl ARG _a ARG _n ARG _m RUN SAY The GET _a GET _n is made of GET _m. END END"
-Correct output:
-```losp
-▼_tpl □_a □_n □_m ▶SAY The ▲_a ▲_n is made of ▲_m. ◆ ◆
-```
-
-**Numbered arguments:** `ARG1` through `ARG9` in text become `▲_a` through `▲_i`. The expression gets one `□` per ARGn used.
-
-Example: "Convert to losp expression _tpl: ARG1 called ARG2 about ARG3."
-```losp
-▼_tpl □_a □_b □_c ▶SAY ▲_a called ▲_b about ▲_c. ◆ ◆
-```
-
 **Timing rules:**
 - **Immediate** (`△` `▷` `▽`): Fire as encountered during parsing. Result spliced into stream.
 - **Deferred** (`▲` `▶` `▼`): Stored as-is. Resolved when executed.
 - Inside `▼` bodies: immediate operators fire at DEFINITION time, deferred at EXECUTION time.
 - Every `◆` terminates exactly ONE operator. Count your terminators.
+
+## Calling Expressions
+
+`▶` executes exactly ONE expression: `▶Name arguments ◆`. Immediately after the rune comes the NAME of what to execute — a builtin or a user-defined expression, both use the same form. Everything between the name and the terminator is the arguments.
+
+```losp
+▼Tidy □_text ▶TRIM ▲_text ◆ ◆
+▶Tidy hi ◆
+```
+Output: `hi` — one `▶` calls Tidy, and inside its body one `▶` calls TRIM.
+
+The name slot can instead hold a single operator; that operator runs first and its RESULT is the name that gets executed (see Dynamic Naming).
+
+## THE ARGUMENT RULE
+
+**Newlines separate text arguments. Spaces do NOT. Operators are natural boundaries.**
+
+This is the most important rule in losp.
+
+```losp
+▶BUILTIN hello world ◆
+```
+This is ONE argument: the text `hello world`.
+
+```losp
+▶BUILTIN
+hello
+world
+◆
+```
+This is TWO arguments: `hello` and `world`.
+
+```losp
+▶BUILTIN ▲A ▲B ◆
+```
+This is TWO arguments: result of `▲A` and result of `▲B`. Operators are already boundaries.
+
+```losp
+▶BUILTIN ▲A some text ◆
+```
+This is TWO arguments: result of `▲A`, then `some text`.
 
 ## Expression Bodies
 
@@ -75,101 +92,148 @@ If you omit `meets` or `▲_b` from the body, they will NOT appear in the output
 
 Do not add formatting spaces around operators inside bodies.
 
-## THE ARGUMENT RULE
-
-**Newlines separate text arguments. Spaces do NOT. Operators are natural boundaries.**
-
-This is the most important rule in losp. Violations produce wrong code every time.
-
-```losp
-▶BUILTIN hello world ◆
-```
-This is ONE argument: the text `hello world`.
-
-```losp
-▶BUILTIN
-hello
-world
-◆
-```
-This is TWO arguments: `hello` and `world`.
-
-```losp
-▶BUILTIN ▲A ▲B ◆
-```
-This is TWO arguments: result of `▲A` and result of `▲B`. Operators are already boundaries.
-
-```losp
-▶BUILTIN ▲A some text ◆
-```
-This is TWO arguments: result of `▲A`, then `some text`.
-
 ## Builtins
 
 Builtin names are **ALL CAPS** and case-sensitive.
 
+Single-argument builtins:
+
 | Builtin | Signature | Returns |
 |---------|-----------|---------|
-| SAY | `▶SAY text... ◆` | (outputs text) |
-| COMPARE | `▶COMPARE val1 val2 ◆` | `TRUE` or `FALSE` |
-| IF | `▶IF condition then else ◆` | selected branch text |
-| FOREACH | `▶FOREACH items body-name ◆` | concatenated results |
-| PROMPT | `▶PROMPT system user ◆` | LLM response |
+| SAY | `▶SAY text ◆` | (prints to console) |
 | GENERATE | `▶GENERATE request ◆` | generated losp code |
 | READ | `▶READ [prompt] ◆` | user input line |
 | PERSIST | `▶PERSIST name ◆` | (saves to DB) |
-| LOAD | `▶LOAD name [default] ◆` | stored value |
 | COUNT | `▶COUNT expr ◆` | number of lines |
 | RANDOM | `▶RANDOM expr ◆` | one random line |
-| APPEND | `▶APPEND name content ◆` | (appends to expression) |
-| EXTRACT | `▶EXTRACT label source ◆` | extracted value |
 | UPPER | `▶UPPER text ◆` | uppercased |
 | LOWER | `▶LOWER text ◆` | lowercased |
 | TRIM | `▶TRIM text ◆` | trimmed |
-| SYSTEM | `▶SYSTEM setting [value] ◆` | current value or EMPTY |
 | HISTORY | `▶HISTORY name ◆` | version names |
 | CORPUS | `▶CORPUS name ◆` | handle |
-| ADD | `▶ADD handle name ◆` | EMPTY |
 | INDEX | `▶INDEX handle ◆` | EMPTY |
-| SEARCH | `▶SEARCH handle query ◆` | matching names |
 | EMBED | `▶EMBED handle ◆` | EMPTY |
-| SIMILAR | `▶SIMILAR handle query ◆` | matching names |
 | ASYNC | `▶ASYNC expr-name ◆` | handle |
 | AWAIT | `▶AWAIT handle ◆` | result |
 | CHECK | `▶CHECK handle ◆` | TRUE/FALSE |
-| TIMER | `▶TIMER ms expr-name ◆` | handle |
 | TICKS | `▶TICKS handle ◆` | ms remaining |
 | SLEEP | `▶SLEEP ms ◆` | EMPTY |
 | TRUE | `▲TRUE` | `TRUE` |
 | FALSE | `▲FALSE` | `FALSE` |
 | EMPTY | `▲EMPTY` | empty string |
 
-## IF and COMPARE
+Wrapping a single-argument builtin in a definition takes two terminators — the builtin's, then the definition's:
 
-IF takes exactly 3 arguments: condition, then-branch, else-branch.
-
-COMPARE takes exactly 2 arguments and returns `TRUE` or `FALSE`.
-
-**When COMPARE arguments are operators, they can be inline:**
 ```losp
-▶COMPARE ▲X ▲Y ◆
+▼Tidy □_text ▶TRIM ▲_text ◆ ◆
 ```
-Two arguments (operator boundaries).
 
-**When COMPARE arguments are plain text, they MUST be on separate lines:**
+Multi-argument builtins take each plain-text argument on its own line. These signatures are literal:
+
 ```losp
 ▶COMPARE
-hello
-hello
+a
+b
 ◆
 ```
-Returns: `TRUE`
+Returns `TRUE` or `FALSE`.
 
-**`▶COMPARE hello hello ◆` is WRONG** — that is ONE argument `hello hello` compared to nothing.
+```losp
+▶IF
+condition
+then
+else
+◆
+```
+Returns the selected branch text.
 
-### IF with COMPARE — the correct patterns
+```losp
+▶FOREACH
+items
+body-name
+◆
+```
+Returns concatenated results.
 
-**Pattern 1: COMPARE with operator args, IF branches on separate lines**
+```losp
+▶PROMPT
+system
+user
+◆
+```
+Returns the LLM response.
+
+```losp
+▶LOAD
+name
+default
+◆
+```
+Returns the stored value (default optional).
+
+```losp
+▶APPEND
+name
+content
+◆
+```
+Appends content to the named expression.
+
+```losp
+▶EXTRACT
+label
+source
+◆
+```
+Returns the extracted value.
+
+```losp
+▶SYSTEM
+setting
+value
+◆
+```
+Sets a setting; with only `setting`, returns its current value.
+
+```losp
+▶ADD
+handle
+name
+◆
+```
+Adds to a corpus. Returns EMPTY.
+
+```losp
+▶SEARCH
+handle
+query
+◆
+```
+Returns matching names.
+
+```losp
+▶SIMILAR
+handle
+query
+◆
+```
+Returns matching names (semantic).
+
+```losp
+▶TIMER
+ms
+expr-name
+◆
+```
+Returns a handle.
+
+Operator arguments need no newlines — `▶COMPARE ▲X ▲Y ◆` is two arguments on one line, because operators are boundaries by themselves.
+
+## IF and COMPARE
+
+IF takes exactly 3 arguments: condition, then-branch, else-branch. COMPARE takes exactly 2 arguments and returns `TRUE` or `FALSE`.
+
+**Pattern 1: COMPARE with operator args inline, IF text branches on separate lines**
 ```losp
 ▶IF ▶COMPARE ▲X target ◆
 matched
@@ -199,24 +263,92 @@ yes
 no
 ◆
 ```
+Output: `no`
 
-**WRONG — branches on same line:**
-```losp
-▶IF ▶COMPARE ▲X target ◆ yes no ◆
-```
-`yes no` is ONE argument. IF sees condition + one arg, no else branch.
+## Dynamic Naming (computed names)
 
-**WRONG — then and else on same line:**
+Store and execute operators support dynamic naming: the name slot can be an operator instead of literal text. The operator runs first and its RESULT becomes the name.
+
 ```losp
-▶IF ▶COMPARE ▲_val BAR ◆ correct incorrect ◆
+▼FieldName X ◆
+▼▲FieldName hello ◆
+▲X
 ```
-`correct incorrect` is ONE argument. Must be:
+Output: `hello` — `▲FieldName` resolves to `X`, so the store writes to `X`.
+
 ```losp
-▶IF ▶COMPARE ▲_val BAR ◆
-correct
-incorrect
+▼ExecDynamic □name ▶▲name ◆ ◆
+▶ExecDynamic MyExpression ◆
+```
+`▶▲name ◆` executes whatever expression the bound placeholder names.
+
+### Conditional Execution (only run selected branch)
+
+Dynamic naming with IF avoids eager evaluation of both branches — pass expression NAMES as the branches:
+```losp
+▼DoA result-A ◆
+▼DoB result-B ◆
+
+▶▶IF TRUE
+DoA
+DoB
+◆ ◆
+```
+IF returns the selected branch text (`DoA` or `DoB`); that result is the name the outer `▶` executes. Only the selected expression runs.
+
+Dynamic naming is only for computing names. An ordinary call to a defined expression is a single `▶`:
+```losp
+▼Main ▶Transform hello ◆ ◆
+```
+
+## Retrieve vs Execute
+
+```losp
+▼Expr ▶COMPARE hello hello ◆ ◆
+▲Expr
+```
+Output: `▶COMPARE hello hello ◆` (text, unevaluated)
+
+```losp
+▶Expr ◆
+```
+Output: `TRUE` (evaluated)
+
+## Terminator Counting
+
+Count one `◆` per operator. Read inside-out:
+
+```losp
+▼Tidy □_text ▶TRIM ▲_text ◆ ◆
+```
+
+- Terminator after `▲_text`: closes `▶TRIM`
+- Final terminator: closes `▼Tidy`
+
+Two operators opened, two terminators — the code ends with `◆ ◆`.
+
+```losp
+▼Check □_val ▶IF ▶COMPARE ▲_val target ◆
+yes
+no
+◆ ◆
+```
+
+- Terminator after `target`: closes `▶COMPARE`
+- Terminator after `no`: closes `▶IF`
+- Final terminator: closes `▼Check`
+
+The scope-opening operators `▼` `▽` `▶` `▷` `◯` each take exactly one `◆`. The name operators `▲` `△` `□` take just a name and no terminator. A missing `◆` leaves an operator unclosed; an extra `◆` closes an enclosing scope too early. Trailing `◆` is an error. When every opened operator has its terminator, the code is complete.
+
+Top-level statements each close themselves — there is no outer block to close:
+```losp
+▽List first ◆
+▶APPEND
+List
+second item
 ◆
 ```
+Two operators, two `◆`: `▽List` gets the first, `▶APPEND` gets the second. The code is complete after `▶APPEND`'s terminator.
 
 ## Patterns
 
@@ -234,6 +366,8 @@ Output: `hello`
 ```
 Output: `Hello, Alice!`
 
+Placeholders are read with deferred retrieve (`▲name`), which resolves after the argument is bound.
+
 ### Two Placeholders (text and operators interleave freely on one line)
 ```losp
 ▼Introduce □_who □_to ▲_who meets ▲_to ◆
@@ -244,8 +378,18 @@ Bob
 ```
 Output: `Alice meets Bob`
 
+### A Program of Several Definitions
+
+Each definition carries all of its own terminators before the next begins:
+
+```losp
+▼Shrink □_t ▶LOWER ▲_t ◆ ◆
+▼Report ▶Shrink LOUD ◆ ◆
+▶Report ◆
+```
+Output: `loud` — Shrink ends with `◆ ◆` (one for `▶LOWER`, one for `▼Shrink`), and Report ends with `◆ ◆` (one for `▶Shrink`, one for `▼Report`).
+
 ### Expression with IF
-Remember: IF branches MUST be on separate lines.
 ```losp
 ▼IsTarget □_val ▶IF ▶COMPARE ▲_val target ◆
 yes
@@ -298,17 +442,9 @@ bird
 ```
 Output: `The green cat runs fast.` (random each time). Each `▶RANDOM ▲list ◆` is a separate operator with its own `◆`.
 
-### APPEND (arguments on separate lines)
-```losp
-▽List first ◆
-▶APPEND
-List
-second item
-◆
-```
-
 ### Executing Generated Code
-GENERATE returns code as text. To splice generated code into an expression body, use `▷` (ImmExec, immediate) — NOT `▶` (Execute, deferred). `▷GENERATE` fires at parse time and splices the result into the body. `▶GENERATE` would defer execution and NOT splice.
+
+GENERATE returns code as text. To splice generated code into an expression body, use `▷` (ImmExec, immediate): `▷GENERATE` fires at parse time and splices the result into the body.
 
 ```losp
 ▼_run ▷GENERATE Create code that outputs hello world ◆ ◆
@@ -317,61 +453,114 @@ GENERATE returns code as text. To splice generated code into an expression body,
 
 **With code after the splice:**
 ```losp
-▼Maker ▷GENERATE define an expression named _val with body test ◆ ▶SAY ▲_val ◆ ◆
+▼Maker ▷GENERATE define an expression named _val with body test ◆ ▲_val ◆
 ```
-Three `◆`: one for `▷GENERATE`, one for `▶SAY`, one for `▼Maker`.
+Two `◆`: one for `▷GENERATE`, one for `▼Maker`. `▲_val` takes none.
 
-### Conditional Execution (only run selected branch)
+**GENERATE's argument is a plain-text request, not code.** If the request itself contains ASCII operator names (a nested GENERATE request), leave them as plain text — the nested GENERATE converts them at runtime:
 ```losp
-▼DoA ▶SAY A ran ◆ result-A ◆
-▼DoB ▶SAY B ran ◆ result-B ◆
-
-▶▶IF TRUE
-DoA
-DoB
-◆ ◆
+▼Meta ▷GENERATE DEF _msg hello world END ◆ ▶SAY ▲_msg ◆ ◆
 ```
-IF returns `DoA` or `DoB`, outer `▶` executes only the selected one.
-
-### Retrieve vs Execute
-```losp
-▼Expr ▶COMPARE hello hello ◆ ◆
-▲Expr
-```
-Output: `▶COMPARE hello hello ◆` (text, unevaluated)
-
-```losp
-▶Expr ◆
-```
-Output: `TRUE` (evaluated)
-
-## Terminator Counting
-
-Count one `◆` per operator. Read inside-out:
-
-```losp
-▼Check □_val ▶IF ▶COMPARE ▲_val target ◆
-yes
-no
-◆ ◆
-```
-
-- Terminator after `target`: closes `▶COMPARE`
-- Terminator after `no`: closes `▶IF`
-- Final terminator: closes `▼Check`
-
-Each operator opened must have exactly one `◆`. Missing one leaves an operator unclosed. An extra `◆` closes the wrong thing.
+Here `DEF _msg hello world END` stays as text inside the request.
 
 ## Critical Rules
 
-1. **Placeholders use deferred retrieve.** `▼Func □arg ▲arg ◆` is correct. `▼Func □arg △arg ◆` is WRONG (△ fires before arg is bound).
-2. **Every operator needs its own `◆`.** `▼Outer ▼Inner value ◆ ◆` — Inner gets one, Outer gets one.
-3. **IF branches MUST be separate expressions.** Use newlines for text branches. Never `then else` on one line.
-4. **Inside expression bodies, use deferred operators** (`▲` `▶` `▼`) for runtime behavior. Immediate operators fire at definition time.
+1. **Placeholders are read with deferred retrieve.** `▼Func □arg ▲arg ◆` — `▲arg` resolves after the argument is bound.
+2. **Every operator gets its own `◆`.** `▼Outer ▼Inner value ◆ ◆` — Inner gets one, Outer gets one.
+3. **IF's text branches each go on their own line.**
+4. **Inside expression bodies, deferred operators** (`▲` `▶` `▼`) give runtime behavior; immediate operators fire at definition time.
 5. **losp has no comments.** `#` is just text.
+
+# Part 2 — Interpreting Requests
+
+How to turn a request into losp code.
+
+## ASCII Shorthand
+
+Requests may describe the shape of losp code using ASCII names instead of Unicode operators:
+
+| ASCII | Unicode | Meaning |
+|-------|---------|---------|
+| DEF | `▼` | Store (define expression) |
+| IDEF | `▽` | ImmStore (evaluate & store) |
+| GET | `▲` | Retrieve |
+| IGET | `△` | ImmRetrieve |
+| RUN | `▶` | Execute |
+| IRUN | `▷` | ImmExec |
+| ARG | `□` | Placeholder |
+| END | `◆` | Terminator |
+
+When a request describes a pattern using these ASCII names, output the corresponding Unicode operators. Each ASCII name maps to exactly ONE operator rune.
+
+Example request: "DEF _tpl ARG _a ARG _n ARG _m The GET _a GET _n is made of GET _m. END"
+Correct output:
+```losp
+▼_tpl □_a □_n □_m The ▲_a ▲_n is made of ▲_m. ◆
+```
+
+`RUN` works the same for user-defined expressions as for builtins.
+
+Example request: "DEF Main RUN Transform hello END END"
+Correct output:
+```losp
+▼Main ▶Transform hello ◆ ◆
+```
+
+**Numbered arguments:** `ARG1` through `ARG9` in text become `▲_a` through `▲_i`. The expression gets one `□` per ARGn used.
+
+Example request: "Convert to losp expression _tpl: ARG1 called ARG2 about ARG3."
+```losp
+▼_tpl □_a □_b □_c ▲_a called ▲_b about ▲_c. ◆
+```
+
+## Names
+
+**Copy names EXACTLY as written, including case.** `DEF FOO` produces `▼FOO`. `DEF Check` produces `▼Check`. Keep the case of every requested name.
+
+## Multi-Argument Phrases
+
+**When a builtin takes multiple arguments and the request lists them as adjacent words, each argument goes on its OWN line.** IF's then/else branches, COMPARE's two values, and APPEND's name/content are separate arguments — newlines separate text arguments in losp.
+
+Example request: "DEF Check ARG _val RUN IF RUN COMPARE GET _val YES END yep nope END END"
+Correct output:
+```losp
+▼Check □_val ▶IF ▶COMPARE ▲_val YES ◆
+yep
+nope
+◆ ◆
+```
+`yep` and `nope` are IF's two branch arguments: one per line.
+
+## Spacing and Quoting
+
+**Preserve the request's spacing exactly.** Body whitespace is literal output: characters adjacent to `GET` in the request stay adjacent to `▲` in the code.
+
+Example request: "DEF Wrap ARG _item [GET _item] END"
+Correct output:
+```losp
+▼Wrap □_item [▲_item] ◆
+```
+The brackets hug `▲_item` because they hug `GET _item` in the request.
+
+**Quoted text in requests is literal.** The quotes are delimiters, not content: reproduce exactly the characters between them — no quotes, no added spacing. A request to join two arguments with ' greets ' produces the body `▲_a greets ▲_b`; the spaces around greets come from inside the quotes.
+
+The same holds when quoted text meets an operator: the operator follows the quoted text directly, so the quoted characters are the only characters between them.
+
+Example request: "an expression named Price that returns the concatenation of 'Cost: ' and the argument"
+Correct output:
+```losp
+▼Price □_x Cost: ▲_x ◆
+```
+`▶Price 5 ◆` outputs `Cost: 5`. The single space before `▲_x` is the trailing space inside the quotes.
+
+## Return vs Print
+
+**An expression RETURNS its body's result.** When a request says the expression returns, builds, or concatenates a value, write the text and operators directly in the body — the body IS the return value. SAY prints to the console; use it only when the request asks to print or output.
 
 ## Output Rules
 
 Output ONLY the requested losp code. No markdown code fences. No explanation text.
 
-**Do NOT add test or demo code.** If asked to write an expression named Foo, output ONLY the `▼Foo ... ◆` definition. Do not add `▶Foo ◆` calls, `▶SAY` demonstrations, sample data, or any other code beyond what was requested.
+**The code is complete when every opened operator has its `◆`.** A definition ends with its own terminator, after the terminators of everything inside it.
+
+**Output only what was requested.** If asked to write an expression named Foo, output ONLY the `▼Foo ... ◆` definition — no calls, no demonstrations, no sample data.

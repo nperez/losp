@@ -1,5 +1,9 @@
 # EXPECTED: first
 # EXPECTED: second
-▼_run ▷GENERATE Write losp code: IDEF MyList first END then RUN APPEND with two arguments on separate lines: the text MyList on one line and the text second on the next line, then END. The first argument to APPEND is the name MyList as plain text, not a GET operator. ◆ ◆
+▶SYSTEM
+TEMPERATURE
+0
+◆
+▼_run ▷GENERATE Write losp code: store first in MyList, then use APPEND to add second to MyList. ◆ ◆
 ▶_run ◆
 ▶SAY ▲MyList ◆

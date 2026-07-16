@@ -7,7 +7,7 @@ TEMPERATURE
 MAX_TOKENS
 100
 ◆
-▼_run ▷GENERATE Write a losp expression: DEF Setup DEF Inner inner works END END. Inner has no placeholders. Its body is the literal text inner works. Output only the expression, nothing else. ◆ ◆
+▼_run ▷GENERATE Write a losp expression named Setup whose body defines another expression named Inner with the literal body inner works. ◆ ◆
 ▼__startup__
     ▶_run ◆
     ▶Setup ◆

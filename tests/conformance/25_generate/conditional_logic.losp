@@ -1,5 +1,9 @@
 # EXPECTED: correct
+▶SYSTEM
+TEMPERATURE
+0
+◆
 ▼__startup__
-    ▷GENERATE Write a losp expression: DEF FOO ARG _val RUN IF RUN COMPARE GET _val BAR END correct incorrect END END ◆
+    ▷GENERATE Write a losp expression named FOO that takes one argument and returns correct when the argument equals BAR, otherwise incorrect. ◆
     ▶SAY ▶LOWER ▶FOO BAR ◆ ◆◆
 ◆

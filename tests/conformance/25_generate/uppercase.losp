@@ -1,5 +1,9 @@
 # EXPECTED: HELLO WORLD
+▶SYSTEM
+TEMPERATURE
+0
+◆
 ▼__startup__
-    ▷GENERATE Write a losp expression: DEF Shout ARG _text RUN UPPER GET _text END END ◆
+    ▷GENERATE Write a losp expression named Shout that takes one argument and returns it uppercased. ◆
     ▶SAY ▶Shout hello world ◆ ◆
 ◆

@@ -1,5 +1,9 @@
 # EXPECTED: big
+▶SYSTEM
+TEMPERATURE
+0
+◆
 ▼__startup__
-    ▷GENERATE Write a losp expression: DEF Size ARG _n RUN IF RUN COMPARE GET _n 10 END big small END END ◆
+    ▷GENERATE Write a losp expression named Size that takes one argument and returns big when the argument equals 10, otherwise small. ◆
     ▶SAY ▶Size 10 ◆ ◆
 ◆

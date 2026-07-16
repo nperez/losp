@@ -49,7 +49,7 @@ func WithOllamaStreamCallback(cb StreamCallback) OllamaOption {
 func NewOllama(opts ...OllamaOption) *Ollama {
 	o := &Ollama{
 		URL:     "http://localhost:11434",
-		Model:   "qwen3:30b-a3b-instruct-2507-q4_K_M",
+		Model:   "qwen3.6:35b",
 		Timeout: 5 * time.Minute,
 		params:  make(map[string]string),
 	}

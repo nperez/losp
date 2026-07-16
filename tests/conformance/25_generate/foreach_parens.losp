@@ -1,13 +1,17 @@
 # EXPECTED: (a)
 # EXPECTED: (b)
 # EXPECTED: (c)
+▶SYSTEM
+TEMPERATURE
+0
+◆
 ▼Data
 a
 b
 c
 ◆
 ▼__startup__
-    ▷GENERATE Write a losp expression: DEF Paren ARG _item (GET _item) END. The parentheses around GET _item are literal text characters that must appear in the output. ◆
+    ▷GENERATE Write a losp expression named Paren that takes one argument and returns it enclosed in parentheses. ◆
     ▶SAY ▶FOREACH
 ▲Data
 Paren

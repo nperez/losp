@@ -1,5 +1,9 @@
 # EXPECTED: HELLO
+▶SYSTEM
+TEMPERATURE
+0
+◆
 ▼__startup__
-    ▷GENERATE Write two losp expressions: DEF Transform ARG _text RUN UPPER GET _text END END DEF Main RUN Transform hello END END ◆
+    ▷GENERATE Write two losp expressions: Transform, which takes one argument and returns it uppercased, and Main, which calls Transform with the text hello. ◆
     ▶SAY ▶Main ◆ ◆
 ◆

@@ -1,13 +1,17 @@
 # EXPECTED: [x]
 # EXPECTED: [y]
 # EXPECTED: [z]
+▶SYSTEM
+TEMPERATURE
+0
+◆
 ▼Items
 x
 y
 z
 ◆
 ▼__startup__
-    ▷GENERATE Write a losp expression: DEF Wrap ARG _item [GET _item] END. The square brackets around GET _item are literal text characters that must appear in the output. ◆
+    ▷GENERATE Write a losp expression named Wrap that takes one argument and returns it enclosed in square brackets. ◆
     ▶SAY ▶FOREACH
 ▲Items
 Wrap

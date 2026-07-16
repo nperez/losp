@@ -1,10 +1,14 @@
 # EXPECTED: 3
+▶SYSTEM
+TEMPERATURE
+0
+◆
 ▼Data
 alpha
 beta
 gamma
 ◆
 ▼__startup__
-    ▷GENERATE Write a losp expression: DEF CountIt ARG _input RUN COUNT GET _input END END ◆
+    ▷GENERATE Write a losp expression named CountIt that takes one argument and returns how many lines it has, using COUNT. ◆
     ▶SAY ▶CountIt ▲Data ◆ ◆
 ◆

@@ -11,7 +11,7 @@ cd "$PROJECT_ROOT"
 
 PRIMER="PRIMER_COMPACT.md"
 LOSP="./losp"
-MODEL="${LOSP_TEST_MODEL:-qwen3:30b-a3b-instruct-2507-q4_K_M}"
+MODEL="${LOSP_TEST_MODEL:-qwen3.6:35b}"
 OLLAMA_URL="${OLLAMA_URL:-http://localhost:11434}"
 
 # Build losp if needed

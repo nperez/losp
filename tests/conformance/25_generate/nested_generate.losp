@@ -3,6 +3,6 @@
 TEMPERATURE
 0
 ◆
-▼_run ▷GENERATE Write a losp expression: DEF Meta IRUN GENERATE DEF _msg hello world END END RUN SAY GET _msg END END ◆ ◆
+▼_run ▷GENERATE Write a losp expression named Meta whose body immediately executes GENERATE with a request to define an expression named _msg containing hello world, then uses SAY to output _msg. ◆ ◆
 ▶_run ◆
 ▶Meta ◆

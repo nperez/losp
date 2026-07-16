@@ -1,5 +1,9 @@
 # EXPECTED: Hello Alice
+▶SYSTEM
+TEMPERATURE
+0
+◆
 ▼__startup__
-    ▷GENERATE Write a losp expression: DEF FOO ARG _name Hello GET _name END. Hello is literal body text followed by a space then the retrieved placeholder value. Do not use SAY. ◆
+    ▷GENERATE Write a losp expression named FOO that takes one argument and returns the concatenation of 'Hello ' and the argument ◆
     ▶SAY ▶FOO Alice ◆◆
 ◆

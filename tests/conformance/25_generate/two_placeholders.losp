@@ -1,6 +1,10 @@
 # EXPECTED: Bob greets Alice
+▶SYSTEM
+TEMPERATURE
+0
+◆
 ▼__startup__
-    ▷GENERATE Write a losp expression: DEF Greet ARG _who ARG _target GET _who greets GET _target END ◆
+    ▷GENERATE Write a losp expression named Greet that takes two arguments and concatenates them together with ' greets ' ◆
     ▶SAY ▶Greet
 Bob
 Alice
