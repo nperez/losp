@@ -747,6 +747,82 @@ Returns EMPTY if the input is empty.
 
 **EMPTY**: `▲EMPTY` → Special empty expression useful for empty testing
 
+### Time
+
+**NOW**: `▶NOW [format] ◆` → returns the current wall-clock time
+
+With no argument, returns ISO-8601 (RFC 3339), e.g. `2026-07-19T14:03:07+02:00`. The optional format argument uses strftime-style directives:
+
+| Directive | Meaning | Directive | Meaning |
+|-----------|---------|-----------|---------|
+| `%Y` | year (4 digits) | `%H` | hour 00–23 |
+| `%y` | year (2 digits) | `%I` | hour 01–12 |
+| `%m` | month 01–12 | `%M` | minute 00–59 |
+| `%d` | day 01–31 | `%S` | second 00–59 |
+| `%e` | day, space-padded | `%f` | microseconds |
+| `%b` / `%B` | month name (short/full) | `%p` | AM/PM |
+| `%a` / `%A` | weekday name (short/full) | `%j` | day of year 001–366 |
+| `%z` / `%Z` | UTC offset / zone name | `%s` | Unix epoch seconds |
+| `%%` | literal `%` | | |
+
+Text without directives passes through unchanged; unknown directives are left as-is.
+
+```losp
+▶SAY ▶NOW ◆ ◆                      # 2026-07-19T14:03:07+02:00
+▶SAY ▶NOW %Y-%m-%d ◆ ◆             # 2026-07-19
+▶SAY ▶NOW %H:%M on %A ◆ ◆          # 14:03 on Sunday
+```
+
+### HTTP
+
+**HTTP**: `▶HTTP method uri [headers] [data] ◆` → performs an HTTP request, returns the response body
+
+Arguments, in order:
+
+1. `method` — HTTP method (GET, POST, PUT, DELETE, ...)
+2. `uri` — the request URI
+3. `headers` — optional; newline-separated `Key: Value` pairs in a single expression
+4. `data` — optional; the request body
+
+Returns the response body as text (EMPTY for an empty body). Request or transport failures return `ERROR: <message>`.
+
+**⚠️ headers and data MUST arrive via retrieval (`▲Name`), NEVER as literal text at the call site.** Each argument is one expression, and newlines separate text expressions — a literal multi-line headers block or body would parse as *separate arguments*, silently shifting everything after it. Store headers and data first, then retrieve them. Use `▲EMPTY` to hold an unused headers position:
+
+```losp
+▼_Headers Content-Type: application/json
+X-Auth: token123 ◆
+▼_Body {"name": "example",
+"value": 42} ◆
+
+▶HTTP POST
+http://api.example.com/items
+▲_Headers ▲_Body ◆
+
+▶HTTP POST
+http://api.example.com/items
+▲EMPTY ▲_Body ◆
+```
+
+For simple requests, prefer the standard-library verb wrappers (defined in the prelude as pure losp on top of HTTP):
+
+| Wrapper | Signature |
+|---------|-----------|
+| `HTTPGET` | `▶HTTPGET uri ◆` |
+| `HTTPPOST` | `▶HTTPPOST uri data ◆` (args are expressions — uri and data on separate lines) |
+| `HTTPPUT` | `▶HTTPPUT uri data ◆` (args are expressions) |
+| `HTTPDELETE` | `▶HTTPDELETE uri ◆` |
+
+```losp
+▶SAY ▶HTTPGET http://example.com/status ◆ ◆
+
+▶SAY ▶HTTPPOST
+http://example.com/echo
+request body text
+◆ ◆
+```
+
+The wrappers send no custom headers; call HTTP directly when headers are needed.
+
 ### Async Primitives
 
 losp supports concurrent execution through async forking. This is primarily useful for launching parallel LLM calls via PROMPT/GENERATE.
@@ -1410,6 +1486,8 @@ Every builtin returns a value. Understanding what each builtin returns is critic
 | `SEARCH` | Text or Empty | Matching expression names (newline-separated), or EMPTY |
 | `EMBED` | Empty | Always EMPTY |
 | `SIMILAR` | Text or Empty | Matching expression names (newline-separated), or EMPTY |
+| `NOW` | Text | Current time (ISO-8601, or per the strftime-style format argument) |
+| `HTTP` | Text or Empty | Response body, `ERROR: <message>` on failure, or EMPTY for an empty body |
 | `HISTORY` | Text or Empty | Version expression names (newline-separated), or EMPTY |
 
 **Key distinctions:**
@@ -1463,6 +1541,9 @@ Every builtin returns a value. Understanding what each builtin returns is critic
 | Vector similarity search | `▶SIMILAR handle query ◆` → names |
 | Query version history | `▶HISTORY name ◆` → version names |
 | Rollback to version | `▶_Name_N ◆` (execute a HISTORY version) |
+| Current time | `▶NOW [format] ◆` → ISO-8601 or strftime-style format |
+| HTTP request | `▶HTTP method uri [headers] [data] ◆` → response body (headers/data via `▲Name`) |
+| HTTP verb shortcuts | `▶HTTPGET uri ◆`, `▶HTTPPOST uri data ◆`, `▶HTTPPUT uri data ◆`, `▶HTTPDELETE uri ◆` |
 
 ---
 

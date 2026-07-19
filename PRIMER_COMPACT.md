@@ -118,6 +118,9 @@ Single-argument builtins:
 | CHECK | `▶CHECK handle ◆` | TRUE/FALSE |
 | TICKS | `▶TICKS handle ◆` | ms remaining |
 | SLEEP | `▶SLEEP ms ◆` | EMPTY |
+| NOW | `▶NOW [format] ◆` | current time (ISO-8601, or strftime-style format like `%Y-%m-%d`) |
+| HTTPGET | `▶HTTPGET uri ◆` | HTTP GET response body |
+| HTTPDELETE | `▶HTTPDELETE uri ◆` | HTTP DELETE response body |
 | TRUE | `▲TRUE` | `TRUE` |
 | FALSE | `▲FALSE` | `FALSE` |
 | EMPTY | `▲EMPTY` | empty string |
@@ -226,6 +229,31 @@ expr-name
 ◆
 ```
 Returns a handle.
+
+```losp
+▶HTTPPOST
+http://host/items
+the request body
+◆
+```
+HTTP POST of the second argument to the uri; returns the response body. HTTPPUT works the same way.
+
+```losp
+▶HTTP
+method
+uri
+▲HeadersName ▲DataName ◆
+```
+Full HTTP request; returns the response body. headers and data are optional. They MUST be retrieved (`▲Name`) from stored expressions, or `▲EMPTY` for an unused position — NEVER literal text at the call site, because newlines would split them into separate arguments. Headers are one `Key: Value` per line:
+
+```losp
+▼_Headers X-Auth: token123
+Content-Type: application/json ◆
+▼_Data {"k": "v"} ◆
+▶HTTP POST
+http://host/path
+▲_Headers ▲_Data ◆
+```
 
 Operator arguments need no newlines — `▶COMPARE ▲X ▲Y ◆` is two arguments on one line, because operators are boundaries by themselves.
 
@@ -442,6 +470,21 @@ bird
 ```
 Output: `The green cat runs fast.` (random each time). Each `▶RANDOM ▲list ◆` is a separate operator with its own `◆`.
 
+### HTTP Requests
+
+```losp
+▶SAY ▶HTTPGET http://host/status ◆ ◆
+```
+Output: the response body.
+
+```losp
+▶SAY ▶HTTPPOST
+http://host/echo
+the request body text
+◆ ◆
+```
+Output: the response body. Two `◆`: one for `▶HTTPPOST`, one for `▶SAY`.
+
 ### Executing Generated Code
 
 GENERATE returns code as text. To splice generated code into an expression body, use `▷` (ImmExec, immediate): `▷GENERATE` fires at parse time and splices the result into the body.
@@ -530,6 +573,16 @@ nope
 ◆ ◆
 ```
 `yep` and `nope` are IF's two branch arguments: one per line.
+
+Example request: "an expression named Notify that posts the text weekly summary ready to http://host/notify"
+Correct output:
+```losp
+▼Notify ▶HTTPPOST
+http://host/notify
+weekly summary ready
+◆ ◆
+```
+The uri and the data are HTTPPOST's two arguments: one per line.
 
 ## Spacing and Quoting
 

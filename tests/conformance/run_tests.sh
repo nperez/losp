@@ -26,6 +26,83 @@ GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m' # No Color
 
+# --- Fake HTTP server (for 36_http tests) ---
+# Serves deterministic responses on 127.0.0.1:$LOSP_HTTP_PORT (default 8473):
+#   /hello  -> "hello-from-server"
+#   /method -> the request method (GET, POST, ...)
+#   /echo   -> the request body
+#   /header -> the value of the X-Losp request header
+#   *       -> "not-found"
+# A single `nc -lk` listener keeps the port bound between requests (no accept
+# gap between sequential tests). Responses set Content-Length and
+# Connection: close so clients read the full body and hang up; nc keeps
+# listening for the next connection.
+HTTP_PORT="${LOSP_HTTP_PORT:-8473}"
+HTTP_FIFO=""
+HTTP_SERVER_PID=""
+
+http_handle_requests() {
+    local reqline method rest path hdr clen xlosp body resp
+    while IFS=$'\r' read -r reqline _; do
+        [[ -z "$reqline" ]] && continue
+        method=${reqline%% *}
+        rest=${reqline#* }
+        path=${rest%% *}
+
+        clen=0
+        xlosp=""
+        while IFS=$'\r' read -r hdr _; do
+            [[ -z "$hdr" ]] && break
+            case "${hdr,,}" in
+                content-length:*) clen=$(tr -d ' ' <<< "${hdr#*:}") ;;
+                x-losp:*) xlosp=$(sed 's/^ *//' <<< "${hdr#*:}") ;;
+            esac
+        done
+
+        body=""
+        if (( clen > 0 )); then
+            IFS= read -r -N "$clen" body
+        fi
+
+        case "$path" in
+            /hello)  resp="hello-from-server" ;;
+            /method) resp="$method" ;;
+            /echo)   resp="$body" ;;
+            /header) resp="$xlosp" ;;
+            *)       resp="not-found" ;;
+        esac
+
+        printf 'HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %s\r\nConnection: close\r\n\r\n%s' "${#resp}" "$resp"
+    done
+}
+
+start_http_server() {
+    HTTP_FIFO=$(mktemp -u)
+    mkfifo "$HTTP_FIFO"
+    ( LC_ALL=C http_handle_requests < "$HTTP_FIFO" | nc -lk 127.0.0.1 "$HTTP_PORT" > "$HTTP_FIFO" ) &
+    HTTP_SERVER_PID=$!
+    # Wait for the listener to come up
+    for _ in $(seq 1 50); do
+        if nc -z 127.0.0.1 "$HTTP_PORT" 2>/dev/null; then
+            return 0
+        fi
+        sleep 0.1
+    done
+    echo -e "${YELLOW}WARNING${NC} fake HTTP server failed to start on port $HTTP_PORT" >&2
+}
+
+stop_http_server() {
+    if [[ -n "$HTTP_SERVER_PID" ]]; then
+        # Kill the server subshell and its children (handler + nc)
+        pkill -P "$HTTP_SERVER_PID" 2>/dev/null || true
+        kill "$HTTP_SERVER_PID" 2>/dev/null || true
+    fi
+    rm -f "$HTTP_FIFO"
+}
+
+trap stop_http_server EXIT
+start_http_server
+
 run_test() {
     local test_file="$1"
     local test_name="${test_file#$SCRIPT_DIR/}"

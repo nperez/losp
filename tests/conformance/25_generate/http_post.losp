@@ -1,0 +1,7 @@
+# EXPECTED: generated-payload
+▶SYSTEM
+TEMPERATURE
+0
+◆
+▼_run ▷GENERATE Write losp code that stores the text generated-payload in Payload, then uses SAY to output the result of an HTTPPOST to http://127.0.0.1:8473/echo with GET Payload as the data. ◆ ◆
+▶_run ◆

@@ -1,0 +1,5 @@
+# EXPECTED: header-value
+▽_Headers X-Losp: header-value ◆
+▶SAY ▶HTTP GET
+http://127.0.0.1:8473/header
+▲_Headers ◆ ◆

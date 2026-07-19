@@ -1,0 +1,2 @@
+# EXPECTED: DELETE
+▶SAY ▶HTTPDELETE http://127.0.0.1:8473/method ◆ ◆

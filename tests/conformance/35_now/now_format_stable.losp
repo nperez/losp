@@ -1,0 +1,2 @@
+# EXPECTED: TRUE
+▶SAY ▶COMPARE ▶NOW %Y-%m-%d ◆ ▶NOW %Y-%m-%d ◆ ◆ ◆

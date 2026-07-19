@@ -1,0 +1,7 @@
+# EXPECTED: line-one
+# EXPECTED: line-two
+▼_Body line-one
+line-two ◆
+▶SAY ▶HTTP POST
+http://127.0.0.1:8473/echo
+▲EMPTY ▲_Body ◆ ◆

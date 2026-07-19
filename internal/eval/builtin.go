@@ -87,6 +87,10 @@ func getBuiltin(name string) BuiltinFunc {
 		return builtinHistory
 	case "RANDOM":
 		return builtinRandom
+	case "NOW":
+		return builtinNow
+	case "HTTP":
+		return builtinHTTP
 	}
 	return nil
 }

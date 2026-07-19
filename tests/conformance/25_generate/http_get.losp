@@ -1,0 +1,7 @@
+# EXPECTED: hello-from-server
+▶SYSTEM
+TEMPERATURE
+0
+◆
+▼_run ▷GENERATE Write losp code that uses SAY to output the result of an HTTPGET request to http://127.0.0.1:8473/hello. ◆ ◆
+▶_run ◆

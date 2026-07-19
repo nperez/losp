@@ -1,0 +1,6 @@
+# EXPECTED: multi-value
+▼_Headers X-Losp: multi-value
+Content-Type: text/plain ◆
+▶SAY ▶HTTP GET
+http://127.0.0.1:8473/header
+▲_Headers ◆ ◆

@@ -1,0 +1,5 @@
+# EXPECTED: posted-body
+▶SAY ▶HTTPPOST
+http://127.0.0.1:8473/echo
+posted-body
+◆ ◆

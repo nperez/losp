@@ -1,0 +1,2 @@
+# EXPECTED: hello-from-server
+▶SAY ▶HTTPGET http://127.0.0.1:8473/hello ◆ ◆

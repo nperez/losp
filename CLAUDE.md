@@ -124,14 +124,16 @@ go test -run TestName    # Run specific test
 go run ./cmd/losp        # Run the CLI
 go run ./cmd/losp -f examples/simulation.losp -db simulation.db  # Run a losp file
 go generate ./internal/stdlib/ && go build -o ./losp ./cmd/losp && LOSP_BIN=./losp ./tests/conformance/run_tests.sh  # Run conformance tests
-cd tests/wasm && rm -f losp.wasm && go test -v -count=1 -timeout 600s  # Run WASM conformance tests
+cd tests/wasm && go build -o losp-wasm . && ./losp-wasm -build && ./losp-wasm  # Build WASM harness + losp.wasm, run WASM conformance tests
 ```
 
 **Embedded files:** `PRIMER_COMPACT.md` and `PROMPTING_LOSP.md` live at the repo root. `go generate ./internal/stdlib/` copies them into `internal/stdlib/` for `go:embed`. You must run `go generate` before building if either file has changed. The copies in `internal/stdlib/` are gitignored.
 
 **Conformance Tests:** The losp conformance tests are `.losp` files in `./tests/conformance/`. They are NOT Go tests. Build the binary first with `go build -o ./losp ./cmd/losp`, then run with `LOSP_BIN=./losp ./tests/conformance/run_tests.sh`.
 
-**WASM Conformance Tests:** `tests/wasm/wasm_conformance_test.go` compiles losp to WASM via gigwasm and runs all conformance tests through the WASM binary. **Always run these after code changes** — the WASM build shares all interpreter, store, and builtin code. Schema migrations, new builtins, and store changes must work under both native and WASM builds. Delete the cached `losp.wasm` to force recompilation.
+**WASM Conformance Tests:** `tests/wasm/` is a standalone harness binary. Build the harness with `go build -o losp-wasm .`, compile losp to WASM with `./losp-wasm -build` (distinct step, writes `losp.wasm`), then run all conformance tests through the WASM binary with `./losp-wasm` (optional category arg, e.g. `./losp-wasm 36_http`). **Always run these after code changes** — the WASM build shares all interpreter, store, and builtin code. Schema migrations, new builtins, and store changes must work under both native and WASM builds. Re-run `./losp-wasm -build` after changing losp source; the harness embeds the fake HTTP server needed by 36_http.
+
+**WASM memory gotchas:** wasmer-go frees native memory (JIT code, linear memory) only via Go finalizers, which small-heap host programs may never trigger — every instance MUST be released explicitly or sequential runs accumulate gigabytes. gigwasm's `GoInstance.Close()` releases instance+module+store; the harness calls it after every test plus a `runtime.GC()` for the per-instance engine (no Close API in wasmer-go). Under `GOOS=js`, Go's `time.initLocal` needs a JS `Date` global with `getTimezoneOffset` — gigwasm provides a minimal host-backed one; without it, any local-time access (e.g. `time.Format`) panics.
 
 **IMPORTANT: `go build` only compiles Go code.** It does NOT validate losp syntax or run losp files. To test a losp file, you must actually run it with the CLI.
 
@@ -371,7 +373,9 @@ three
 
 **Global Namespace:** All variables share a single flat namespace. Placeholders write to globals, which can cause clobbering in nested calls.
 
-**Builtins:** IF, COMPARE, FOREACH, PROMPT, SAY, READ, PERSIST, LOAD, COUNT, APPEND, EXTRACT, SYSTEM, UPPER, LOWER, TRIM, TRUE, FALSE, EMPTY, GENERATE
+**Builtins:** IF, COMPARE, FOREACH, PROMPT, SAY, READ, PERSIST, LOAD, COUNT, APPEND, EXTRACT, SYSTEM, UPPER, LOWER, TRIM, TRUE, FALSE, EMPTY, GENERATE, NOW, HTTP (plus prelude wrappers HTTPGET, HTTPPOST, HTTPPUT, HTTPDELETE)
+
+**HTTP builtin:** `▶HTTP method uri [headers] [data] ◆`. headers/data are single positional expression arguments — multi-line values MUST arrive via retrieval (`▲Name`); `▲EMPTY` holds an unused position. The conformance harnesses embed a fake HTTP server on 127.0.0.1:8473 (bash version inside `run_tests.sh`, Go version inside `tests/wasm`): /hello, /method, /echo, /header (returns X-Losp header).
 
 ## GENERATE and Executing Generated Code
 
