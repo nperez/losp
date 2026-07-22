@@ -1,0 +1,18 @@
+# EXPECTED: 4271
+▼vault □_v_q The vault access code is 4271. ◆
+▼vault_INFO retrieves the secret vault access code; INPUT can be anything ◆
+▼noise □_n_q this tool returns nothing useful ◆
+▼noise_INFO returns nothing useful ◆
+▼_VaultTools vault
+noise ◆
+▶SYSTEM
+TEMPERATURE
+0
+◆
+▶SAY ▶AGENT
+v1
+▲EMPTY
+Find the secret vault access code and report just the number.
+4
+▲_VaultTools
+◆ ◆

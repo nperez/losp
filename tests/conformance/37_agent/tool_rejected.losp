@@ -1,0 +1,22 @@
+# EXPECTED: OBSERVATION: The tool "danger" is not available to you. Do not use it. Choose only from these available tools: safe
+▼safe_INFO the only permitted tool ◆
+▼_fake_resp ACTION: danger
+INPUT: rm -rf ◆
+▶_ag_init
+r1
+P
+goal
+3
+safe
+◆
+▶_ag_setcur r1 ◆
+▶_ag_put
+r1
+_resp
+▶_fake_resp ◆
+◆
+▶_ag_dispatch ◆
+▶SAY ▶_ag_get
+r1
+_scratch
+◆ ◆

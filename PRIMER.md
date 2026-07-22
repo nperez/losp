@@ -1446,6 +1446,94 @@ The standard library can be overridden by persisting a custom `__stdlib__`:
 
 On subsequent runs, the backing store `__stdlib__` replaces the built-in prelude.
 
+### Agent Loop
+
+The prelude includes a generic, tool-using **agent loop** written entirely in losp. It drives a bounded reason-act cycle: each turn it prompts the LLM, parses the reply, and either runs a tool and loops, or stops with a final answer. It is built from ordinary builtins (`PROMPT`, `EXTRACT`, `FOREACH`, `COMPARE`, `COUNT`, `APPEND`, `PERSIST`, `LOAD`, `ASYNC`) — there is no dedicated agent builtin.
+
+**The developer supplies only two things:** tools, and (optionally) a persona. The loop owns the entire prompt — the response-format contract, the tool menu, the goal, and the running transcript — so the format the model must produce always matches what the loop parses.
+
+#### Defining tools
+
+A tool is any expression taking one placeholder (the tool input) and returning an observation. Each tool has a companion `<name>_INFO` expression describing it; the loop builds the prompt's tool list from these.
+
+```losp
+▼lookup □_q The capital of ▲_q is ... ◆
+▼lookup_INFO looks up the capital city of a country; INPUT is the country name ◆
+```
+
+**Tool inputs are data, never code.** The model's `INPUT` text is bound to the tool's placeholder as inert text — operators in it do not fire. A tool MUST treat its input as data (`▲_q`). Never execute it (`▶▲_q ◆`) or splice it into an immediate operator, or the model can inject losp into your program.
+
+#### Running an agent synchronously
+
+```losp
+▼_MyTools lookup
+weather ◆
+
+▶AGENT
+    trip                          # instance id (names all state; must be unique)
+    ▲EMPTY                        # persona — ▲EMPTY uses the built-in default
+    What is the capital of France?
+    5                             # max turns (a plain number)
+    ▲_MyTools                     # allowlist: the permitted tool names
+◆
+```
+
+`AGENT` blocks and returns the final answer. Arguments follow the normal rule — one per line. **The tool allowlist is a single expression** holding a newline-separated list; pass it by retrieval (`▲_MyTools`), not as separate argument lines.
+
+Only tools on the allowlist can be called. If the model names a tool that is not permitted (or does not exist), the loop injects an observation telling it so and re-listing the available tools, and the model tries again. This is a capability boundary: the model can never reach an arbitrary expression or builtin.
+
+The **persona** is the one prompt override point. Pass `▲EMPTY` for the built-in default, or your own role text:
+
+```losp
+▶AGENT
+    critic
+    You are a terse, skeptical code reviewer.
+    Review this diff ...
+    4
+    ▲_MyTools
+◆
+```
+
+#### Running agents asynchronously (lifecycle)
+
+`SPAWN` starts the same loop in the background (via `ASYNC`) and returns the instance id as a handle. The agent's state lives in the shared persistence store, so the controller inspects and steers it from outside while it runs:
+
+| Verb | Meaning |
+|------|---------|
+| `▶SPAWN id persona goal max tools ◆` | start in the background; returns `id` |
+| `▶STATUS id ◆` | `running` \| `done` \| `gaveup` \| `stopped` |
+| `▶RESULT id ◆` | the final answer (EMPTY until terminal) |
+| `▶WAIT id ◆` | block until terminal, then return the answer |
+| `▶WATCH id ◆` | the transcript so far (live) |
+| `▶STOP id ◆` | request a cooperative stop |
+| `▶STEER id goal ◆` | replace the goal mid-run |
+| `▶BUDGET id max ◆` | change the turn limit mid-run |
+| `▶GRANT id tool ◆` | add a tool to the allowlist mid-run |
+| `▶REVOKE id tool ◆` | remove a tool from the allowlist mid-run |
+
+```losp
+▽_h ▶SPAWN watcher ▲EMPTY Monitor the feed and summarize ... 20 ▲_Tools ◆ ◆
+▶SAY ▶STATUS watcher ◆ ◆      # running
+▶SAY ▶WAIT watcher ◆ ◆        # blocks, then prints the answer
+```
+
+The controller reloads control/goal/max/tools at the top of every turn, so `STOP`/`STEER`/`BUDGET`/`GRANT`/`REVOKE` take effect on the next step.
+
+#### State layout
+
+All state is namespaced by the instance id under `Agent_<id>_*` (`_persona`, `_goal`, `_max`, `_tools`, `_turns`, `_scratch`, `_status`, `_answer`, `_control`) and persisted each step. Inspect a running or finished agent directly:
+
+```bash
+sqlite3 app.db "SELECT name, value FROM expressions WHERE name LIKE 'Agent_trip_%'"
+```
+
+#### Limitations
+
+- **Cooperative stop.** `STOP` sets a flag the agent checks between turns; a turn already inside an LLM call runs to completion. There is no hard kill.
+- **Tools are fixed at spawn.** A backgrounded agent runs with a namespace snapshot, so its tools must be defined before `SPAWN`. (Adding tool *definitions* mid-run requires `PERSIST_MODE ALWAYS` so the agent auto-loads them; `GRANT`/`REVOKE` only change which already-defined tools are permitted.)
+- **Distinct ids for sub-agents.** Two agents sharing one evaluator must use different ids. An `AGENT` tool that synchronously calls `AGENT` again can clobber the outer loop's variables — use `SPAWN` (isolated namespace) or distinct ids for sub-agents.
+- **Content with losp operators.** The transcript is fed back through the interpreter each turn; tool output or a goal containing bare operators (`◆ ▶ ▲ ...`) can be mangled, the same limitation any accumulator has.
+
 ---
 
 ## Builtin Return Values

@@ -1,0 +1,23 @@
+# EXPECTED: OBSERVATION: you said: banana peel
+▼echo □_e_q you said: ▲_e_q ◆
+▼echo_INFO echoes the input back ◆
+▼_fake_resp ACTION: echo
+INPUT: banana peel ◆
+▶_ag_init
+a1
+P
+goal
+3
+echo
+◆
+▶_ag_setcur a1 ◆
+▶_ag_put
+a1
+_resp
+▶_fake_resp ◆
+◆
+▶_ag_dispatch ◆
+▶SAY ▶_ag_get
+a1
+_scratch
+◆ ◆

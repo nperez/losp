@@ -1,0 +1,26 @@
+# EXPECTED: start:TRUE-FALSE
+# EXPECTED: grant:TRUE
+# EXPECTED: revoke:FALSE
+▼a_INFO a ◆
+▼b_INFO b ◆
+▼_Tools a
+b ◆
+▶_ag_init
+gr1
+P
+goal
+3
+▲_Tools
+◆
+▶_ag_setcur gr1 ◆
+▶SAY start:▶_ag_permitted a ◆-▶_ag_permitted c ◆ ◆
+▶GRANT
+gr1
+c
+◆
+▶SAY grant:▶_ag_permitted c ◆ ◆
+▶REVOKE
+gr1
+a
+◆
+▶SAY revoke:▶_ag_permitted a ◆ ◆

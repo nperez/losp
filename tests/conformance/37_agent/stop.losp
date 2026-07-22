@@ -1,0 +1,13 @@
+# EXPECTED: stopped
+▼x_INFO x ◆
+▶_ag_init
+s1
+P
+goal
+3
+x
+◆
+▶_ag_setcur s1 ◆
+▶STOP s1 ◆
+▶_ag_step ◆
+▶SAY ▶STATUS s1 ◆ ◆

@@ -1,0 +1,301 @@
+▼__startup__ ◆
+▼HTTPGET □_httpget_uri ▶HTTP GET ▲_httpget_uri ◆ ◆
+▼HTTPPOST □_httppost_uri □_httppost_data ▶HTTP POST ▲_httppost_uri ▲EMPTY▲_httppost_data ◆ ◆
+▼HTTPPUT □_httpput_uri □_httpput_data ▶HTTP PUT ▲_httpput_uri ▲EMPTY▲_httpput_data ◆ ◆
+▼HTTPDELETE □_httpdelete_uri ▶HTTP DELETE ▲_httpdelete_uri ◆ ◆
+
+▽_ag_pfx Agent_ ◆
+
+▼_ag_slot □_sl_i □_sl_f ▲_ag_pfx▲_sl_i▲_sl_f ◆
+
+▼_ag_setcur □_sc_id ▼_ag_cur ◆ ▶APPEND _ag_cur ▲_sc_id ◆ ◆
+
+▼_ag_get □_g_i □_g_f ▶▶_ag_slot ▲_g_i ▲_g_f ◆ ◆ ◆
+
+▼_ag_put
+    □_p_i □_p_f □_p_v
+    ▼▶_ag_slot ▲_p_i ▲_p_f ◆◆
+    ▶APPEND ▶_ag_slot ▲_p_i ▲_p_f ◆ ▲_p_v ◆
+    ▶PERSIST ▶_ag_slot ▲_p_i ▲_p_f ◆ ◆
+◆
+
+▼_ag_app
+    □_a_i □_a_f □_a_v
+    ▶APPEND ▶_ag_slot ▲_a_i ▲_a_f ◆ ▲_a_v ◆
+    ▶PERSIST ▶_ag_slot ▲_a_i ▲_a_f ◆ ◆
+◆
+
+▼_ag_reload
+    ▶LOAD ▶_ag_slot ▲_ag_cur _control ◆ ◆
+    ▶LOAD ▶_ag_slot ▲_ag_cur _goal ◆ ◆
+    ▶LOAD ▶_ag_slot ▲_ag_cur _max ◆ ◆
+    ▶LOAD ▶_ag_slot ▲_ag_cur _tools ◆ ◆
+◆
+
+▽_ag_infosuf _INFO ◆
+▼_ag_cat □_c_a □_c_b ▲_c_a▲_c_b ◆
+
+▼_ag_toolmenu ▶FOREACH ▶_ag_get ▲_ag_cur _tools ◆ _ag_toolinfo ◆ ◆
+▼_ag_toolinfo
+    □_ti_name
+    - ▲_ti_name: ▶▶_ag_cat ▲_ti_name ▲_ag_infosuf ◆ ◆
+◆
+
+▼_ag_default_persona You are a careful, methodical assistant. You work toward the goal one small step at a time, and you use the tools available to you rather than guessing. ◆
+▼_ag_custom_persona ▶_ag_get ▲_ag_cur _persona ◆ ◆
+▼_ag_personatext
+    ▶▶IF ▶COMPARE ▶_ag_get ▲_ag_cur _persona ◆ ▲EMPTY ◆
+_ag_default_persona
+_ag_custom_persona
+    ◆ ◆
+◆
+
+▼_ag_buildprompt
+You are an agent that completes a task by using tools, following the response format below exactly.
+▶_ag_personatext ◆
+
+Your goal: ▶_ag_get ▲_ag_cur _goal ◆
+
+You may use ONLY these tools, and you must write a tool name exactly as shown:
+▶_ag_toolmenu ◆
+
+Each turn, reply in ONE of these two formats, and nothing else.
+
+To use a tool (you will be shown its result and asked again), reply with exactly these two lines:
+ACTION: the tool name
+INPUT: the input to pass to the tool
+
+To finish, when you can answer from what you already know, reply with exactly this one line:
+ANSWER: the final answer
+
+The work and tool results so far (empty means you are just starting):
+▶_ag_get ▲_ag_cur _scratch ◆
+◆
+
+▼_ag_ask
+    ▶PROMPT ▶_ag_buildprompt ◆ ◆
+◆
+
+▼_ag_permitted
+    □_pm_name
+    ▼_ag_hit FALSE ◆
+    ▼_ag_probe ▲_pm_name ◆
+    ▶FOREACH ▶_ag_get ▲_ag_cur _tools ◆ _ag_checktool ◆
+    ▶_ag_hit ◆
+◆
+
+▼_ag_checktool
+    □_ct_item
+    ▶▶IF ▶COMPARE ▲_ct_item ▶_ag_probe ◆ ◆
+_ag_sethit
+_ag_noop
+    ◆ ◆
+◆
+▼_ag_sethit ▼_ag_hit TRUE ◆ ◆
+▼_ag_noop ◆
+
+▼_ag_dispatch
+    ▶_ag_dispatch2 ▶EXTRACT ACTION ▶_ag_get ▲_ag_cur _resp ◆ ◆ ▶EXTRACT INPUT ▶_ag_get ▲_ag_cur _resp ◆ ◆ ◆
+◆
+
+▼_ag_dispatch2
+    □_d_act □_d_in
+    ▶▶IF ▶_ag_permitted ▲_d_act ◆
+_ag_runtool
+_ag_rejecttool
+    ◆ ◆
+◆
+
+▼_ag_runtool
+    ▶_ag_app ▲_ag_cur _scratch ▶_ag_obsline ◆ ◆
+◆
+
+▼_ag_obsline
+    OBSERVATION: ▶▲_d_act ▲_d_in ◆
+◆
+
+▼_ag_rejecttool
+    ▶_ag_app ▲_ag_cur _scratch ▶_ag_rejectline ◆ ◆
+◆
+
+▼_ag_rejectline
+    OBSERVATION: The tool "▲_d_act" is not available to you. Do not use it. Choose only from these available tools: ▶_ag_get ▲_ag_cur _tools ◆
+◆
+
+▼_ag_step
+    ▶_ag_reload ◆
+    ▶▶IF ▶COMPARE ▶_ag_get ▲_ag_cur _control ◆ stop ◆
+_ag_finish_stopped
+_ag_step_run
+    ◆ ◆
+◆
+
+▼_ag_step_run
+    ▶▶IF ▶COMPARE ▶COUNT ▶_ag_get ▲_ag_cur _turns ◆ ◆ ▶_ag_get ▲_ag_cur _max ◆ ◆
+_ag_finish_gaveup
+_ag_step_turn
+    ◆ ◆
+◆
+
+▼_ag_step_turn
+    ▶_ag_put ▲_ag_cur _resp ▶_ag_ask ◆ ◆
+    ▶_ag_app ▲_ag_cur _scratch ▶_ag_get ▲_ag_cur _resp ◆ ◆
+    ▶_ag_app
+▲_ag_cur
+_turns
+.
+◆
+    ▶▶IF ▶COMPARE ▶EXTRACT ANSWER ▶_ag_get ▲_ag_cur _resp ◆ ◆ ▲EMPTY ◆
+_ag_step_tool
+_ag_finish_answer
+    ◆ ◆
+◆
+
+▼_ag_step_tool
+    ▶_ag_dispatch ◆
+    ▶_ag_step ◆
+◆
+
+▼_ag_finish_answer
+    ▶_ag_put
+▲_ag_cur
+_status
+done
+◆
+    ▶_ag_put ▲_ag_cur _answer ▶EXTRACT ANSWER ▶_ag_get ▲_ag_cur _resp ◆ ◆ ◆
+    ▶_ag_get ▲_ag_cur _answer ◆
+◆
+
+▼_ag_finish_gaveup
+    ▶_ag_put
+▲_ag_cur
+_status
+gaveup
+◆
+    ▶_ag_put ▲_ag_cur _answer ▶EXTRACT THOUGHT ▶_ag_get ▲_ag_cur _resp ◆ ◆ ◆
+    ▶_ag_get ▲_ag_cur _answer ◆
+◆
+
+▼_ag_finish_stopped
+    ▶_ag_put
+▲_ag_cur
+_status
+stopped
+◆
+    ▶_ag_get ▲_ag_cur _answer ◆
+◆
+
+▼_ag_init
+    □_i_id □_i_persona □_i_goal □_i_max □_i_tools
+    ▶_ag_put ▲_i_id _persona ▲_i_persona ◆
+    ▶_ag_put ▲_i_id _goal ▲_i_goal ◆
+    ▶_ag_put ▲_i_id _max ▲_i_max ◆
+    ▶_ag_put ▲_i_id _tools ▲_i_tools ◆
+    ▶_ag_put ▲_i_id _scratch ▲EMPTY ◆
+    ▶_ag_put ▲_i_id _turns ▲EMPTY ◆
+    ▶_ag_put ▲_i_id _answer ▲EMPTY ◆
+    ▶_ag_put
+▲_i_id
+_control
+run
+◆
+    ▶_ag_put
+▲_i_id
+_status
+running
+◆
+◆
+
+▼AGENT
+    □_AG_id □_AG_persona □_AG_goal □_AG_max □_AG_tools
+    ▶_ag_init ▲_AG_id ▲_AG_persona ▲_AG_goal ▲_AG_max ▲_AG_tools ◆
+    ▶_ag_setcur ▲_AG_id ◆
+    ▶_ag_step ◆
+◆
+
+▼_ag_runner
+    ▶_ag_setcur ▲_ag_spawn_id ◆
+    ▶_ag_step ◆
+◆
+
+▼SPAWN
+    □_SP_id □_SP_persona □_SP_goal □_SP_max □_SP_tools
+    ▶_ag_init ▲_SP_id ▲_SP_persona ▲_SP_goal ▲_SP_max ▲_SP_tools ◆
+    ▼_ag_spawn_id ◆
+    ▶APPEND _ag_spawn_id ▲_SP_id ◆
+    ▶_ag_put ▲_SP_id _handle ▶ASYNC _ag_runner ◆ ◆
+    ▲_SP_id
+◆
+
+▼STATUS
+    □_ST_id
+    ▶LOAD ▶_ag_slot ▲_ST_id _status ◆ ◆
+    ▶_ag_get ▲_ST_id _status ◆
+◆
+
+▼RESULT
+    □_RS_id
+    ▶LOAD ▶_ag_slot ▲_RS_id _answer ◆ ◆
+    ▶_ag_get ▲_RS_id _answer ◆
+◆
+
+▼WATCH
+    □_WT_id
+    ▶LOAD ▶_ag_slot ▲_WT_id _scratch ◆ ◆
+    ▶_ag_get ▲_WT_id _scratch ◆
+◆
+
+▼WAIT
+    □_WA_id
+    ▼_ag_wait_id ◆ ▶APPEND _ag_wait_id ▲_WA_id ◆
+    ▶_ag_waitloop ◆
+◆
+▼_ag_waitloop
+    ▶▶IF ▶COMPARE ▶STATUS ▶_ag_wait_id ◆ ◆ running ◆
+_ag_waitmore
+_ag_waitdone
+    ◆ ◆
+◆
+▼_ag_waitmore ▶SLEEP 200 ◆ ▶_ag_waitloop ◆ ◆
+▼_ag_waitdone ▶RESULT ▶_ag_wait_id ◆ ◆ ◆
+
+▼STOP
+    □_SO_id
+    ▶_ag_put
+▲_SO_id
+_control
+stop
+◆
+◆
+
+▼STEER
+    □_SR_id □_SR_goal
+    ▶_ag_put ▲_SR_id _goal ▲_SR_goal ◆
+◆
+
+▼BUDGET
+    □_BG_id □_BG_max
+    ▶_ag_put ▲_BG_id _max ▲_BG_max ◆
+◆
+
+▼GRANT
+    □_GR_id □_GR_tool
+    ▶_ag_app ▲_GR_id _tools ▲_GR_tool ◆
+◆
+
+▼REVOKE
+    □_RV_id □_RV_tool
+    ▶_ag_setcur ▲_RV_id ◆
+    ▼_ag_revoke_tool ◆ ▶APPEND _ag_revoke_tool ▲_RV_tool ◆
+    ▼_ag_newtools ◆
+    ▶FOREACH ▶_ag_get ▲_ag_cur _tools ◆ _ag_revoke_keep ◆
+    ▶_ag_put ▲_ag_cur _tools ▶_ag_newtools ◆ ◆
+◆
+▼_ag_revoke_keep
+    □_rk_item
+    ▶▶IF ▶COMPARE ▲_rk_item ▶_ag_revoke_tool ◆ ◆
+_ag_noop
+_ag_revoke_add
+    ◆ ◆
+◆
+▼_ag_revoke_add ▶APPEND _ag_newtools ▲_rk_item ◆ ◆
