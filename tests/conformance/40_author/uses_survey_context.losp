@@ -1,0 +1,22 @@
+# EXPECTED: PASS
+▶SYSTEM
+TEMPERATURE
+0
+◆
+▼_judge_req
+You are evaluating whether a description matches a criterion.
+CRITERION:
+▲_judge_crit
+
+ACTUAL DESCRIPTION:
+▲_judge_act
+
+Does the ACTUAL DESCRIPTION satisfy the CRITERION? Reason in one or two sentences, then on the final line write exactly VERDICT: PASS or VERDICT: FAIL.
+◆
+▼JUDGE □_judge_crit □_judge_act ▶UPPER ▶TRIM ▶EXTRACT VERDICT ▶PROMPT ▶_judge_req ◆ ◆ ◆ ◆ ◆ ◆
+
+▼Bracket □_b [▲_b] ◆
+▼Bracket_INFO wraps its input in square brackets; INPUT is the text to wrap ◆
+▶SAY ▶JUDGE
+the code defines an expression that surrounds or wraps its input in square brackets
+▶DESCRIBE ▶AUTHOR Write a losp expression named Wrap that behaves like the existing Bracket expression: it takes one argument and surrounds it with square brackets. Define only Wrap and its _INFO. ◆ ◆ ◆ ◆ ◆

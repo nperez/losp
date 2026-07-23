@@ -55,6 +55,17 @@ func (n *Namespace) Delete(name string) {
 	delete(n.store, name)
 }
 
+// Names returns all names currently in the namespace, unsorted.
+func (n *Namespace) Names() []string {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+	names := make([]string, 0, len(n.store))
+	for k := range n.store {
+		names = append(names, k)
+	}
+	return names
+}
+
 // Clone creates a shallow copy of the namespace.
 func (n *Namespace) Clone() *Namespace {
 	n.mu.RLock()

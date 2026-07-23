@@ -1,0 +1,10 @@
+# EXPECTED: alpha: a
+# EXPECTED: beta: b
+# EXPECTED: gamma: c
+▼gamma ◆
+▼gamma_INFO c ◆
+▼alpha ◆
+▼alpha_INFO a ◆
+▼beta ◆
+▼beta_INFO b ◆
+▶SAY ▶SURVEY ◆ ◆

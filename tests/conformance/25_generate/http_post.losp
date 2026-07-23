@@ -1,7 +1,7 @@
-# EXPECTED: generated-payload
+# EXPECTED: ping
 ▶SYSTEM
 TEMPERATURE
 0
 ◆
-▼_run ▷GENERATE Write losp code that stores the text generated-payload in Payload, then uses SAY to output the result of an HTTPPOST to http://127.0.0.1:8473/echo with GET Payload as the data. ◆ ◆
+▼_run ▷GENERATE Write losp code that stores the literal text ping in an expression named Payload, then uses SAY to output the response body of an HTTPPOST that sends the value of Payload to the URL http://127.0.0.1:8473/echo. ◆ ◆
 ▶_run ◆

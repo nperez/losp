@@ -620,6 +620,56 @@ Prompts describing a pattern using these ASCII names will output the correspondi
 ▼_desc □_a □_b □_c □_d □_e □_f ▶SAY The ▲_a ▲_b of ▲_c was built from ▲_d. The air carried ▲_e beneath a pall of ▲_f. ◆ ◆
 ```
 
+### Self-Referential Authoring
+
+These builtins let a program read, describe, and rewrite its own losp — the "ouroboros" loop where the language edits itself through plain language.
+
+**DESCRIBE**: `▶DESCRIBE code ◆` → plain-language description of losp code
+
+The inverse of GENERATE. It puts the compact primer into context and asks the model to explain what the code does — its purpose, arguments, and result. Pass a retrieved expression as the argument:
+
+```losp
+▼greet □_g Hello ▲_g ◆
+▶SAY ▶DESCRIBE ▲greet ◆ ◆
+# → "Defines an expression that prepends 'Hello ' to its argument..."
+```
+
+Returns EMPTY if the code is empty or no provider is configured. Because DESCRIBE returns plain text (no operators), its output can be fed safely back into other prompts — including judging or further editing of the code it describes.
+
+**SURVEY**: `▶SURVEY ◆` → a menu of documented expressions in the namespace
+
+Lists every expression that has a companion `<name>_INFO` expression, together with that `_INFO`'s content, one `name: info` line per expression, sorted by name. It reads only the **live namespace**, never the persistence store. This is the same `_INFO` convention the agent loop uses to build its tool menu.
+
+```losp
+▼greet □_g Hello ▲_g ◆
+▼greet_INFO greets a person; INPUT is the name ◆
+▶SAY ▶SURVEY ◆ ◆
+# → "greet: greets a person; INPUT is the name"
+```
+
+Returns EMPTY when no eligible expressions exist. An `_INFO` whose base expression is absent is skipped.
+
+**AUTHOR**: `▶AUTHOR request ◆` → generated losp code, informed by the namespace
+
+Pure-losp porcelain over GENERATE and SURVEY. It injects the current SURVEY output as context so the model can reference existing expressions, and instructs the model to emit a `<name>_INFO` companion for every expression it defines. Like GENERATE, it **returns code as text** — splice it into a body with `▷` to run it:
+
+```losp
+▼_run ▷AUTHOR Write an expression named Greet that uses the existing greet expression to welcome a user. ◆ ◆
+▶_run ◆
+```
+
+**REVISE**: `▶REVISE code instruction ◆` → revised losp code
+
+Pure-losp porcelain over DESCRIBE and GENERATE. Given a retrieved expression and a plain-language instruction, it runs DESCRIBE to interpret the current code, then GENERATE to produce the revision. Returns the revised code as text:
+
+```losp
+▼_run ▷REVISE ▲greet
+Make it shout the greeting in uppercase. ◆ ◆
+▶_run ◆
+```
+
+Both AUTHOR and REVISE own their prompts; you supply only the request (and, for REVISE, the code to edit). They return code, never execute it — the caller decides when to splice and run.
+
 ### I/O
 
 **SAY**: `▶SAY text... ◆` → outputs text and any number of expressions
@@ -1561,6 +1611,10 @@ Every builtin returns a value. Understanding what each builtin returns is critic
 | `LOAD` | Empty | Always EMPTY — loads into namespace as a side effect |
 | `PROMPT` | Text | LLM response text, or EMPTY if no provider |
 | `GENERATE` | Text | Generated losp code text, or EMPTY if no provider |
+| `DESCRIBE` | Text or Empty | Plain-language description of the code, or EMPTY if code/provider absent |
+| `SURVEY` | Text or Empty | `name: info` lines for documented expressions, or EMPTY if none |
+| `AUTHOR` | Text | Generated losp code informed by SURVEY, or EMPTY if no provider |
+| `REVISE` | Text | Revised losp code, or EMPTY if no provider |
 | `SYSTEM` | Text or Empty | Current setting value (getter) or EMPTY (setter) |
 | `ASYNC` | Text | Handle ID (e.g., `"_async_1"`), or EMPTY if expression missing |
 | `AWAIT` | Text or Empty | Async result text, or EMPTY on error/unknown handle |
@@ -1606,6 +1660,10 @@ Every builtin returns a value. Understanding what each builtin returns is critic
 | Conditional | `▶IF cond then else ◆` (args are expressions) |
 | Iterate over items | `▶FOREACH items-expr body-name ◆` |
 | Prompt LLM | `▶PROMPT system user ◆` (args are expressions) |
+| Describe losp code | `▶DESCRIBE code ◆` → plain-language description |
+| List documented expressions | `▶SURVEY ◆` → `name: info` lines |
+| Author code from plain language | `▶AUTHOR request ◆` → losp code (uses SURVEY context) |
+| Revise an expression | `▶REVISE code instruction ◆` → revised losp code |
 | Extract labeled field | `▶EXTRACT LABEL ▲source ◆` |
 | Convert to uppercase | `▶UPPER expr... ◆` |
 | Convert to lowercase | `▶LOWER expr... ◆` |

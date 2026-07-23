@@ -102,6 +102,9 @@ Single-argument builtins:
 |---------|-----------|---------|
 | SAY | `▶SAY text ◆` | (prints to console) |
 | GENERATE | `▶GENERATE request ◆` | generated losp code |
+| AUTHOR | `▶AUTHOR request ◆` | generated losp code, using the namespace as context |
+| DESCRIBE | `▶DESCRIBE code ◆` | plain-language description of losp code |
+| SURVEY | `▶SURVEY ◆` | documented expressions as `name: info` lines |
 | READ | `▶READ [prompt] ◆` | user input line |
 | PERSIST | `▶PERSIST name ◆` | (saves to DB) |
 | COUNT | `▶COUNT expr ◆` | number of lines |
@@ -189,6 +192,14 @@ source
 ◆
 ```
 Returns the extracted value.
+
+```losp
+▶REVISE
+code
+instruction
+◆
+```
+Returns revised losp code: rewrites the first argument (a retrieved expression) to follow the plain-language instruction.
 
 ```losp
 ▶SYSTEM
@@ -506,6 +517,8 @@ Two `◆`: one for `▷GENERATE`, one for `▼Maker`. `▲_val` takes none.
 ```
 Here `DEF _msg hello world END` stays as text inside the request.
 
+AUTHOR and REVISE also return code as text and splice the same way as GENERATE above.
+
 ## Critical Rules
 
 1. **Placeholders are read with deferred retrieve.** `▼Func □arg ▲arg ◆` — `▲arg` resolves after the argument is bound.
@@ -598,6 +611,15 @@ The brackets hug `▲_item` because they hug `GET _item` in the request.
 **Quoted text in requests is literal.** The quotes are delimiters, not content: reproduce exactly the characters between them — no quotes, no added spacing. A request to join two arguments with ' greets ' produces the body `▲_a greets ▲_b`; the spaces around greets come from inside the quotes.
 
 The same holds when quoted text meets an operator: the operator follows the quoted text directly, so the quoted characters are the only characters between them.
+
+**A quoted phrase that ends with a space already carries that one space — it IS the whole separator. Write the operator immediately after it, and add none of your own.** Concatenating a trailing-space quote with an argument yields exactly one space between them.
+
+Example request: "an expression named Label that returns the concatenation of 'Page ' and the argument"
+Correct output:
+```losp
+▼Label □_n Page ▲_n ◆
+```
+`▶Label 7 ◆` outputs `Page 7`. The quote `'Page '` supplies the single trailing space, and `▲_n` follows it directly.
 
 Example request: "an expression named Price that returns the concatenation of 'Cost: ' and the argument"
 Correct output:

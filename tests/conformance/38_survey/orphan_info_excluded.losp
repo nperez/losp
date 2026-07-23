@@ -1,0 +1,3 @@
+# EXPECTED: TRUE
+▼ghost_INFO documents an expression that does not exist ◆
+▶SAY ▶COMPARE ▶SURVEY ◆ ▲EMPTY ◆ ◆

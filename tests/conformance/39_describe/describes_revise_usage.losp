@@ -1,0 +1,21 @@
+# EXPECTED: PASS
+▶SYSTEM
+TEMPERATURE
+0
+◆
+▼_judge_req
+You are evaluating whether a description matches a criterion.
+CRITERION:
+▲_judge_crit
+
+ACTUAL DESCRIPTION:
+▲_judge_act
+
+Does the ACTUAL DESCRIPTION satisfy the CRITERION? Reason in one or two sentences, then on the final line write exactly VERDICT: PASS or VERDICT: FAIL.
+◆
+▼JUDGE □_judge_crit □_judge_act ▶UPPER ▶TRIM ▶EXTRACT VERDICT ▶PROMPT ▶_judge_req ◆ ◆ ◆ ◆ ◆ ◆
+
+▼Edit □_c □_i ▶REVISE ▲_c ▲_i ◆ ◆
+▶SAY ▶JUDGE
+the description says the code revises, edits, or rewrites an existing expression according to an instruction
+▶DESCRIBE ▲Edit ◆ ◆ ◆

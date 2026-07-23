@@ -6,6 +6,7 @@ package eval
 import (
 	"fmt"
 	"math/rand"
+	"sort"
 	"strconv"
 	"strings"
 	"unicode"
@@ -59,6 +60,10 @@ func getBuiltin(name string) BuiltinFunc {
 		return builtinTrim
 	case "GENERATE":
 		return builtinGenerate
+	case "DESCRIBE":
+		return builtinDescribe
+	case "SURVEY":
+		return builtinSurvey
 	case "ASYNC":
 		return builtinAsync
 	case "AWAIT":
@@ -758,4 +763,79 @@ func builtinGenerate(e *Evaluator, argsRaw string) (expr.Expr, error) {
 	}
 
 	return expr.Stored{Body: strings.TrimSpace(response)}, nil
+}
+
+// builtinDescribe is the inverse of GENERATE: it takes losp code and returns a
+// plain-language description of what that code does. It puts the compact primer
+// into context so the model understands losp semantics, then asks for a
+// description. The description can be fed back into GENERATE/AUTHOR/REVISE to
+// edit the code — the ouroboros loop.
+func builtinDescribe(e *Evaluator, argsRaw string) (expr.Expr, error) {
+	if e.provider == nil {
+		return expr.Empty{}, nil
+	}
+
+	evaluated, err := e.Eval(argsRaw)
+	if err != nil {
+		return nil, err
+	}
+	code := strings.TrimSpace(evaluated)
+	if code == "" {
+		return expr.Empty{}, nil
+	}
+
+	// Use the compact primer so the description reflects real losp semantics
+	// while staying within model context limits (matches GENERATE).
+	system := stdlib.PrimerCompact
+	if cfg, ok := e.provider.(Configurable); ok {
+		if strings.Contains(strings.ToLower(cfg.GetModel()), "nemotron") {
+			system = stdlib.PrimerCompactNemotron
+		}
+	}
+	user := "Describe, in plain language, what the following losp code does. " +
+		"Explain its purpose, its arguments (if any), and its result. " +
+		"Do NOT output losp code — output only the plain-language description.\n\n" + code
+
+	response, err := e.provider.Prompt(system, user)
+	if err != nil {
+		return nil, err
+	}
+
+	return expr.Stored{Body: strings.TrimSpace(response)}, nil
+}
+
+// builtinSurvey lists every expression in the current namespace that has a
+// companion <name>_INFO expression, together with that _INFO's content. It
+// operates only on the live namespace, never the persistence store. Output is
+// one "name: info" line per eligible expression, sorted by name. This gives
+// AUTHOR/REVISE (and any LLM self-referential workflow) a menu of the existing
+// program structures they can build on.
+func builtinSurvey(e *Evaluator, argsRaw string) (expr.Expr, error) {
+	const suffix = "_INFO"
+
+	var names []string
+	for _, name := range e.namespace.Names() {
+		if !strings.HasSuffix(name, suffix) {
+			continue
+		}
+		base := strings.TrimSuffix(name, suffix)
+		if base == "" || !e.namespace.Has(base) {
+			continue
+		}
+		names = append(names, base)
+	}
+
+	if len(names) == 0 {
+		return expr.Empty{}, nil
+	}
+
+	sort.Strings(names)
+
+	var lines []string
+	for _, base := range names {
+		info := strings.TrimSpace(e.namespace.Get(base + suffix).String())
+		lines = append(lines, base+": "+info)
+	}
+
+	return expr.Stored{Body: strings.Join(lines, "\n")}, nil
 }

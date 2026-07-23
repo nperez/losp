@@ -4,6 +4,31 @@
 ▼HTTPPUT □_httpput_uri □_httpput_data ▶HTTP PUT ▲_httpput_uri ▲EMPTY▲_httpput_data ◆ ◆
 ▼HTTPDELETE □_httpdelete_uri ▶HTTP DELETE ▲_httpdelete_uri ◆ ◆
 
+▼_au_request
+The following losp expressions already exist in the namespace. You may reference them by name:
+▶SURVEY ◆
+
+Write losp code for this request:
+▲_au_prompt
+
+For every expression you define, also define a companion NAME_INFO expression whose body is a one-line plain-language description of what NAME does and what its INPUT is.
+◆
+▼AUTHOR □_au_prompt ▶GENERATE ▶_au_request ◆ ◆ ◆
+
+▼_rv_request
+Here is an existing losp expression:
+▲_rv_code
+
+In plain language, it currently does the following:
+▶DESCRIBE ▲_rv_code ◆
+
+Revise the expression according to this instruction:
+▲_rv_prompt
+
+Output the complete revised losp code. Also update or add its companion NAME_INFO expression describing the revised behavior.
+◆
+▼REVISE □_rv_code □_rv_prompt ▶GENERATE ▶_rv_request ◆ ◆ ◆
+
 ▽_ag_pfx Agent_ ◆
 
 ▼_ag_slot □_sl_i □_sl_f ▲_ag_pfx▲_sl_i▲_sl_f ◆

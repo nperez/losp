@@ -1,0 +1,7 @@
+# EXPECTED: add: adds two numbers
+# EXPECTED: greet: greets a person
+▼greet □_g Hello ▲_g ◆
+▼greet_INFO greets a person ◆
+▼add □_a □_b sum ◆
+▼add_INFO adds two numbers ◆
+▶SAY ▶SURVEY ◆ ◆
