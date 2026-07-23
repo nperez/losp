@@ -651,7 +651,7 @@ Returns EMPTY when no eligible expressions exist. An `_INFO` whose base expressi
 
 **AUTHOR**: `▶AUTHOR request ◆` → generated losp code, informed by the namespace
 
-Pure-losp porcelain over GENERATE and SURVEY. It injects the current SURVEY output as context so the model can reference existing expressions, and instructs the model to emit a `<name>_INFO` companion for every expression it defines. Like GENERATE, it **returns code as text** — splice it into a body with `▷` to run it:
+Pure-losp porcelain over GENERATE, SURVEY, DESCRIBE, and PROMPT. It generates the code with the current SURVEY output as context, then describes that code and bakes a `<name>_INFO` companion into the live namespace from the description. Authors a single expression per call; for several cooperating expressions, drive AUTHOR once per expression. Like GENERATE, it **returns code as text** — splice it into a body with `▷` to run it:
 
 ```losp
 ▼_run ▷AUTHOR Write an expression named Greet that uses the existing greet expression to welcome a user. ◆ ◆

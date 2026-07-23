@@ -4,6 +4,9 @@
 ▼HTTPPUT □_httpput_uri □_httpput_data ▶HTTP PUT ▲_httpput_uri ▲EMPTY▲_httpput_data ◆ ◆
 ▼HTTPDELETE □_httpdelete_uri ▶HTTP DELETE ▲_httpdelete_uri ◆ ◆
 
+▽_au_infosuf _INFO ◆
+▼_au_cat □_au_ca □_au_cb ▲_au_ca▲_au_cb ◆
+
 ▼_au_request
 The following losp expressions already exist in the namespace. You may reference them by name:
 ▶SURVEY ◆
@@ -11,9 +14,61 @@ The following losp expressions already exist in the namespace. You may reference
 Write losp code for this request:
 ▲_au_prompt
 
-For every expression you define, also define a companion NAME_INFO expression whose body is a one-line plain-language description of what NAME does and what its INPUT is.
+Define exactly one expression. Output only that one definition.
 ◆
-▼AUTHOR □_au_prompt ▶GENERATE ▶_au_request ◆ ◆ ◆
+
+▼_au_inforeq
+These losp expressions already exist in the namespace:
+▶SURVEY ◆
+
+A new losp expression was just written for this request:
+▲_au_prompt
+
+Here is the new code:
+▲_au_code
+
+Here is what the new code does:
+▲_au_desc
+
+Reply with exactly two lines and nothing else:
+NAME: the name of the expression the new code defines
+INFO: one plain-language line saying what that expression does, what its INPUT is, and how it relates to the existing expressions above if it builds on any of them
+◆
+
+▼_au_nobake ◆
+▼_au_infotext ▶▶IF ▶COMPARE ▲_au_info ▲EMPTY ◆
+_au_desc
+_au_info
+◆ ◆ ◆
+▼_au_store
+    ▼▶_au_cat ▲_au_name ▲_au_infosuf ◆ ◆
+    ▶APPEND ▶_au_cat ▲_au_name ▲_au_infosuf ◆ ▶_au_infotext ◆ ◆
+◆
+▼_au_bake
+    □_au_name □_au_info
+    ▶▶IF ▶COMPARE ▲_au_name ▲EMPTY ◆
+_au_nobake
+_au_store
+    ◆ ◆
+◆
+▼_au_split
+    □_au_reply
+    ▶_au_bake ▶TRIM ▶EXTRACT NAME ▲_au_reply ◆ ◆ ▶TRIM ▶EXTRACT INFO ▲_au_reply ◆ ◆ ◆
+◆
+▼_au_doc
+    □_au_desc
+    ▶_au_split ▶PROMPT
+You document losp expressions in one terse line.
+▶_au_inforeq ◆ ◆ ◆
+▲EMPTY
+◆
+▼_au_finish
+    □_au_code
+    ▶_au_doc ▶DESCRIBE ▲_au_code ◆ ◆
+▲_au_code
+◆
+
+▼AUTHOR □_au_prompt ▶TRIM ▶_au_finish ▶GENERATE ▶_au_request ◆ ◆ ◆ ◆ ◆
 
 ▼_rv_request
 Here is an existing losp expression:
