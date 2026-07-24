@@ -60,6 +60,14 @@ func getBuiltin(name string) BuiltinFunc {
 		return builtinTrim
 	case "SPLIT":
 		return builtinSplit
+	case "GRAB":
+		return builtinGrab
+	case "FIRST":
+		return builtinFirst
+	case "LAST":
+		return builtinLast
+	case "SLICE":
+		return builtinSlice
 	case "GENERATE":
 		return builtinGenerate
 	case "DESCRIBE":
@@ -754,13 +762,13 @@ func builtinSplit(e *Evaluator, argsRaw string) (expr.Expr, error) {
 
 	sep := e.GetSetting("SPLIT_CHAR", ",")
 
+	// Each piece is trimmed but empty pieces are preserved: they are real,
+	// positional slots. Dropping them would silently renumber the list out
+	// from under GRAB/SLICE.
 	var results []string
 	for _, arg := range args {
 		for part := range strings.SplitSeq(arg, sep) {
-			trimmed := strings.TrimSpace(part)
-			if trimmed != "" {
-				results = append(results, trimmed)
-			}
+			results = append(results, strings.TrimSpace(part))
 		}
 	}
 

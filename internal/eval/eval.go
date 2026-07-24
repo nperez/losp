@@ -987,13 +987,17 @@ func (e *Evaluator) parseArgs(argsRaw string) ([]string, error) {
 
 		switch item.Token {
 		case token.TEXT:
-			// Text is split by newlines - each line is a separate argument
-			// Empty lines are skipped (they're formatting, not arguments)
-			lines := strings.Split(item.Value, "\n")
-			for _, line := range lines {
-				if s := strings.TrimSpace(line); s != "" {
-					args = append(args, s)
-				}
+			// Text is split by newlines - each line is a separate argument.
+			// The newlines bounding the run of text are delimiters, not
+			// arguments, so the run is trimmed before splitting; a run that is
+			// entirely whitespace is formatting and yields no arguments. An
+			// empty line between two others is an empty expression and is kept.
+			run := strings.TrimSpace(item.Value)
+			if run == "" {
+				break
+			}
+			for line := range strings.SplitSeq(run, "\n") {
+				args = append(args, strings.TrimSpace(line))
 			}
 		case token.IMM_RETRIEVE:
 			// Operators always produce an argument, even if empty

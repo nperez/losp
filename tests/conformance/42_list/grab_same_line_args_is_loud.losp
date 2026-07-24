@@ -1,0 +1,3 @@
+# EXPECTED: INVALID_INDEX
+▽L ▶SPLIT red,green,blue ◆ ◆
+▶GRAB 0 1 ▲L ◆

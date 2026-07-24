@@ -1,0 +1,3 @@
+# EXPECTED: blue
+▽L ▶SPLIT red,green,blue ◆ ◆
+▶GRAB -1 ▲L ◆

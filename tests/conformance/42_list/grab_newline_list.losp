@@ -1,0 +1,11 @@
+# EXPECTED: two words
+▽L one ◆
+▶APPEND
+L
+two words
+◆
+▶APPEND
+L
+three
+◆
+▶GRAB 1 ▲L ◆

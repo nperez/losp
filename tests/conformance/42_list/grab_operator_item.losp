@@ -1,0 +1,4 @@
+# EXPECTED: [world]
+▽_who world ◆
+▼greet □_g Hello ▲_who ◆
+▶SAY [▶GRAB 1 ▲greet ◆] ◆

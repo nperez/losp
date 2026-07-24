@@ -1,0 +1,3 @@
+# EXPECTED: OUT_OF_RANGE
+▽L ▶SPLIT red,green,blue ◆ ◆
+▶GRAB -4 ▲L ◆

@@ -1,0 +1,6 @@
+# EXPECTED: INVALID_INDEX
+▽L ▶SPLIT red,green,blue,violet ◆ ◆
+▶SLICE
+q
+2
+▲L ◆

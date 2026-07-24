@@ -1,0 +1,8 @@
+# EXPECTED: 7
+# EXPECTED: 7
+# EXPECTED: 7
+▽L ▶SPLIT 1,,3,4,5,,7 ◆ ◆
+▼_one □_o x ◆
+▶COUNT ▲L ◆
+▶COUNT ▶FOREACH ▲L _one ◆ ◆
+▶GRAB -1 ▲L ◆

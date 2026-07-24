@@ -390,6 +390,7 @@ Arguments are parsed as expressions. The rules are:
 1. **Text on a single line is one argument** — whitespace within a line does NOT split arguments
 2. **Newlines separate arguments** — each line of text becomes a separate argument
 3. **Operators are argument boundaries** — each operator result is one argument
+4. **A blank line between two others is an empty argument** — the newlines that open and close a run of text are delimiters, so a run that is entirely whitespace contributes no arguments at all
 
 **Key insight:** Newlines are only needed to separate TEXT. Operators are already expression boundaries.
 
@@ -400,6 +401,14 @@ Arguments are parsed as expressions. The rules are:
 hello
 world
 ◆                          # Correct: two text arguments
+```
+
+```losp
+▶ThreeArgs
+one
+
+three
+◆                          # Three arguments: "one", "", "three"
 ```
 
 ```losp
@@ -758,17 +767,105 @@ EXTRACT handles multi-line values (continues until the next label or end of text
 ◆                               # → "padded line one\npadded line two"
 ```
 
-**SPLIT**: `▶SPLIT expr... ◆` → splits each expression on the delimiter from `SYSTEM SPLIT_CHAR` (default `,`), trims each piece, and returns the non-empty pieces as a newline-delimited list
+**SPLIT**: `▶SPLIT expr... ◆` → splits each expression on the delimiter from `SYSTEM SPLIT_CHAR` (default `,`), trims each piece, and returns the pieces as a newline-delimited list
 
 ```losp
 ▶SPLIT red, green , blue ◆      # → "red\ngreen\nblue"
 ▶SYSTEM SPLIT_CHAR | ◆
 ▶SPLIT a | b | c ◆              # → "a\nb\nc"
+▶SPLIT 1,,3 ◆                   # → "1\n\n3" — three pieces, the middle one empty
 ```
 
-SPLIT is the inverse of a comma-separated line: it turns one delimited expression into many expressions, one per line, ready for FOREACH or COUNT. Empty pieces (e.g. from a trailing delimiter) are dropped.
+SPLIT is the inverse of a comma-separated line: it turns one delimited expression into many expressions, one per line, ready for FOREACH, COUNT, GRAB or SLICE.
 
-These operate on all expressions passed to them. Results are the mutated expressions. TRIM and SPLIT filter out expressions that become empty after trimming.
+Empty pieces are positional slots in the result: `▶COUNT ▶SPLIT 1,,3,4,5,,7 ◆ ◆` is 7.
+
+Every expression is trimmed as it is stored and retrieved, so a leading or trailing empty piece is gone once the list is put into an expression and read back. After `▽L ▶SPLIT ,green,blue, ◆ ◆`, `▶FIRST ▲L ◆` is `green`. Interior pieces are unaffected.
+
+These operate on all expressions passed to them. Results are the mutated expressions. TRIM filters out expressions that become empty after trimming.
+
+### Positional list builtins
+
+A **list** is an expression holding expressions. Its items are found the same way arguments are: a line of text is an expression, and each operator is an expression. So a list is anything SPLIT, FOREACH, SURVEY, SEARCH or HISTORY produces, and equally the body of any expression.
+
+Indices are **0-based**. A negative index counts back from the end, so `-1` is the last item.
+
+Arguments are expressions, so an index and its list are separate expressions — each on its own line, or separated by an operator boundary:
+
+```losp
+▽L ▶SPLIT red,green,blue,violet ◆ ◆
+
+▶GRAB 0 ▲L ◆                    # → "red" — ▲L is its own expression
+▶GRAB -1 ▲L ◆                   # → "violet"
+```
+
+Indexing a body reaches the expressions it is built from, with each operator resolved as it is read:
+
+```losp
+▽_who world ◆
+▼greet □_g Hello ▲_who ◆
+
+▶GRAB 0 ▲greet ◆                # → "Hello" — the text expression
+▶GRAB 1 ▲greet ◆                # → "world" — the ▲_who expression
+```
+
+**GRAB**: `▶GRAB index ▲List ◆` → the item at `index`
+
+**FIRST**: `▶FIRST ▲List ◆` → the first item (`GRAB 0`)
+
+**LAST**: `▶LAST ▲List ◆` → the last item (`GRAB -1`)
+
+**SLICE**: takes `start`, `end` and the list, and returns the items from `start` up to but not including `end`. Two bounds means each of the three arguments needs its own line:
+
+```losp
+▶SLICE
+1
+3
+▲L ◆                            # → "green\nblue"
+
+▶SLICE
+2
+▲EMPTY
+▲L ◆                            # → "blue\nviolet" — ▲EMPTY holds the bound open
+
+▶SLICE
+0
+-1
+▲L ◆                            # → "red\ngreen\nblue" — everything but the last
+```
+
+Both bounds are clamped to the list: a slice running off either end returns the overlap. A slice whose start reaches its end returns EMPTY.
+
+An item that is blank returns EMPTY, like any other empty expression. A lookup that cannot be performed returns a sentinel:
+
+| Sentinel | Meaning |
+|----------|---------|
+| `INVALID_INDEX` | An index expression is not a whole number |
+| `OUT_OF_RANGE` | The index names a position the list does not have |
+
+```losp
+▽L ▶SPLIT 1,,3,4,5,,7 ◆ ◆
+
+▶GRAB 1 ▲L ◆                    # → EMPTY — position 1 is an empty slot
+▶GRAB 99 ▲L ◆                   # → "OUT_OF_RANGE"
+▶GRAB two ▲L ◆                  # → "INVALID_INDEX"
+▶FIRST ▲Unset ◆                 # → "OUT_OF_RANGE" — an empty list has no first item
+```
+
+Sentinels are ordinary text, so test for them with COMPARE:
+
+```losp
+▼SafeGrab
+    □_g_idx
+    □_g_list
+    ▶▶IF ▶COMPARE ▶GRAB ▲_g_idx ▲_g_list ◆ OUT_OF_RANGE ◆
+        _NoSuchItem
+        _UseItem
+    ◆ ◆
+◆
+```
+
+`▶SLICE 1 3 ▲L ◆` passes two arguments: the text expression `1 3` and the list. `1 3` is not a number, so that call returns `INVALID_INDEX`.
 
 Useful for case-insensitive comparison:
 
@@ -1618,7 +1715,11 @@ Every builtin returns a value. Understanding what each builtin returns is critic
 | `UPPER` | Text | Uppercased text |
 | `LOWER` | Text | Lowercased text |
 | `TRIM` | Text or Empty | Trimmed text, or EMPTY if result is blank |
-| `SPLIT` | Text or Empty | Newline-delimited pieces split on SPLIT_CHAR, or EMPTY if all blank |
+| `SPLIT` | Text or Empty | Newline-delimited pieces split on SPLIT_CHAR, or EMPTY if there is nothing to split |
+| `GRAB` | Text, Empty or Sentinel | Item at the index, EMPTY if that item is blank, `INVALID_INDEX` or `OUT_OF_RANGE` |
+| `FIRST` | Text, Empty or Sentinel | First item, EMPTY if it is blank, `OUT_OF_RANGE` if the list is empty |
+| `LAST` | Text, Empty or Sentinel | Last item, EMPTY if it is blank, `OUT_OF_RANGE` if the list is empty |
+| `SLICE` | Text, Empty or Sentinel | Items in `[start, end)`, EMPTY if that range is empty, `INVALID_INDEX` |
 | `PERSIST` | Empty | Always EMPTY — persistence is a side effect |
 | `LOAD` | Empty | Always EMPTY — loads into namespace as a side effect |
 | `PROMPT` | Text | LLM response text, or EMPTY if no provider |
@@ -1681,6 +1782,10 @@ Every builtin returns a value. Understanding what each builtin returns is critic
 | Convert to lowercase | `▶LOWER expr... ◆` |
 | Trim whitespace | `▶TRIM expr... ◆` |
 | Split on delimiter | `▶SPLIT expr... ◆` (delimiter from `SYSTEM SPLIT_CHAR`) |
+| Item at a position | `▶GRAB index ▲List ◆` (0-based, `-1` is last) |
+| First item | `▶FIRST ▲List ◆` |
+| Last item | `▶LAST ▲List ◆` |
+| Sub-list | `▶SLICE ◆` with `start`, `end` and the list each on their own line |
 | Save to backing store | `▶PERSIST name ◆` |
 | Load from backing store | `▶LOAD name ◆` |
 | Load with default | `▶LOAD name default ◆` (args are expressions) |

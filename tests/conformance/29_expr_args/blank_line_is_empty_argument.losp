@@ -1,0 +1,7 @@
+# EXPECTED: <one><><three>
+▼Three □_a □_b □_c <▲_a><▲_b><▲_c> ◆
+▶Three
+one
+
+three
+◆

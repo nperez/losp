@@ -1,0 +1,5 @@
+# EXPECTED: [green]
+# EXPECTED: [blue]
+▽L ▶SPLIT ,green,blue, ◆ ◆
+▶SAY [▶FIRST ▲L ◆] ◆
+▶SAY [▶LAST ▲L ◆] ◆

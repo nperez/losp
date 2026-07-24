@@ -1,0 +1,7 @@
+# EXPECTED: green
+# EXPECTED: blue
+▽L ▶SPLIT red,green,blue,violet ◆ ◆
+▶SLICE
+1
+3
+▲L ◆

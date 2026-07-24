@@ -373,7 +373,9 @@ three
 
 **Global Namespace:** All variables share a single flat namespace. Placeholders write to globals, which can cause clobbering in nested calls.
 
-**Builtins:** IF, COMPARE, FOREACH, PROMPT, SAY, READ, PERSIST, LOAD, COUNT, APPEND, EXTRACT, SYSTEM, UPPER, LOWER, TRIM, SPLIT, TRUE, FALSE, EMPTY, GENERATE, NOW, HTTP (plus prelude wrappers HTTPGET, HTTPPOST, HTTPPUT, HTTPDELETE)
+**Builtins:** IF, COMPARE, FOREACH, PROMPT, SAY, READ, PERSIST, LOAD, COUNT, APPEND, EXTRACT, SYSTEM, UPPER, LOWER, TRIM, SPLIT, GRAB, FIRST, LAST, SLICE, TRUE, FALSE, EMPTY, GENERATE, NOW, HTTP (plus prelude wrappers HTTPGET, HTTPPOST, HTTPPUT, HTTPDELETE)
+
+**List builtins:** GRAB/FIRST/LAST/SLICE (`internal/eval/builtin_list.go`) index a list, whose items are found with `e.parseArgs` — a line of text is an item, each operator is an item. So `▶GRAB 1 ▲greet ◆` reaches into `greet`'s body. 0-based, negative counts from the end, SLICE is half-open and clamps. A blank item returns EMPTY; a failed lookup returns the sentinel `INVALID_INDEX` (index isn't a whole number) or `OUT_OF_RANGE` (no such position). `parseArgs` and SPLIT both keep interior blanks, so COUNT, FOREACH and GRAB agree on positions; leading/trailing empties vanish to the universal TrimSpace on store/retrieve.
 
 **HTTP builtin:** `▶HTTP method uri [headers] [data] ◆`. headers/data are single positional expression arguments — multi-line values MUST arrive via retrieval (`▲Name`); `▲EMPTY` holds an unused position. The conformance harnesses embed a fake HTTP server on 127.0.0.1:8473 (bash version inside `run_tests.sh`, Go version inside `tests/wasm`): /hello, /method, /echo, /header (returns X-Losp header).
 

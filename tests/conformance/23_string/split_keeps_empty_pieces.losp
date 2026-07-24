@@ -1,3 +1,4 @@
 # EXPECTED: one
+# EXPECTED:
 # EXPECTED: two
 ▶SPLIT one,,two, ◆

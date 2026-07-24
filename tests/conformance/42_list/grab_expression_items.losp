@@ -1,0 +1,3 @@
+# EXPECTED: [Hello]
+▼greet □_g Hello ▲_g ◆
+▶SAY [▶GRAB 0 ▲greet ◆] ◆

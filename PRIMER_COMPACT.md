@@ -113,6 +113,10 @@ Single-argument builtins:
 | LOWER | `▶LOWER text ◆` | lowercased |
 | TRIM | `▶TRIM text ◆` | trimmed |
 | SPLIT | `▶SPLIT text ◆` | pieces split on SPLIT_CHAR, one per line |
+| GRAB | `▶GRAB index list ◆` | item at index, 0-based, -1 is last |
+| FIRST | `▶FIRST list ◆` | first item |
+| LAST | `▶LAST list ◆` | last item |
+| SLICE | `▶SLICE start end list ◆` | items from start up to end |
 | HISTORY | `▶HISTORY name ◆` | version names |
 | CORPUS | `▶CORPUS name ◆` | handle |
 | INDEX | `▶INDEX handle ◆` | EMPTY |

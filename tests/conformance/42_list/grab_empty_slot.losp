@@ -1,0 +1,3 @@
+# EXPECTED: []
+▽L ▶SPLIT 1,,3,4,5,,7 ◆ ◆
+▶SAY [▶GRAB 1 ▲L ◆] ◆
