@@ -112,6 +112,7 @@ Single-argument builtins:
 | UPPER | `▶UPPER text ◆` | uppercased |
 | LOWER | `▶LOWER text ◆` | lowercased |
 | TRIM | `▶TRIM text ◆` | trimmed |
+| SPLIT | `▶SPLIT text ◆` | pieces split on SPLIT_CHAR, one per line |
 | HISTORY | `▶HISTORY name ◆` | version names |
 | CORPUS | `▶CORPUS name ◆` | handle |
 | INDEX | `▶INDEX handle ◆` | EMPTY |

@@ -1,0 +1,11 @@
+# EXPECTED: red
+# EXPECTED: green
+# EXPECTED: blue
+▶SYSTEM
+TEMPERATURE
+0
+◆
+▼__startup__
+    ▷GENERATE Write a losp expression named Tokenize that takes one argument and splits it into separate lines using SPLIT. ◆
+    ▶SAY ▶Tokenize red,green,blue ◆ ◆
+◆

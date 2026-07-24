@@ -1,0 +1,5 @@
+# EXPECTED: a
+# EXPECTED: b
+# EXPECTED: c
+▽csv a, b, c ◆
+▶SPLIT ▲csv ◆

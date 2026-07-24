@@ -1,0 +1,8 @@
+# EXPECTED: a
+# EXPECTED: b
+# EXPECTED: c
+▶SYSTEM
+SPLIT_CHAR
+|
+◆
+▶SPLIT a | b | c ◆

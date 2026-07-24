@@ -758,7 +758,17 @@ EXTRACT handles multi-line values (continues until the next label or end of text
 ◆                               # → "padded line one\npadded line two"
 ```
 
-These operate on all expressions passed to them. Results are the mutated expressions. TRIM filters out expressions that become empty after trimming.
+**SPLIT**: `▶SPLIT expr... ◆` → splits each expression on the delimiter from `SYSTEM SPLIT_CHAR` (default `,`), trims each piece, and returns the non-empty pieces as a newline-delimited list
+
+```losp
+▶SPLIT red, green , blue ◆      # → "red\ngreen\nblue"
+▶SYSTEM SPLIT_CHAR | ◆
+▶SPLIT a | b | c ◆              # → "a\nb\nc"
+```
+
+SPLIT is the inverse of a comma-separated line: it turns one delimited expression into many expressions, one per line, ready for FOREACH or COUNT. Empty pieces (e.g. from a trailing delimiter) are dropped.
+
+These operate on all expressions passed to them. Results are the mutated expressions. TRIM and SPLIT filter out expressions that become empty after trimming.
 
 Useful for case-insensitive comparison:
 
@@ -981,6 +991,7 @@ Query or change runtime settings. With one argument, returns the current value. 
 | `EMBED_MODEL` | Embedding model (Ollama default: `qwen3-embedding:0.6b`) |
 | `SEARCH_LIMIT` | Max results from SEARCH/SIMILAR (default 10) |
 | `HISTORY_LIMIT` | Max versions returned by HISTORY (default 0 = all) |
+| `SPLIT_CHAR` | Delimiter used by SPLIT (default `,`) |
 
 ```losp
 ▶SAY Current model: ▶SYSTEM MODEL ◆ ◆
@@ -1607,6 +1618,7 @@ Every builtin returns a value. Understanding what each builtin returns is critic
 | `UPPER` | Text | Uppercased text |
 | `LOWER` | Text | Lowercased text |
 | `TRIM` | Text or Empty | Trimmed text, or EMPTY if result is blank |
+| `SPLIT` | Text or Empty | Newline-delimited pieces split on SPLIT_CHAR, or EMPTY if all blank |
 | `PERSIST` | Empty | Always EMPTY — persistence is a side effect |
 | `LOAD` | Empty | Always EMPTY — loads into namespace as a side effect |
 | `PROMPT` | Text | LLM response text, or EMPTY if no provider |
@@ -1668,6 +1680,7 @@ Every builtin returns a value. Understanding what each builtin returns is critic
 | Convert to uppercase | `▶UPPER expr... ◆` |
 | Convert to lowercase | `▶LOWER expr... ◆` |
 | Trim whitespace | `▶TRIM expr... ◆` |
+| Split on delimiter | `▶SPLIT expr... ◆` (delimiter from `SYSTEM SPLIT_CHAR`) |
 | Save to backing store | `▶PERSIST name ◆` |
 | Load from backing store | `▶LOAD name ◆` |
 | Load with default | `▶LOAD name default ◆` (args are expressions) |

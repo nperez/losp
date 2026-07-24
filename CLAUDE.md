@@ -373,7 +373,7 @@ three
 
 **Global Namespace:** All variables share a single flat namespace. Placeholders write to globals, which can cause clobbering in nested calls.
 
-**Builtins:** IF, COMPARE, FOREACH, PROMPT, SAY, READ, PERSIST, LOAD, COUNT, APPEND, EXTRACT, SYSTEM, UPPER, LOWER, TRIM, TRUE, FALSE, EMPTY, GENERATE, NOW, HTTP (plus prelude wrappers HTTPGET, HTTPPOST, HTTPPUT, HTTPDELETE)
+**Builtins:** IF, COMPARE, FOREACH, PROMPT, SAY, READ, PERSIST, LOAD, COUNT, APPEND, EXTRACT, SYSTEM, UPPER, LOWER, TRIM, SPLIT, TRUE, FALSE, EMPTY, GENERATE, NOW, HTTP (plus prelude wrappers HTTPGET, HTTPPOST, HTTPPUT, HTTPDELETE)
 
 **HTTP builtin:** `▶HTTP method uri [headers] [data] ◆`. headers/data are single positional expression arguments — multi-line values MUST arrive via retrieval (`▲Name`); `▲EMPTY` holds an unused position. The conformance harnesses embed a fake HTTP server on 127.0.0.1:8473 (bash version inside `run_tests.sh`, Go version inside `tests/wasm`): /hello, /method, /echo, /header (returns X-Losp header).
 

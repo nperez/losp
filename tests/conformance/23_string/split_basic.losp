@@ -1,0 +1,4 @@
+# EXPECTED: red
+# EXPECTED: green
+# EXPECTED: blue
+▶SPLIT red,green,blue ◆

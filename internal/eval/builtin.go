@@ -58,6 +58,8 @@ func getBuiltin(name string) BuiltinFunc {
 		return builtinLower
 	case "TRIM":
 		return builtinTrim
+	case "SPLIT":
+		return builtinSplit
 	case "GENERATE":
 		return builtinGenerate
 	case "DESCRIBE":
@@ -667,6 +669,13 @@ func builtinSystem(e *Evaluator, argsRaw string) (expr.Expr, error) {
 		}
 		return expr.Stored{Body: strconv.Itoa(e.historyLimit)}, nil
 
+	case "SPLIT_CHAR":
+		if value != "" {
+			e.SetSetting("SPLIT_CHAR", value)
+			return expr.Empty{}, nil
+		}
+		return expr.Stored{Body: e.GetSetting("SPLIT_CHAR", ",")}, nil
+
 	default:
 		return expr.Stored{Body: "UNKNOWN_SETTING"}, nil
 	}
@@ -723,6 +732,35 @@ func builtinTrim(e *Evaluator, argsRaw string) (expr.Expr, error) {
 		trimmed := strings.TrimSpace(arg)
 		if trimmed != "" {
 			results = append(results, trimmed)
+		}
+	}
+
+	if len(results) == 0 {
+		return expr.Empty{}, nil
+	}
+
+	return expr.Stored{Body: strings.Join(results, "\n")}, nil
+}
+
+func builtinSplit(e *Evaluator, argsRaw string) (expr.Expr, error) {
+	args, err := e.parseArgs(argsRaw)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(args) == 0 {
+		return expr.Empty{}, nil
+	}
+
+	sep := e.GetSetting("SPLIT_CHAR", ",")
+
+	var results []string
+	for _, arg := range args {
+		for part := range strings.SplitSeq(arg, sep) {
+			trimmed := strings.TrimSpace(part)
+			if trimmed != "" {
+				results = append(results, trimmed)
+			}
 		}
 	}
 

@@ -1,0 +1,2 @@
+# EXPECTED: 4
+▶COUNT ▶SPLIT a,b,c,d ◆ ◆
