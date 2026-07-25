@@ -127,7 +127,7 @@ go generate ./internal/stdlib/ && go build -o ./losp ./cmd/losp && LOSP_BIN=./lo
 cd tests/wasm && go build -o losp-wasm . && ./losp-wasm -build && ./losp-wasm  # Build WASM harness + losp.wasm, run WASM conformance tests
 ```
 
-**Embedded files:** `PRIMER_COMPACT.md` and `PROMPTING_LOSP.md` live at the repo root. `go generate ./internal/stdlib/` copies them into `internal/stdlib/` for `go:embed`. You must run `go generate` before building if either file has changed. The copies in `internal/stdlib/` are gitignored.
+**Embedded files:** `PRIMER.md`, `PRIMER_COMPACT.md` and `PRIMER_COMPACT_NEMOTRON.md` live at the repo root. `go generate ./internal/stdlib/` copies them into `internal/stdlib/` for `go:embed`. You must run `go generate` before building if any of them has changed. The copies in `internal/stdlib/` are gitignored. `PROMPTING_LOSP.md` is a human-facing guide only — it is not embedded and reaches no prompt; only `stdlib.PrimerCompact` is put into GENERATE/DESCRIBE.
 
 **Conformance Tests:** The losp conformance tests are `.losp` files in `./tests/conformance/`. They are NOT Go tests. Build the binary first with `go build -o ./losp ./cmd/losp`, then run with `LOSP_BIN=./losp ./tests/conformance/run_tests.sh`.
 
@@ -373,7 +373,11 @@ three
 
 **Global Namespace:** All variables share a single flat namespace. Placeholders write to globals, which can cause clobbering in nested calls.
 
-**Builtins:** IF, COMPARE, FOREACH, PROMPT, SAY, READ, PERSIST, LOAD, COUNT, APPEND, EXTRACT, SYSTEM, UPPER, LOWER, TRIM, SPLIT, GRAB, FIRST, LAST, SLICE, TRUE, FALSE, EMPTY, GENERATE, NOW, HTTP (plus prelude wrappers HTTPGET, HTTPPOST, HTTPPUT, HTTPDELETE)
+**Builtins:** IF, COMPARE, FOREACH, PROMPT, SAY, READ, PERSIST, LOAD, COUNT, APPEND, EXTRACT, SYSTEM, UPPER, LOWER, TRIM, SPLIT, GRAB, FIRST, LAST, SLICE, TRUE, FALSE, EMPTY, GENERATE, PARSE, NOW, HTTP (plus prelude wrappers HTTPGET, HTTPPOST, HTTPPUT, HTTPDELETE)
+
+**PARSE builtin:** `▶PARSE name ◆` → TRUE/FALSE, with the explanation in `PARSE_REASON`. It takes the NAME of an expression and validates its **stored body** (`internal/eval/builtin_parse.go`, `ValidateSyntax`) — never a text argument, because a text argument is scanned as losp and the surplus `◆` PARSE exists to catch would close PARSE's own argument early, leaving truncated-but-balanced text. It checks terminator balance per opener, unclosed operators, and missing names; it does not evaluate, store, or fire immediate operators. Reasons use ASCII operator names (DEF/IDEF/GET/IGET/RUN/IRUN/ARG/DEFER/END) because `▲PARSE_REASON` re-parses its own result — a reason containing `◆` or `▼` would be mangled or would fire. Structural errors cannot be expressed in a `.losp` conformance file (the file itself would be malformed), so `ValidateSyntax` has Go unit tests in `builtin_parse_test.go`; `tests/conformance/43_parse/` covers the builtin surface.
+
+**GENERATE retries unbalanced output.** `builtinGenerate` runs `ValidateSyntax` on the raw provider string and gives the model one corrected attempt (`generateAttempts`). This is the only place generated code is still intact: once the text is spliced or passed as an argument, a surplus `◆` closes the expression carrying it and truncates the code before anything can inspect it. The retry only fires on invalid output, so deterministic (temp 0) generations are untouched.
 
 **List builtins:** GRAB/FIRST/LAST/SLICE (`internal/eval/builtin_list.go`) index a list, whose items are found with `e.parseArgs` — a line of text is an item, each operator is an item. So `▶GRAB 1 ▲greet ◆` reaches into `greet`'s body. 0-based, negative counts from the end, SLICE is half-open and clamps. A blank item returns EMPTY; a failed lookup returns the sentinel `INVALID_INDEX` (index isn't a whole number) or `OUT_OF_RANGE` (no such position). `parseArgs` and SPLIT both keep interior blanks, so COUNT, FOREACH and GRAB agree on positions; leading/trailing empties vanish to the universal TrimSpace on store/retrieve.
 

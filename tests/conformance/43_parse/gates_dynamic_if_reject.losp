@@ -1,0 +1,7 @@
+# EXPECTED: rejected
+▼_accept installed ◆
+▼_reject rejected ◆
+▶▶IF ▶PARSE Nope ◆
+_accept
+_reject
+◆ ◆

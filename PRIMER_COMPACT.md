@@ -105,6 +105,7 @@ Single-argument builtins:
 | AUTHOR | `▶AUTHOR request ◆` | generated losp code, using the namespace as context |
 | DESCRIBE | `▶DESCRIBE code ◆` | plain-language description of losp code |
 | SURVEY | `▶SURVEY ◆` | documented expressions as `name: info` lines |
+| PARSE | `▶PARSE name ◆` | TRUE if the named expression is well-formed |
 | READ | `▶READ [prompt] ◆` | user input line |
 | PERSIST | `▶PERSIST name ◆` | (saves to DB) |
 | COUNT | `▶COUNT expr ◆` | number of lines |
@@ -384,6 +385,8 @@ no
 
 The scope-opening operators `▼` `▽` `▶` `▷` `◯` each take exactly one `◆`. The name operators `▲` `△` `□` take just a name and no terminator. A missing `◆` leaves an operator unclosed; an extra `◆` closes an enclosing scope too early. Trailing `◆` is an error. When every opened operator has its terminator, the code is complete.
 
+**Tally the terminators before answering.** Count the scope-opening operators in the code — every `▼` `▽` `▶` `▷` `◯` — and count the `◆`. The two counts match exactly. The `▲` `△` `□` operators add nothing to either count. The final `◆` closes the outermost operator, and the code ends there.
+
 Top-level statements each close themselves — there is no outer block to close:
 ```losp
 ▽List first ◆
@@ -501,6 +504,34 @@ the request body text
 ```
 Output: the response body. Two `◆`: one for `▶HTTPPOST`, one for `▶SAY`.
 
+**An expression that makes a request** takes the varying part as a placeholder and keeps its headers in a definition of their own, because `▶HTTP` reads headers and data from retrievals:
+
+```losp
+▼_Key X-Auth: token123 ◆
+▼Send □_note ▶HTTP PUT
+http://host/notes
+▲_Key ▲_note ◆ ◆
+```
+Three `◆`: one for `▼_Key`, one for `▶HTTP`, one for `▼Send`. The method and uri are lines of `▶HTTP`'s arguments; the headers and data positions are filled by retrievals, and `▲EMPTY` fills a position that carries nothing.
+
+### Returning a Result or a Marked Failure
+
+An expression that can fail returns either its result or a marked failure beginning with `FAILED:` and a reason, so the caller can tell the two apart.
+
+Helper expressions live at the top level beside the one that calls them, and they read the same placeholder, since names are global:
+
+```losp
+▼_Kept ▲_body ◆
+▼_Lost FAILED: the service returned nothing ◆
+▼Keep □_body ▶▶IF ▶COMPARE ▲_body ▲EMPTY ◆
+_Lost
+_Kept
+◆ ◆ ◆
+▼Fetch □_uri ▶Keep ▶HTTPGET ▲_uri ◆ ◆ ◆
+```
+
+`▶Fetch http://host/status ◆` returns the response body, or `FAILED: the service returned nothing` when the body is empty. `▼Keep` ends with three `◆`: one closes `▶IF`, one closes the outer `▶` of the dynamic execute, one closes `▼Keep`.
+
 ### Executing Generated Code
 
 GENERATE returns code as text. To splice generated code into an expression body, use `▷` (ImmExec, immediate): `▷GENERATE` fires at parse time and splices the result into the body.
@@ -531,6 +562,8 @@ AUTHOR and REVISE also return code as text and splice the same way as GENERATE a
 3. **IF's text branches each go on their own line.**
 4. **Inside expression bodies, deferred operators** (`▲` `▶` `▼`) give runtime behavior; immediate operators fire at definition time.
 5. **losp has no comments.** `#` is just text.
+6. **Every name that is retrieved or executed is defined.** A `▲Name` or `▶Name ◆` refers to a name the request supplies, a placeholder of the enclosing expression, a builtin, or a definition written in the same answer.
+7. **The answer is losp code and nothing else.** Plain text belongs in bodies where the request asks for it; symbols, annotations and example results are not part of the code.
 
 # Part 2 — Interpreting Requests
 

@@ -80,7 +80,7 @@ In plain language, it currently does the following:
 Revise the expression according to this instruction:
 ▲_rv_prompt
 
-Output the complete revised losp code. Also update or add its companion NAME_INFO expression describing the revised behavior.
+Output the complete revised losp code. Also update or add the companion documentation expression whose name is the expression's own name followed by _INFO, describing the revised behavior.
 ◆
 ▼REVISE □_rv_code □_rv_prompt ▶GENERATE ▶_rv_request ◆ ◆ ◆
 

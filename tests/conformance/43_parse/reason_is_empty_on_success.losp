@@ -1,0 +1,5 @@
+# EXPECTED: TRUE
+# EXPECTED: []
+▼Tidy □_t ▶TRIM ▲_t ◆ ◆
+▶PARSE Tidy ◆
+[▲PARSE_REASON]

@@ -1,0 +1,8 @@
+# EXPECTED: installed
+▼Tidy □_t ▶TRIM ▲_t ◆ ◆
+▼_accept installed ◆
+▼_reject rejected ◆
+▶▶IF ▶PARSE Tidy ◆
+_accept
+_reject
+◆ ◆

@@ -106,6 +106,8 @@ func getBuiltin(name string) BuiltinFunc {
 		return builtinNow
 	case "HTTP":
 		return builtinHTTP
+	case "PARSE":
+		return builtinParse
 	}
 	return nil
 }
@@ -803,12 +805,40 @@ func builtinGenerate(e *Evaluator, argsRaw string) (expr.Expr, error) {
 	}
 	user := request + "\n\nOutput ONLY raw losp code. Do NOT wrap in markdown code fences. No ``` blocks. No explanation. Just the raw losp operators and text."
 
-	response, err := e.provider.Prompt(system, user)
-	if err != nil {
-		return nil, err
+	// Unbalanced terminators are the one generation error the caller cannot
+	// recover from: the surplus ◆ closes whatever expression is carrying the
+	// code, so the code is truncated before anyone can inspect it. The raw
+	// provider string is the only place it is still intact, so check it here
+	// and give the model one corrected attempt.
+	response := ""
+	for attempt := range generateAttempts {
+		ask := user
+		if attempt > 0 {
+			ask = user + "\n\n" + generateRetryNote(response)
+		}
+		raw, err := e.provider.Prompt(system, ask)
+		if err != nil {
+			return nil, err
+		}
+		response = strings.TrimSpace(raw)
+		if ValidateSyntax(response) == "" {
+			break
+		}
 	}
 
-	return expr.Stored{Body: strings.TrimSpace(response)}, nil
+	return expr.Stored{Body: response}, nil
+}
+
+// generateAttempts is how many times GENERATE will ask the model for code that
+// accounts for all of its terminators.
+const generateAttempts = 2
+
+// generateRetryNote tells the model what was structurally wrong with its last
+// answer, in the ASCII shorthand the primer already teaches.
+func generateRetryNote(previous string) string {
+	return "That answer was not valid losp: " + ValidateSyntax(previous) +
+		". Count one END terminator for each DEF, IDEF, RUN and IRUN you write, " +
+		"and none for GET, IGET or ARG. Answer again with every terminator accounted for."
 }
 
 // builtinDescribe is the inverse of GENERATE: it takes losp code and returns a

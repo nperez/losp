@@ -679,6 +679,33 @@ Make it shout the greeting in uppercase. ◆ ◆
 
 Both AUTHOR and REVISE own their prompts; you supply only the request (and, for REVISE, the code to edit). They return code, never execute it — the caller decides when to splice and run.
 
+**PARSE**: `▶PARSE name ◆` → `TRUE` or `FALSE`
+
+Checks whether the body stored under `name` is structurally valid losp: every scope-opening operator has its `◆`, no `◆` closes more than the code opened, and every `▼ ▽ ▶ ▷ ▲ △ □` has a name. It does not evaluate the code, does not define anything, and does not fire immediate operators.
+
+**PARSE takes a name, never the code text.** A text argument would itself be scanned as losp, so the surplus `◆` that PARSE exists to find would close PARSE's own argument early and PARSE would see truncated-but-balanced text. Reading the stored body straight out of the namespace avoids that.
+
+The explanation lives in `PARSE_REASON`, set on every call — the reason on `FALSE`, empty on `TRUE`. Reasons name operators in the ASCII shorthand (`DEF`, `RUN`, `ARG`, `END`) rather than the runes, because `▲PARSE_REASON` re-parses what it returns.
+
+```losp
+▼Tidy □_t ▶TRIM ▲_t ◆ ◆
+▶SAY ▶PARSE Tidy ◆ ◆
+# → TRUE
+```
+
+Use it to gate generated code before installing or running it:
+
+```losp
+▼_install ▶_stage ◆ ◆
+▼_reject ▶SAY rejected: ▲PARSE_REASON ◆ ◆
+▶▶IF ▶PARSE _stage ◆
+_install
+_reject
+◆ ◆
+```
+
+`FALSE` with no code to check: a name absent from the namespace, an empty body, or no argument at all.
+
 ### I/O
 
 **SAY**: `▶SAY text... ◆` → outputs text and any number of expressions
@@ -1777,6 +1804,7 @@ Every builtin returns a value. Understanding what each builtin returns is critic
 | List documented expressions | `▶SURVEY ◆` → `name: info` lines |
 | Author code from plain language | `▶AUTHOR request ◆` → losp code (uses SURVEY context) |
 | Revise an expression | `▶REVISE code instruction ◆` → revised losp code |
+| Check code is well-formed | `▶PARSE name ◆` → TRUE/FALSE (reason in `▲PARSE_REASON`) |
 | Extract labeled field | `▶EXTRACT LABEL ▲source ◆` |
 | Convert to uppercase | `▶UPPER expr... ◆` |
 | Convert to lowercase | `▶LOWER expr... ◆` |

@@ -8,7 +8,6 @@ import _ "embed"
 //go:generate cp ../../PRIMER.md .
 //go:generate cp ../../PRIMER_COMPACT.md .
 //go:generate cp ../../PRIMER_COMPACT_NEMOTRON.md .
-//go:generate cp ../../PROMPTING_LOSP.md .
 
 //go:embed PRIMER.md
 var Primer string
@@ -18,6 +17,3 @@ var PrimerCompact string
 
 //go:embed PRIMER_COMPACT_NEMOTRON.md
 var PrimerCompactNemotron string
-
-//go:embed PROMPTING_LOSP.md
-var PromptingLosp string

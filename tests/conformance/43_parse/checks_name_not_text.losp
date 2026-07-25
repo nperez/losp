@@ -1,0 +1,4 @@
+# EXPECTED: TRUE
+▼Held ▶PARSE Tidy ◆ ◆
+▼Tidy □_t ▶TRIM ▲_t ◆ ◆
+▶Held ◆
