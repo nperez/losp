@@ -298,6 +298,13 @@ func runWASMInstance(compiledModule *gigwasm.CompiledModule, args []string, stdi
 	return buf.String(), exitCode
 }
 
+// creaturesCSV is served at /creatures.csv for the 45_pipeline tests. Kept
+// byte-identical to CREATURES_CSV in tests/conformance/run_tests.sh.
+const creaturesCSV = `name,habitat,trait
+Sunfish,the open ocean,drifts near the surface sunning itself
+Ibex,steep mountains,climbs near-vertical rock faces
+Mole,underground tunnels,digs through soil in total darkness`
+
 // startFakeHTTPServer serves the same deterministic endpoints as the embedded
 // server in tests/conformance/run_tests.sh, for the 36_http tests. WASM
 // modules reach it through the host's Fetch API (gigwasm WithFetch).
@@ -320,6 +327,9 @@ func startFakeHTTPServer() (shutdown func(), err error) {
 	})
 	mux.HandleFunc("/header", func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, r.Header.Get("X-Losp"))
+	})
+	mux.HandleFunc("/creatures.csv", func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, creaturesCSV)
 	})
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, "not-found")

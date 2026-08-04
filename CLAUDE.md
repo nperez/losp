@@ -375,9 +375,11 @@ three
 
 **Builtins:** IF, COMPARE, FOREACH, PROMPT, SAY, READ, PERSIST, LOAD, COUNT, APPEND, EXTRACT, SYSTEM, UPPER, LOWER, TRIM, SPLIT, GRAB, FIRST, LAST, SLICE, TRUE, FALSE, EMPTY, GENERATE, PARSE, NOW, HTTP (plus prelude wrappers HTTPGET, HTTPPOST, HTTPPUT, HTTPDELETE)
 
-**PARSE builtin:** `▶PARSE name ◆` → TRUE/FALSE, with the explanation in `PARSE_REASON`. It takes the NAME of an expression and validates its **stored body** (`internal/eval/builtin_parse.go`, `ValidateSyntax`) — never a text argument, because a text argument is scanned as losp and the surplus `◆` PARSE exists to catch would close PARSE's own argument early, leaving truncated-but-balanced text. It checks terminator balance per opener, unclosed operators, and missing names; it does not evaluate, store, or fire immediate operators. Reasons use ASCII operator names (DEF/IDEF/GET/IGET/RUN/IRUN/ARG/DEFER/END) because `▲PARSE_REASON` re-parses its own result — a reason containing `◆` or `▼` would be mangled or would fire. Structural errors cannot be expressed in a `.losp` conformance file (the file itself would be malformed), so `ValidateSyntax` has Go unit tests in `builtin_parse_test.go`; `tests/conformance/43_parse/` covers the builtin surface.
+**PARSE builtin:** `▶PARSE name ◆` → TRUE/FALSE, with the explanation in `PARSE_REASON`. It takes the NAME of an expression and validates its **stored body** (`internal/eval/builtin_parse.go`, `ValidateSyntax`) — never a text argument, because a text argument is scanned as losp and its terminators would close PARSE's own argument early, leaving truncated-but-balanced text. It checks unclosed operators and missing names; it does not evaluate, store, or fire immediate operators.
 
-**GENERATE retries unbalanced output.** `builtinGenerate` runs `ValidateSyntax` on the raw provider string and gives the model one corrected attempt (`generateAttempts`). This is the only place generated code is still intact: once the text is spliced or passed as an argument, a surplus `◆` closes the expression carrying it and truncates the code before anything can inspect it. The retry only fires on invalid output, so deterministic (temp 0) generations are untouched.
+**A terminator that closes nothing is tolerated, because the evaluator tolerates it.** `▼A first ◆ ◆` defines `A`, and a definition following the extra `◆` still lands. `ValidateSyntax` therefore passes over a terminator with nothing open rather than calling it an error — a validator stricter than the language rejects generated code that runs correctly, which is exactly how AUTHOR's install gate used to discard usable compose output five attempts in a row. An extra `◆` still ends an *enclosing* scope early wherever code is spliced or passed as an argument; that hazard is real, it just is not a structural error in the text itself. Reasons use ASCII operator names (DEF/IDEF/GET/IGET/RUN/IRUN/ARG/DEFER/END) because `▲PARSE_REASON` re-parses its own result — a reason containing `◆` or `▼` would be mangled or would fire. Structural errors cannot be expressed in a `.losp` conformance file (the file itself would be malformed), so `ValidateSyntax` has Go unit tests in `builtin_parse_test.go`; `tests/conformance/43_parse/` covers the builtin surface.
+
+**GENERATE repairs unbalanced output.** `builtinGenerate` runs `ValidateSyntax` on the raw provider string and, when an operator is left unclosed, asks again (`generateAttempts`). The second call is a **repair, not a re-generation**: each `Prompt` is its own context with no memory of the last one, so appending a complaint to the original request regenerates from the same starting point and, at temperature 0, reproduces the same broken code byte for byte. `generateRepairRequest` hands back the request *and the code itself* with the problem named, which does fix it. A repair that answers with an empty definition is discarded in favour of the earlier answer (`DefinesOnlyEmptyBody`): `▼Name ◆` is well formed, passes PARSE, installs, and then silently does nothing wherever it is called, so it is worse than code that fails honestly.
 
 **List builtins:** GRAB/FIRST/LAST/SLICE (`internal/eval/builtin_list.go`) index a list, whose items are found with `e.parseArgs` — a line of text is an item, each operator is an item. So `▶GRAB 1 ▲greet ◆` reaches into `greet`'s body. 0-based, negative counts from the end, SLICE is half-open and clamps. A blank item returns EMPTY; a failed lookup returns the sentinel `INVALID_INDEX` (index isn't a whole number) or `OUT_OF_RANGE` (no such position). `parseArgs` and SPLIT both keep interior blanks, so COUNT, FOREACH and GRAB agree on positions; leading/trailing empties vanish to the universal TrimSpace on store/retrieve.
 
@@ -401,6 +403,81 @@ How this works:
 4. `▶_run ◆` executes: the body is parsed, deferred operators fire, output is produced
 
 **Why `▶▶GENERATE` does NOT work:** The inner `▶GENERATE` returns a multi-line code block as text. The outer `▶` tries to use that entire text blob as an expression name to look up in the namespace — which doesn't exist. The `▶▶` (double execute) pattern only works when the inner expression returns a short name (like `▶▶IF` returning `_ThenBranch`).
+
+## Installing Generated Code at RUNTIME (the carrier pattern)
+
+The `▷GENERATE` splice above works only at **parse time**. To install generated code from *inside* a running expression — which AUTHOR must do — append the code text into a holder and then execute the holder:
+
+```losp
+▼_install □_c ▶APPEND _hold ▲_c ◆ ▶_hold ◆ ◆
+```
+
+The APPEND stores the code as the holder's body; executing the holder parses that body, and the `▼` definitions in it fire. This is the only runtime "eval" losp has.
+
+**A carrier holds code; executing it installs and returns EMPTY.** This is the trap. Given `▼hold ▼Inner □i ▲i ◆ ◆`:
+
+| Form | Result |
+|------|--------|
+| `▲hold` | the code **as text** (deferred operators are not fired by retrieve) |
+| `▶hold ◆` | defines `Inner`, returns **EMPTY** |
+
+**Consequence: an expression whose entire body is `▲Carrier` returns EMPTY when executed.** Evaluating the retrieve splices the carrier's body into the stream, where the `▼` fires. To return code as text from an executed expression, keep the retrieve in **argument position**, where it is not re-evaluated:
+
+```losp
+▼_done ▲_code ◆          # WRONG — ▶_done ◆ defines everything, returns EMPTY
+▼_done ▶TRIM ▲_code ◆ ◆  # CORRECT — TRIM's arg stays text
+```
+
+## Inspecting Generated Expressions
+
+**`▲Name` does NOT show `□` declarations.** Placeholders are stored separately from the body, so a retrieve of `▼Bracket □_b [▲_b] ◆` prints `[▲_b]`. Never conclude from a retrieve that generated code "forgot its placeholder" — **call it** instead:
+
+```losp
+▶SAY [BODY] ▲Wrap
+[CALL] ▶Wrap hello ◆
+◆
+```
+
+**`▽X ▷GENERATE ... ◆ ◆` stores EMPTY**, because the generated `▼` fires during the store (the carrier trap above). To capture generated code as text for inspection, keep it in argument position: `▶TRIM ▶REVISE ... ◆ ◆`.
+
+## Prompting the Small Model (AUTHOR / GENERATE / REVISE)
+
+**The model mirrors the shape of the description it is given.** Three separate bugs traced to this, all in AUTHOR, which is unusually exposed because its planner *generates prose that a later GENERATE consumes* — any drift in the plan becomes code:
+
+| Input shape | Output |
+|---|---|
+| Prose says `BRACKET` | code calls `▶BRACKET`, not the existing `Bracket` |
+| Expression named in ALL CAPS (`DOUBLE`) | model enters "builtin mode": emits `▲_arg space ▲_arg` instead of a literal space |
+| Described by action ("Main, which calls Transform") | emits a call `▶Main ...` instead of a definition `▼Main ...` |
+| Described as a definition ("named Main: it takes no arguments and returns…") | emits `▼Main ...` |
+
+So: name test expressions in **mixed case**, and phrase requests as *definitions* (name, arity, return value) rather than actions.
+
+**Keep prompts short and direct.** Flowery, multi-clause instructions perturb generation even when their content is correct — an added "open the definition with one argument slot for each argument it takes…" clause reintroduced the `▶BRACKET` casing bug without fixing anything. `Define the expression named X according to the plan, and only that expression. Remember to use placeholders for arguments.` is the right register. The casing direction lives once, in `_ax_ctxtext`.
+
+**PRIMER_COMPACT.md is fragile.** It is the system prompt for GENERATE *and* DESCRIBE. Edits to it have silently broken unrelated conformance tests (`multi_expression` flipped from `▼Main` to `▶Main`). Do not bisect it or treat it as tunable scratch space.
+
+## DESCRIBE Takes a Name, Not a Blob
+
+DESCRIBE works on **one named expression**. Handing it multi-definition code makes it describe the wrong one — `▶DESCRIBE ▶REVISE Wrap … ◆ ◆` receives both `▼Wrap` and `▼Wrap_INFO` and describes `Wrap_INFO`. Install first, then describe by name:
+
+```losp
+▼_hold ◆
+▶APPEND _hold ▶REVISE Wrap instruction ◆ ◆
+▶_hold ◆
+▶DESCRIBE Wrap ◆
+```
+
+## Prelude Terminator Imbalance Is Silent
+
+A prelude definition that opens more operators than it closes **swallows every definition after it** until the count rebalances. There is no error; unrelated expressions simply go missing at runtime, and the only symptom is that something far away returns EMPTY.
+
+```losp
+▼_ax_written ▶BRIEF ▶_ax_wrote ◆ ◆      # 3 openers, 2 terminators — ate the next 5 definitions
+▼_ax_written ▶BRIEF ▶_ax_wrote ◆ ◆ ◆    # correct
+```
+
+Two Go tests in `pkg/losp/prelude_test.go` guard this: `TestDefaultPreludeIsWellFormed` runs `ValidateSyntax` over the whole prelude, and `TestDefaultPreludeDefinesEveryExpression` checks every top-level `▼`/`▽` name is present after loading. **Run them after any prelude edit** — bisecting this by hand with `▶PARSE <name> ◆` is slow.
 
 ## Deliverables
 
@@ -467,19 +544,30 @@ Execution results (from `▶READ`, `▶PROMPT`, etc.) must flow through function
 
 The `▶READ` executes during argument parsing. The result is bound to the `input` placeholder. Then `▲input` retrieves it for multiple uses.
 
-For dynamic storage under a computed name:
+### Recording a Result Under a Computed Name: use APPEND
+
+**`▼` stores a body, not a value.** Deferred operators in the body are preserved so a definition can be recalled verbatim into context. So `▼▲name ▲value ◆` stores the literal body `▲value` — a pointer at one global slot, not the result:
 
 ```losp
-▼StoreValue □name □value ▼▲name ▲value ◆ ◆
-
-▶StoreValue
-    MyResult
-    ▶PROMPT system user ◆
-◆
-▶MyResult ◆    # Execute to get the stored value
+# WRONG — every name ends up pointing at the same global
+▼StoreValue □sf_name □sf_value ▼▲sf_name ▲sf_value ◆ ◆
+▶StoreValue Sunfish ... ◆
+▶StoreValue Mole ... ◆
+▶Sunfish ◆     # → the Mole value; sf_value was rebound
+▲Sunfish       # → "▲sf_value"
 ```
 
-Use `▶MyResult ◆` (execute) to resolve the stored `▲value`, not `▲MyResult` (retrieve).
+Placeholders are globals, so each call rebinds `sf_value` and all the stored names collapse to the last value. Worse, anything reading the stored value directly — `ADD`/`CORPUS`, `PERSIST`, a `SEARCH`/`SIMILAR` index, `DESCRIBE` — sees the literal `▲sf_value`.
+
+**`▶APPEND ▲name ▲value ◆` evaluates the content and stores the text.** It takes the name as an expression and creates it if absent:
+
+```losp
+▼StoreValue □sv_name □sv_value ▶APPEND ▲sv_name ▲sv_value ◆ ◆
+▶StoreValue MyResult ▶PROMPT system user ◆ ◆
+▲MyResult      # → the response text
+```
+
+Use `▼` to define behaviour; use `APPEND` to record a value. Guarded by `tests/conformance/14_dynamic/deferred_store_keeps_reference.losp`, `append_stores_evaluated_result.losp`, and `append_value_is_readable_by_builtins.losp`.
 
 ## Database Schema
 

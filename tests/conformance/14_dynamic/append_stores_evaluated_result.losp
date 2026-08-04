@@ -1,0 +1,19 @@
+# EXPECTED: sentence one
+# EXPECTED: sentence two
+# EXPECTED: sentence three
+▼StoreVal □sv_name □sv_value ▶APPEND ▲sv_name ▲sv_value ◆ ◆
+▶StoreVal
+Sunfish
+sentence one
+◆
+▶StoreVal
+Ibex
+sentence two
+◆
+▶StoreVal
+Mole
+sentence three
+◆
+▶SAY ▲Sunfish ◆
+▶SAY ▲Ibex ◆
+▶SAY ▲Mole ◆

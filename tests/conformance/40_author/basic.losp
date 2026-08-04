@@ -13,8 +13,26 @@ ACTUAL DESCRIPTION:
 
 Does the ACTUAL DESCRIPTION satisfy the CRITERION? Reason in one or two sentences, then on the final line write exactly VERDICT: PASS or VERDICT: FAIL.
 ◆
-▼JUDGE □_judge_crit □_judge_act ▶UPPER ▶TRIM ▶EXTRACT VERDICT ▶PROMPT ▶_judge_req ◆ ◆ ◆ ◆ ◆ ◆
+▼_judge_ok ◆
+▼_judge_why ▶SAY [JUDGE] ▲_judge_raw ◆ ◆
+▼JUDGE □_judge_crit □_judge_act
+    ▼_judge_raw ◆
+    ▶APPEND _judge_raw ▶PROMPT ▶_judge_req ◆ ◆ ◆
+    ▼_judge_verdict ◆
+    ▶APPEND _judge_verdict ▶UPPER ▶TRIM ▶EXTRACT VERDICT ▲_judge_raw ◆ ◆ ◆ ◆
+    ▶▶IF ▶COMPARE ▲_judge_verdict PASS ◆
+_judge_ok
+_judge_why
+    ◆ ◆
+    ▲_judge_verdict
+◆
+
+▽_authored ▷AUTHOR
+Double
+Take one argument and return two copies of it in a row, with a single blank character between the copies.
+◆ ◆
 
 ▶SAY ▶JUDGE
 the code produces or returns its input repeated twice, for example turning hi into hi hi
-▶DESCRIBE ▶AUTHOR Write a losp expression named DOUBLE that takes one argument and returns that argument, a space, then the same argument again. Define only DOUBLE and its _INFO. ◆ ◆ ◆ ◆ ◆
+▶DESCRIBE Double ◆
+◆ ◆

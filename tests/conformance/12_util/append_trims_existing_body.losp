@@ -1,0 +1,10 @@
+# EXPECTED: first
+# EXPECTED: second
+# EXPECTED: 2
+▼MyList first ◆
+▶APPEND
+MyList
+second
+◆
+▶SAY ▲MyList ◆
+▶SAY ▶COUNT ▲MyList ◆ ◆

@@ -3,7 +3,8 @@
 TEMPERATURE
 0
 ◆
+▼_run ▷GENERATE Define two losp expressions. The first is named Transform: it takes one argument and returns that argument uppercased. The second is named Main: it takes no arguments and returns the result of Transform applied to the text hello. ◆ ◆
 ▼__startup__
-    ▷GENERATE Write two losp expressions: Transform, which takes one argument and returns it uppercased, and Main, which calls Transform with the text hello. ◆
+    ▶_run ◆
     ▶SAY ▶Main ◆ ◆
 ◆

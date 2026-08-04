@@ -13,8 +13,20 @@ ACTUAL DESCRIPTION:
 
 Does the ACTUAL DESCRIPTION satisfy the CRITERION? Reason in one or two sentences, then on the final line write exactly VERDICT: PASS or VERDICT: FAIL.
 ◆
-▼JUDGE □_judge_crit □_judge_act ▶UPPER ▶TRIM ▶EXTRACT VERDICT ▶PROMPT ▶_judge_req ◆ ◆ ◆ ◆ ◆ ◆
+▼_judge_ok ◆
+▼_judge_why ▶SAY [JUDGE] ▲_judge_raw ◆ ◆
+▼JUDGE □_judge_crit □_judge_act
+    ▼_judge_raw ◆
+    ▶APPEND _judge_raw ▶PROMPT ▶_judge_req ◆ ◆ ◆
+    ▼_judge_verdict ◆
+    ▶APPEND _judge_verdict ▶UPPER ▶TRIM ▶EXTRACT VERDICT ▲_judge_raw ◆ ◆ ◆ ◆
+    ▶▶IF ▶COMPARE ▲_judge_verdict PASS ◆
+_judge_ok
+_judge_why
+    ◆ ◆
+    ▲_judge_verdict
+◆
 
 ▶SAY ▶JUDGE
-the description says the code uses DESCRIBE to produce a plain-language description of losp code
+the description says the code uses DESCRIBE to produce a plain-language description of a named losp expression
 ▶DESCRIBE ▶GENERATE Write a losp expression named Explain that takes one argument and uses the DESCRIBE builtin to return a plain-language description of that argument. ◆ ◆ ◆ ◆

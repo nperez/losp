@@ -6,6 +6,9 @@ package losp
 import (
 	"strings"
 	"testing"
+	"unicode"
+
+	"nickandperla.net/losp/internal/eval"
 )
 
 func TestPreludeStartupExists(t *testing.T) {
@@ -74,4 +77,47 @@ func TestDatabasePreludeOverride(t *testing.T) {
 	// Note: In this test, we can't easily verify the override works on a fresh
 	// runtime without keeping the same store. This is more of an integration test
 	// that would require a more complex setup.
+}
+
+// A definition that opens more operators than it closes silently swallows every
+// definition after it, and the only symptom is that unrelated expressions go
+// missing at runtime. Checking the whole prelude structurally catches that at
+// build time instead.
+func TestDefaultPreludeIsWellFormed(t *testing.T) {
+	if problem := eval.ValidateSyntax(DefaultPrelude); problem != "" {
+		t.Fatalf("prelude is malformed: %s", problem)
+	}
+}
+
+// Every expression the prelude defines must survive loading. If one is missing,
+// an earlier definition ate it.
+func TestDefaultPreludeDefinesEveryExpression(t *testing.T) {
+	r := New(WithMemoryStore())
+	defer r.Close()
+
+	for _, name := range preludeDefinedNames(DefaultPrelude) {
+		if !r.evaluator.Namespace().Has(name) {
+			t.Errorf("prelude defines %s but it is not in the namespace after loading", name)
+		}
+	}
+}
+
+// preludeDefinedNames collects the name of every top-level ▼ and ▽ definition.
+func preludeDefinedNames(src string) []string {
+	var names []string
+	for line := range strings.SplitSeq(src, "\n") {
+		runes := []rune(line)
+		if len(runes) == 0 || (runes[0] != '▼' && runes[0] != '▽') {
+			continue
+		}
+		i := 1
+		start := i
+		for i < len(runes) && (unicode.IsLetter(runes[i]) || unicode.IsDigit(runes[i]) || runes[i] == '_') {
+			i++
+		}
+		if i > start {
+			names = append(names, string(runes[start:i]))
+		}
+	}
+	return names
 }

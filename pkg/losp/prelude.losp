@@ -4,85 +4,375 @@
 ▼HTTPPUT □_httpput_uri □_httpput_data ▶HTTP PUT ▲_httpput_uri ▲EMPTY▲_httpput_data ◆ ◆
 ▼HTTPDELETE □_httpdelete_uri ▶HTTP DELETE ▲_httpdelete_uri ◆ ◆
 
-▽_au_infosuf _INFO ◆
-▼_au_cat □_au_ca □_au_cb ▲_au_ca▲_au_cb ◆
+▽_ctx_infosuf _INFO ◆
+▼_ctx_cat □_ctx_ca □_ctx_cb ▲_ctx_ca▲_ctx_cb ◆
 
-▼_au_request
-The following losp expressions already exist in the namespace. You may reference them by name:
+▼_ctx_pick
+You are preparing the context for a later step. You are not doing that later step yourself.
+
+In the later step, someone will be asked to write a small program in a language called losp. A losp program is built out of named expressions. An expression has a name and a body, it may take arguments, and any expression can use another one simply by naming it. Reusing an expression that already exists is always better than writing a new one that does the same thing, so the later step needs to be told which ones exist.
+
+Here are the expressions that already exist. Each line is one expression: its name, then a colon, then a plain-language summary of what it does and what it takes as input.
 ▶SURVEY ◆
 
-Write losp code for this request:
-▲_au_prompt
+Here is the request that the later step will have to satisfy:
+▲_ctx_prompt
 
-Define exactly one expression. Output only that one definition.
+Your only job is to decide which of the existing expressions above the later step should be told about. Choose the ones this request could plausibly build on or reuse. Leave out everything else, so the later step is not distracted by expressions that have nothing to do with the request.
+
+Return the list of expressions necessary for this request. Format your response as EXPRS: expr1|expr2|expr3, or EXPRS: NONE if there are none. Names are case-sensitive, so copy each one exactly. Write nothing else.
 ◆
 
-▼_au_inforeq
-These losp expressions already exist in the namespace:
-▶SURVEY ◆
+▼_ctx_none ▲EMPTY ◆
+▼_ctx_noop ◆
 
-A new losp expression was just written for this request:
-▲_au_prompt
-
-Here is the new code:
-▲_au_code
-
-Here is what the new code does:
-▲_au_desc
-
-Reply with exactly two lines and nothing else:
-NAME: the name of the expression the new code defines
-INFO: one plain-language line saying what that expression does, what its INPUT is, and how it relates to the existing expressions above if it builds on any of them
+▼_ctx_ask
+    ▶APPEND
+_ctx_tries
+.
+◆
+    ▶_ctx_check ▶TRIM ▶EXTRACT EXPRS ▶PROMPT
+You are given a list of things and a request. You pick out the entries that matter and answer in the single line you are asked for, with nothing else.
+▶_ctx_pick ◆ ◆ ◆ ◆ ◆
 ◆
 
-▼_au_nobake ◆
-▼_au_infotext ▶▶IF ▶COMPARE ▲_au_info ▲EMPTY ◆
-_au_desc
-_au_info
-◆ ◆ ◆
-▼_au_store
-    ▼▶_au_cat ▲_au_name ▲_au_infosuf ◆ ◆
-    ▶APPEND ▶_au_cat ▲_au_name ▲_au_infosuf ◆ ▶_au_infotext ◆ ◆
-◆
-▼_au_bake
-    □_au_name □_au_info
-    ▶▶IF ▶COMPARE ▲_au_name ▲EMPTY ◆
-_au_nobake
-_au_store
+▼_ctx_check
+    □_ctx_raw
+    ▶▶IF ▶COMPARE ▲_ctx_raw ▲EMPTY ◆
+_ctx_again
+_ctx_decide
     ◆ ◆
 ◆
-▼_au_split
-    □_au_reply
-    ▶_au_bake ▶TRIM ▶EXTRACT NAME ▲_au_reply ◆ ◆ ▶TRIM ▶EXTRACT INFO ▲_au_reply ◆ ◆ ◆
-◆
-▼_au_doc
-    □_au_desc
-    ▶_au_split ▶PROMPT
-You document losp expressions in one terse line.
-▶_au_inforeq ◆ ◆ ◆
-▲EMPTY
-◆
-▼_au_finish
-    □_au_code
-    ▶_au_doc ▶DESCRIBE ▲_au_code ◆ ◆
-▲_au_code
+
+▼_ctx_decide
+    ▶▶IF ▶COMPARE ▲_ctx_raw NONE ◆
+_ctx_none
+_ctx_keep
+    ◆ ◆
 ◆
 
-▼AUTHOR □_au_prompt ▶TRIM ▶_au_finish ▶GENERATE ▶_au_request ◆ ◆ ◆ ◆ ◆
+▼_ctx_keepone
+    □_ctx_one
+    ▶▶IF ▶PARSE ▲_ctx_one ◆
+_ctx_keepadd
+_ctx_noop
+    ◆ ◆
+◆
+▼_ctx_keepadd ▶APPEND _ctx_kept ▲_ctx_one ◆ ◆
+
+▼_ctx_keep
+    ▼_ctx_sep ◆
+    ▶APPEND _ctx_sep ▶SYSTEM SPLIT_CHAR ◆ ◆
+    ▶SYSTEM
+SPLIT_CHAR
+|
+◆
+    ▼_ctx_kept ◆
+    ▶FOREACH ▶SPLIT ▲_ctx_raw ◆ _ctx_keepone ◆
+    ▶SYSTEM
+SPLIT_CHAR
+▲_ctx_sep
+◆
+    ▶▶IF ▶COMPARE ▶_ctx_kept ◆ ▲EMPTY ◆
+_ctx_again
+_ctx_kept
+    ◆ ◆
+◆
+
+▼_ctx_again
+    ▶▶IF ▶COMPARE ▶COUNT ▶_ctx_tries ◆ ◆ ▶SYSTEM AUTHOR_ATTEMPTS ◆ ◆
+_ctx_none
+_ctx_ask
+    ◆ ◆
+◆
+
+▼RELEVANT
+    □_ctx_prompt
+    ▼_ctx_tries ◆
+    ▶_ctx_ask ◆
+◆
+
+▼_ctx_line
+    □_ctx_name
+▲_ctx_name: ▶▶_ctx_cat ▲_ctx_name ▲_ctx_infosuf ◆ ◆
+◆
+
+▼BRIEF □_ctx_names ▶FOREACH ▲_ctx_names _ctx_line ◆ ◆
+
+▼_ax_planreq
+You are planning a small program before anyone writes it.
+
+The program will be written in a language called losp. A losp program is built out of named expressions. An expression has a name and a body, it may take arguments, and any expression can use another one simply by naming it. Several small expressions that each do one obvious thing are far easier to write correctly than one large expression that does everything at once.
+
+These expressions already exist and can be used by name. Write each name exactly as it appears here, keeping the same capitalisation:
+▲_ax_brief
+
+Here is what the finished program has to do:
+▶_ax_req ◆
+
+The finished program must end up in one expression named ▶_ax_name ◆, which is the expression that will actually be run.
+
+What passes between expressions is always text, and a plan is clear when it says what kind of text. There are only these kinds:
+
+a piece of text, which is what every expression takes and gives back;
+a list, which is simply a piece of text of several lines, each line one item of it;
+a line, which is one item of a list;
+the fields of a line, which are its separated parts;
+a name, which is where a value is kept so that it can be read back later.
+
+Three facts about these settle the shape of any plan.
+
+An expression takes one piece of text and gives one piece of text back. An expression whose real point is an effect still gives something back, so say what that is.
+
+Work done to one item of a list has to be an expression with a name of its own, because naming it is the only way a list can be walked. So if this job does the same thing to every item of anything, it needs at least one helper beside ▶_ax_name ◆. If it does not, and it is small, ▶_ax_name ◆ may do the whole job alone.
+
+A value made by one step and wanted by the next is described where it is used, as the result of the step that makes it. A value wanted in more than one place is kept under a name of its own, unique in the program to avoid clashes.
+
+You are planning ▶_ax_name ◆. Write a block for ▶_ax_name ◆ itself, in this shape and nothing else:
+
+EXPRESSION: ▶_ax_name ◆
+TAKES: its one argument and what kind of text that is, or NOTHING
+RETURNS: what the request says ▶_ax_name ◆ gives back, which is always something, even where the point of it is an effect
+DOES: short plain sentences, one thing to each, in the order things happen, covering everything the request asks for and naming any helper it hands work to
+
+Then a block below it, in that same shape, for each helper ▶_ax_name ◆ needs, so that every expression named in the plan has a block of its own. A name that only holds a value needs no block of its own.
+
+Here is such a plan, written for an unrelated request, to show the shape. That request was: named DutyList, it takes nothing and returns a line for each person on the rota at http://host/rota.txt saying whether they are on duty today.
+
+EXPRESSION: DutyList
+TAKES: NOTHING
+RETURNS: one line for every person on the rota
+DOES: it fetches the text at http://host/rota.txt as a list of lines, sets the heading line aside, and hands each of the remaining lines to RotaLine.
+
+EXPRESSION: RotaLine
+TAKES: one line of the rota, whose fields are a person's name and the day they work
+RETURNS: one line saying whether that person is on duty
+DOES: it gives back the first field of the line followed by on duty when the second field of the line is the same as today's date, and the first field of the line followed by off duty when it is not.
+
+Give each expression one argument at most. Prefer simple expressions that compose: keep what each one does simple, and let named expressions hold the values that pass between them. Write no code.
+◆
+
+▼_ax_namereq
+Here is a plan for a small program:
+▲_ax_plan
+
+The plan is a series of blocks, each one beginning with EXPRESSION: followed by a name. One of those names is ▶_ax_name ◆, the main expression; the rest are helpers.
+
+List the names of the helper expressions only. Do not include the main expression ▶_ax_name ◆. Format your response as EXPRS: name1|name2|name3, or EXPRS: NONE if the plan needs no helpers at all. Copy each name exactly as the plan writes it. Write nothing else.
+◆
+
+▼_ax_keepadd ▶APPEND _ax_kept ▲_ax_one ◆ ◆
+▼_ax_keepnew2
+    ▶▶IF ▶PARSE ▲_ax_one ◆
+_ctx_noop
+_ax_keepadd
+    ◆ ◆
+◆
+▼_ax_keepnew
+    □_ax_one
+    ▶▶IF ▶COMPARE ▲_ax_one ▶_ax_name ◆ ◆
+_ctx_noop
+_ax_keepnew2
+    ◆ ◆
+◆
+▼_ax_names3 ▶FOREACH ▶SPLIT ▲_ax_raw ◆ _ax_keepnew ◆ ◆
+▼_ax_names2
+    □_ax_raw
+    ▶▶IF ▶COMPARE ▲_ax_raw NONE ◆
+_ctx_noop
+_ax_names3
+    ◆ ◆
+◆
+
+▼_ax_namelist
+    ▼_ax_sep ◆
+    ▶APPEND _ax_sep ▶SYSTEM SPLIT_CHAR ◆ ◆
+    ▶SYSTEM
+SPLIT_CHAR
+|
+◆
+    ▼_ax_kept ◆
+    ▶_ax_names2 ▶TRIM ▶EXTRACT EXPRS ▶PROMPT
+You read a plan and list names out of it. You answer in the single line you are asked for, with nothing else.
+▶_ax_namereq ◆ ◆ ◆ ◆ ◆
+    ▶SYSTEM
+SPLIT_CHAR
+▲_ax_sep
+◆
+    ▶_ax_kept ◆
+◆
+
+▼_ax_written ▶BRIEF ▶_ax_wrote ◆ ◆ ◆
+
+▼_ax_ctxall ▲_ax_brief
+▶_ax_written ◆ ◆
+▼_ax_ctxtext
+These expressions already exist and may be used. They are not builtins. Their names use mixed case and must be copied letter for letter, leaving lower case letters in lower case:
+▶_ax_ctxall ◆
+
+Use these rather than writing again what they already do. Each one is executed by its name, with its arguments in the order its description lists them.
+◆
+▼_ax_ctxblock
+    ▶▶IF ▶COMPARE ▶TRIM ▶_ax_ctxall ◆ ◆ ▲EMPTY ◆
+_ctx_noop
+_ax_ctxtext
+    ◆ ◆
+◆
+
+▼_ax_chunkreq
+Here is the plan for a small program. Each block names one expression, what it takes, what it gives back, and what it does:
+▲_ax_plan
+▶_ax_ctxblock ◆
+
+Define the expression named ▲_ac_name according to its block in the plan, and only that expression. Follow that block through in order, so it does what the block describes and gives back what the block says. Remember to use placeholders for arguments.
+◆
+
+▼_ax_composereq
+Here is the plan for a small program. Each block names one expression, what it takes, what it gives back, and what it does:
+▲_ax_plan
+▶_ax_ctxblock ◆
+
+Here is what the finished program has to do:
+▶_ax_req ◆
+
+Define the expression named ▶_ax_name ◆ according to its own block in the plan, and only that expression. It does everything that block says it does, in that order. Executing it gives back the finished result. Remember to use placeholders for arguments.
+◆
+
+▼_ax_record
+    ▶APPEND _ax_code ▲_ax_holder ◆
+    ▶APPEND _ax_wrote ▲_ai_name ◆
+    ▼▶_ctx_cat ▲_ai_name ▲_ctx_infosuf ◆ ◆
+    ▶APPEND ▶_ctx_cat ▲_ai_name ▲_ctx_infosuf ◆ ▶SLICE 1 ▲EMPTY ▶DESCRIBE ▲_ai_name ◆ ◆ ◆
+◆
+
+▼_ax_keep
+    ▶_ax_holder ◆
+    ▶▶IF ▶PARSE ▲_ai_name ◆
+_ax_record
+_ctx_noop
+    ◆ ◆
+◆
+
+▼_ax_install
+    □_ai_name
+    ▶▶IF ▶PARSE _ax_holder ◆
+_ax_keep
+_ctx_noop
+    ◆ ◆
+◆
+
+▼_ax_write
+    ▼_ax_holder ◆
+    ▶APPEND _ax_holder ▶GENERATE ▶_ax_chunkreq ◆ ◆ ◆
+    ▶_ax_install ▲_ac_name ◆
+◆
+▼_ax_chunk
+    □_ac_name
+    ▶▶IF ▶PARSE ▲_ac_name ◆
+_ctx_noop
+_ax_write
+    ◆ ◆
+◆
+
+▼_ax_composewrite
+    ▼_ax_holder ◆
+    ▶APPEND _ax_holder ▶GENERATE ▶_ax_composereq ◆ ◆ ◆
+    ▶_ax_install ▶_ax_name ◆ ◆
+◆
+▼_ax_compose
+    ▶▶IF ▶PARSE ▶_ax_name ◆ ◆
+_ctx_noop
+_ax_composewrite
+    ◆ ◆
+◆
+
+▼_ax_wipeone
+    □_w_one
+    ▼▲_w_one ◆
+    ▼▶_ctx_cat ▲_w_one ▲_ctx_infosuf ◆◆
+◆
+
+▼_ax_wipe
+    ▶FOREACH ▶_ax_wrote ◆ _ax_wipeone ◆
+    ▼_ax_wrote ◆
+    ▼_ax_code ◆
+◆
+
+▼_ax_reasontext
+could not write a working expression named ▶_ax_name ◆ in ▶COUNT ▶_ax_tries ◆ ◆ attempts, and the last problem was: ▲PARSE_REASON
+◆
+▼_ax_failed
+    ▼AUTHOR_REASON ◆
+    ▶APPEND AUTHOR_REASON ▶_ax_reasontext ◆ ◆
+AUTHOR_FAILED
+◆
+▼_ax_done ▶TRIM ▲_ax_code ◆ ◆
+
+▼_ax_again
+    ▶▶IF ▶COMPARE ▶COUNT ▶_ax_tries ◆ ◆ ▶SYSTEM AUTHOR_ATTEMPTS ◆ ◆
+_ax_failed
+_ax_attempt
+    ◆ ◆
+◆
+
+▼_ax_finish
+    ▶_ax_compose ◆
+    ▶▶IF ▶PARSE ▶_ax_name ◆ ◆
+_ax_done
+_ax_again
+    ◆ ◆
+◆
+
+▼_ax_attempt
+    ▶APPEND
+_ax_tries
+.
+◆
+    ▶_ax_wipe ◆
+    ▼_ax_scratch ◆
+    ▶APPEND _ax_scratch ▶FOREACH ▶_ax_names ◆ _ax_chunk ◆ ◆
+    ▶▶IF ▶COMPARE ▶COUNT ▶_ax_wrote ◆ ◆ ▶COUNT ▶_ax_names ◆ ◆ ◆
+_ax_finish
+_ax_again
+    ◆ ◆
+◆
+
+▼_ax_setup
+    ▼_ax_brief ◆
+    ▶APPEND _ax_brief ▶BRIEF ▶RELEVANT ▶_ax_req ◆ ◆ ◆ ◆
+    ▼_ax_plan ◆
+    ▶APPEND _ax_plan ▶PROMPT
+You break a job into a few small steps and explain them in plain language.
+▶_ax_planreq ◆ ◆ ◆
+    ▼_ax_names ◆
+    ▶APPEND _ax_names ▶_ax_namelist ◆ ◆
+◆
+
+▼AUTHOR
+    □_AX_name □_AX_req
+    ▼_ax_name ◆ ▶APPEND _ax_name ▲_AX_name ◆
+    ▼_ax_req ◆ ▶APPEND _ax_req ▲_AX_req ◆
+    ▼_ax_code ◆
+    ▼_ax_wrote ◆
+    ▼_ax_tries ◆
+    ▼AUTHOR_REASON ◆
+    ▶_ax_setup ◆
+    ▶_ax_attempt ◆
+◆
 
 ▼_rv_request
-Here is an existing losp expression:
-▲_rv_code
+Here is an existing losp expression named ▲_rv_name. This is its body:
+▲▲_rv_name
 
 In plain language, it currently does the following:
-▶DESCRIBE ▲_rv_code ◆
+▶SLICE 1 ▲EMPTY ▶DESCRIBE ▲_rv_name ◆ ◆
 
 Revise the expression according to this instruction:
 ▲_rv_prompt
 
-Output the complete revised losp code. Also update or add the companion documentation expression whose name is the expression's own name followed by _INFO, describing the revised behavior.
+Output the complete revised losp code, defining it under the same name ▲_rv_name, so that it takes the same arguments and returns the revised result. Also update or add the companion documentation expression whose name is that name followed by _INFO, describing the revised behavior.
 ◆
-▼REVISE □_rv_code □_rv_prompt ▶GENERATE ▶_rv_request ◆ ◆ ◆
+▼REVISE □_rv_name □_rv_prompt ▶GENERATE ▶_rv_request ◆ ◆ ◆
 
 ▽_ag_pfx Agent_ ◆
 

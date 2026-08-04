@@ -1,0 +1,21 @@
+# EXPECTED: TRUE
+# EXPECTED: Ray
+▼StoreRef □sf_name □sf_value ▼▲sf_name ▲sf_value ◆ ◆
+▶StoreRef
+Sunfish
+a fish that drifts in the ocean
+◆
+▽c1 ▶CORPUS refs ◆ ◆
+▶ADD ▲c1 Sunfish ◆
+▶INDEX ▲c1 ◆
+▶SAY ▶COMPARE ▶SEARCH ▲c1 ocean ◆ ▲EMPTY ◆ ◆
+
+▼StoreVal □sv_name □sv_value ▶APPEND ▲sv_name ▲sv_value ◆ ◆
+▶StoreVal
+Ray
+a fish that drifts in the ocean
+◆
+▽c2 ▶CORPUS vals ◆ ◆
+▶ADD ▲c2 Ray ◆
+▶INDEX ▲c2 ◆
+▶SAY ▶SEARCH ▲c2 ocean ◆ ◆

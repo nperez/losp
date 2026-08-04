@@ -103,10 +103,14 @@ func ValidateSyntax(src string) string {
 			i++
 
 		case token.RuneTerminator:
-			if len(stack) == 0 {
-				return fmt.Sprintf("surplus END terminator on line %d - it closes nothing", line)
+			// A terminator with nothing open closes nothing, and the evaluator
+			// simply passes over it: ▼A first ◆ ◆ defines A, and a definition
+			// that follows one still lands. Reporting it here would make PARSE
+			// stricter than the language it checks, and would reject generated
+			// code that runs correctly.
+			if len(stack) > 0 {
+				stack = stack[:len(stack)-1]
 			}
-			stack = stack[:len(stack)-1]
 			i++
 
 		default:
@@ -119,11 +123,81 @@ func ValidateSyntax(src string) string {
 		if len(stack) == 1 {
 			return fmt.Sprintf("%s on line %d is missing its END terminator", opName(last.op), last.line)
 		}
-		return fmt.Sprintf("%d operators are missing their END terminator, the last is %s on line %d",
-			len(stack), opName(last.op), last.line)
+		// Naming only the last one leaves the rest to be hunted for, and an
+		// answer that closes one operator comes back just as unfinished. Each
+		// unclosed operator is listed, innermost first, so every one of them can
+		// be given its terminator in a single pass.
+		parts := make([]string, 0, len(stack))
+		for i := len(stack) - 1; i >= 0; i-- {
+			parts = append(parts, fmt.Sprintf("%s on line %d", opName(stack[i].op), stack[i].line))
+		}
+		return fmt.Sprintf("%d operators are missing their END terminator: %s",
+			len(stack), strings.Join(parts, ", "))
 	}
 
 	return ""
+}
+
+// DefinesOnlyEmptyBody reports whether the source is a single definition with
+// nothing in it, as in ▼Name ◆. Such an answer is structurally valid and passes
+// PARSE, so nothing downstream can tell it apart from working code - it simply
+// does nothing wherever it is called. GENERATE uses this to recognise a repair
+// that reached validity by discarding the code it was asked to correct.
+func DefinesOnlyEmptyBody(src string) bool {
+	runes := []rune(strings.TrimSpace(src))
+	i := 0
+	for i < len(runes) && unicode.IsSpace(runes[i]) {
+		i++
+	}
+	if i >= len(runes) || (runes[i] != token.RuneStore && runes[i] != token.RuneImmStore) {
+		return false
+	}
+	i++
+	for i < len(runes) && unicode.IsSpace(runes[i]) {
+		i++
+	}
+	start := i
+	for i < len(runes) && isNameRune(runes[i]) {
+		i++
+	}
+	if i == start {
+		return false
+	}
+	for i < len(runes) && unicode.IsSpace(runes[i]) {
+		i++
+	}
+	// Everything the definition was asked to hold would sit here.
+	return i < len(runes) && runes[i] == token.RuneTerminator && i == len(runes)-1
+}
+
+// SentinelAnonymous is the name reported for code that defines no expression,
+// or that names one dynamically. It keeps DESCRIBE's output shape unconditional.
+const SentinelAnonymous = "ANONYMOUS"
+
+// FirstDefinedName returns the name of the first expression the source defines,
+// or ANONYMOUS if it defines none. A dynamically named definition (▼▶Slot ◆ ◆)
+// is ANONYMOUS too: its name is not knowable without evaluating, and nothing
+// here evaluates. Like ValidateSyntax, this only walks the text.
+func FirstDefinedName(src string) string {
+	runes := []rune(src)
+	for i, r := range runes {
+		if r != token.RuneStore && r != token.RuneImmStore {
+			continue
+		}
+		j := i + 1
+		for j < len(runes) && unicode.IsSpace(runes[j]) {
+			j++
+		}
+		start := j
+		for j < len(runes) && isNameRune(runes[j]) {
+			j++
+		}
+		if j > start {
+			return string(runes[start:j])
+		}
+		return SentinelAnonymous
+	}
+	return SentinelAnonymous
 }
 
 // opName gives an operator its ASCII shorthand name. Reasons are read back with
@@ -149,6 +223,22 @@ func opName(r rune) string {
 		return "DEFER"
 	}
 	return "operator"
+}
+
+// NamedTarget returns the text as an expression name, or the empty string if the
+// text is not a single name. It is applied to an argument that has already been
+// evaluated: a bare word is its own name, and a retrieval is expected to yield
+// one. Anything else is code rather than a reference to one expression.
+func NamedTarget(text string) string {
+	runes := []rune(strings.TrimSpace(text))
+	i := 0
+	for i < len(runes) && isNameRune(runes[i]) {
+		i++
+	}
+	if i == 0 || i != len(runes) {
+		return ""
+	}
+	return string(runes[:i])
 }
 
 // isNameRune reports whether r may appear in an expression name.

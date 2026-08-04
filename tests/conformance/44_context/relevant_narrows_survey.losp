@@ -1,0 +1,14 @@
+# EXPECTED: Bracket: wraps its input in square brackets; INPUT is the text to wrap
+# EXPECTED: Shout: returns its input in upper case; INPUT is the text
+▶SYSTEM
+TEMPERATURE
+0
+◆
+▼Bracket □_b [▲_b] ◆
+▼Bracket_INFO wraps its input in square brackets; INPUT is the text to wrap ◆
+▼Shout □_s ▶UPPER ▲_s ◆ ◆
+▼Shout_INFO returns its input in upper case; INPUT is the text ◆
+▼Total □_t ▶ADD ▲_t ◆ ◆
+▼Total_INFO adds a list of numbers and returns the sum; INPUT is the list of numbers ◆
+
+▶SAY ▶BRIEF ▶RELEVANT Surround a word in square brackets and convert it to upper case ◆ ◆ ◆

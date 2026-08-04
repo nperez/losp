@@ -320,9 +320,15 @@ func builtinAppend(e *Evaluator, argsRaw string) (expr.Expr, error) {
 	// Get existing value (auto-load from DB in PersistAlways mode)
 	e.autoLoad(name)
 	existing := e.namespace.Get(name)
+	// Trim the stored body before joining. Arguments arrive trimmed from
+	// parseArgs, so an untrimmed existing value would make the accumulated
+	// list inconsistent with itself: a definition written as
+	// `▼MyList first ◆` keeps the space before its terminator, and appending
+	// to it would yield "first \nsecond".
+	existingBody := strings.TrimSpace(existing.String())
 	var newValue string
-	if !existing.IsEmpty() {
-		newValue = existing.String() + "\n" + content
+	if existingBody != "" {
+		newValue = existingBody + "\n" + content
 	} else {
 		newValue = content
 	}
@@ -686,6 +692,13 @@ func builtinSystem(e *Evaluator, argsRaw string) (expr.Expr, error) {
 		}
 		return expr.Stored{Body: e.GetSetting("SPLIT_CHAR", ",")}, nil
 
+	case "AUTHOR_ATTEMPTS":
+		if value != "" {
+			e.SetSetting("AUTHOR_ATTEMPTS", value)
+			return expr.Empty{}, nil
+		}
+		return expr.Stored{Body: e.GetSetting("AUTHOR_ATTEMPTS", "5")}, nil
+
 	default:
 		return expr.Stored{Body: "UNKNOWN_SETTING"}, nil
 	}
@@ -814,13 +827,21 @@ func builtinGenerate(e *Evaluator, argsRaw string) (expr.Expr, error) {
 	for attempt := range generateAttempts {
 		ask := user
 		if attempt > 0 {
-			ask = user + "\n\n" + generateRetryNote(response)
+			ask = generateRepairRequest(request, response, ValidateSyntax(response))
 		}
 		raw, err := e.provider.Prompt(system, ask)
 		if err != nil {
 			return nil, err
 		}
-		response = strings.TrimSpace(raw)
+		next := strings.TrimSpace(raw)
+
+		// A later answer that defines nothing has reached validity by discarding
+		// the code, so the earlier one is kept: it fails honestly, and whoever
+		// asked can ask again.
+		if attempt > 0 && DefinesOnlyEmptyBody(next) && !DefinesOnlyEmptyBody(response) {
+			break
+		}
+		response = next
 		if ValidateSyntax(response) == "" {
 			break
 		}
@@ -833,12 +854,19 @@ func builtinGenerate(e *Evaluator, argsRaw string) (expr.Expr, error) {
 // accounts for all of its terminators.
 const generateAttempts = 2
 
-// generateRetryNote tells the model what was structurally wrong with its last
-// answer, in the ASCII shorthand the primer already teaches.
-func generateRetryNote(previous string) string {
-	return "That answer was not valid losp: " + ValidateSyntax(previous) +
-		". Count one END terminator for each DEF, IDEF, RUN and IRUN you write, " +
-		"and none for GET, IGET or ARG. Answer again with every terminator accounted for."
+// generateRepairRequest asks for a correction rather than another generation.
+// Each Prompt call is its own context with no memory of the last one, so an
+// answer that merely appends a complaint to the original request regenerates
+// from the same starting point and, at temperature 0, reproduces the same
+// broken code. Handing back the code itself, with the problem named in the
+// ASCII shorthand the primer already teaches, makes the second call a repair of
+// something concrete.
+func generateRepairRequest(request, previous, problem string) string {
+	return "This losp code is meant to satisfy the request below, and it is not yet valid: " +
+		problem + ".\n\nREQUEST:\n" + request + "\n\nCODE:\n" + previous +
+		"\n\nReturn this code with that put right, keeping everything else about it the same. " +
+		"Count one END terminator for each DEF, IDEF, RUN and IRUN in it, and none for GET, IGET or ARG. " +
+		"Output ONLY the corrected losp code. Do NOT wrap in markdown code fences. No explanation."
 }
 
 // builtinDescribe is the inverse of GENERATE: it takes losp code and returns a
@@ -851,6 +879,10 @@ func builtinDescribe(e *Evaluator, argsRaw string) (expr.Expr, error) {
 		return expr.Empty{}, nil
 	}
 
+	// DESCRIBE works on a named expression. The argument is evaluated first, so
+	// that a bare word gives its own name and a retrieval gives the name it
+	// holds, and the named expression is rebuilt into its full definition —
+	// otherwise the model is left describing a body with no name attached.
 	evaluated, err := e.Eval(argsRaw)
 	if err != nil {
 		return nil, err
@@ -858,6 +890,19 @@ func builtinDescribe(e *Evaluator, argsRaw string) (expr.Expr, error) {
 	code := strings.TrimSpace(evaluated)
 	if code == "" {
 		return expr.Empty{}, nil
+	}
+
+	name := ""
+	if target := NamedTarget(code); target != "" {
+		e.autoLoad(target)
+		if val := e.namespace.Get(target); !val.IsEmpty() {
+			name = target
+			code = strings.TrimSpace(formatAsDefinition(target, val))
+		}
+	}
+	// Not a name: describe the text as the code it is.
+	if name == "" {
+		name = FirstDefinedName(code)
 	}
 
 	// Use the compact primer so the description reflects real losp semantics
@@ -868,16 +913,41 @@ func builtinDescribe(e *Evaluator, argsRaw string) (expr.Expr, error) {
 			system = stdlib.PrimerCompactNemotron
 		}
 	}
+	// The description is read back by other expressions, so it has to be words
+	// alone: an operator character in it would be re-parsed as code. Examples
+	// carry that requirement further than a rule about it does. They deliberately
+	// share no behaviour with anything the conformance suite asks DESCRIBE about,
+	// so a passing test means the model described the code, not an example.
 	user := "Describe, in plain language, what the following losp code does. " +
-		"Explain its purpose, its arguments (if any), and its result. " +
-		"Do NOT output losp code — output only the plain-language description.\n\n" + code
+		"Explain its purpose, its arguments (if any), and its result.\n\n" +
+		"Write the description in words alone, with no losp code and no operator " +
+		"characters in it. Name each operation by what it does, the way these " +
+		"examples do:\n\n" +
+		"An expression named Shout that takes one argument, some text, and " +
+		"returns that text converted to upper case with the UPPER builtin.\n\n" +
+		"An expression named Stamp that takes no arguments and returns the " +
+		"current date and time from the NOW builtin.\n\n" +
+		"An expression named Fetch that takes two arguments, a label and a web " +
+		"address, and returns the label followed by the page retrieved from that " +
+		"address with the HTTPGET expression.\n\n" +
+		"An expression named Span that takes two arguments, a start and an end, " +
+		"and returns the start, then the literal word to, then the end.\n\n" +
+		"Any literal words a body holds are part of what it returns, so say them " +
+		"and say where they fall, the way the last example places to between the " +
+		"two arguments. A literal written before an argument comes before it in " +
+		"the result.\n\n" +
+		"Describe this code the same way:\n\n" + code
 
 	response, err := e.provider.Prompt(system, user)
 	if err != nil {
 		return nil, err
 	}
 
-	return expr.Stored{Body: strings.TrimSpace(response)}, nil
+	// The first line names the expression, so callers can take the two halves
+	// positionally: ▶FIRST for the name, ▶SLICE 1 ▲EMPTY for the description.
+	// The name comes from the code, never the model, so that half stays exact no
+	// matter how the description itself reads.
+	return expr.Stored{Body: name + "\n" + strings.TrimSpace(response)}, nil
 }
 
 // builtinSurvey lists every expression in the current namespace that has a

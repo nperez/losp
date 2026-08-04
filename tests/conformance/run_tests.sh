@@ -32,6 +32,7 @@ NC='\033[0m' # No Color
 #   /method -> the request method (GET, POST, ...)
 #   /echo   -> the request body
 #   /header -> the value of the X-Losp request header
+#   /creatures.csv -> a small CSV with a header row (for 45_pipeline tests)
 #   *       -> "not-found"
 # A single `nc -lk` listener keeps the port bound between requests (no accept
 # gap between sequential tests). Responses set Content-Length and
@@ -40,6 +41,14 @@ NC='\033[0m' # No Color
 HTTP_PORT="${LOSP_HTTP_PORT:-8473}"
 HTTP_FIFO=""
 HTTP_SERVER_PID=""
+
+# Kept byte-identical to creaturesCSV in tests/wasm/main.go.
+read -r -d '' CREATURES_CSV <<'CSV' || true
+name,habitat,trait
+Sunfish,the open ocean,drifts near the surface sunning itself
+Ibex,steep mountains,climbs near-vertical rock faces
+Mole,underground tunnels,digs through soil in total darkness
+CSV
 
 http_handle_requests() {
     local reqline method rest path hdr clen xlosp body resp
@@ -69,6 +78,7 @@ http_handle_requests() {
             /method) resp="$method" ;;
             /echo)   resp="$body" ;;
             /header) resp="$xlosp" ;;
+            /creatures.csv) resp="$CREATURES_CSV" ;;
             *)       resp="not-found" ;;
         esac
 
@@ -148,8 +158,8 @@ run_test() {
         ((PASSED++)) || true
     else
         echo -e "${RED}FAIL${NC} $test_name"
-        echo "  Expected: '$(echo "$expected" | head -c 80)'"
-        echo "  Actual:   '$(echo "$actual" | head -c 80)'"
+        echo "  Expected: '$expected'"
+        echo "  Actual:   '$actual'"
         ((FAILED++)) || true
     fi
 }

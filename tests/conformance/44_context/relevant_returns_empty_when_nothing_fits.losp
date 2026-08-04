@@ -1,0 +1,9 @@
+# EXPECTED: TRUE
+▶SYSTEM
+TEMPERATURE
+0
+◆
+▼Total □_t ▶ADD ▲_t ◆ ◆
+▼Total_INFO adds a list of numbers and returns the sum; INPUT is the list of numbers ◆
+
+▶SAY ▶COMPARE ▶RELEVANT Return the current phase of the moon as seen from Earth ◆ ▲EMPTY ◆ ◆

@@ -13,10 +13,27 @@ ACTUAL DESCRIPTION:
 
 Does the ACTUAL DESCRIPTION satisfy the CRITERION? Reason in one or two sentences, then on the final line write exactly VERDICT: PASS or VERDICT: FAIL.
 ◆
-▼JUDGE □_judge_crit □_judge_act ▶UPPER ▶TRIM ▶EXTRACT VERDICT ▶PROMPT ▶_judge_req ◆ ◆ ◆ ◆ ◆ ◆
+▼_judge_ok ◆
+▼_judge_why ▶SAY [JUDGE] ▲_judge_raw ◆ ◆
+▼JUDGE □_judge_crit □_judge_act
+    ▼_judge_raw ◆
+    ▶APPEND _judge_raw ▶PROMPT ▶_judge_req ◆ ◆ ◆
+    ▼_judge_verdict ◆
+    ▶APPEND _judge_verdict ▶UPPER ▶TRIM ▶EXTRACT VERDICT ▲_judge_raw ◆ ◆ ◆ ◆
+    ▶▶IF ▶COMPARE ▲_judge_verdict PASS ◆
+_judge_ok
+_judge_why
+    ◆ ◆
+    ▲_judge_verdict
+◆
 
 ▼Wrap □_w (▲_w) ◆
+▼_hold ◆
+▶APPEND _hold ▶REVISE
+Wrap
+Change it so it surrounds the input with square brackets instead of parentheses. ◆ ◆
+▶_hold ◆
 ▶SAY ▶JUDGE
 the code surrounds or encloses its input in square brackets, and does NOT use round parentheses
-▶DESCRIBE ▶REVISE ▲Wrap
-Change it so it surrounds the input with square brackets instead of parentheses. ◆ ◆ ◆ ◆ ◆
+▶DESCRIBE Wrap ◆
+◆ ◆

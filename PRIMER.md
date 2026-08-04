@@ -278,24 +278,60 @@ Store operators support dynamic naming—the name to store under can be computed
 ▲X                     # → "hello"
 ```
 
-This enables iteration patterns and programmatic variable management:
+That works because the *value* here is the literal text `hello`. The moment the value is itself an operator, `▼` is the wrong tool.
+
+#### `▼` stores a body, not a value
+
+`▼` stores its body **as text**, and deferred operators inside it are preserved rather than resolved. That is deliberate: it is what makes it possible to recall an expression verbatim into context when needed. Retrieving a definition gives back exactly what was written, so it can be shown to a model, described, judged, or persisted:
 
 ```losp
-▼StoreField
-    □sf_name □sf_value
-    ▼▲sf_name ▲sf_value ◆
-◆
-
-▶StoreField
-    MyVar
-    test
-◆
-▶MyVar ◆               # → "test" (execute to resolve ▲sf_value)
+▼Greet □_g Hello, ▲_g! ◆
+▲Greet             # → "Hello, ▲_g!" — the definition, verbatim
+▶Greet Alice ◆     # → "Hello, Alice!" — evaluated
 ```
 
-Both `△` (immediate) and `▲` (deferred) work for dynamic naming inside stored expressions because the body is stored as text and evaluated after argument binding.
+The consequence is that a "store this computed value under this computed name" expression stores a **reference**, not a result:
 
-Note: `▲MyVar` would return `▲sf_value` as text. Use `▶MyVar ◆` to execute and get the actual value.
+```losp
+▼StoreField □sf_name □sf_value ▼▲sf_name ▲sf_value ◆ ◆
+▶StoreField MyVar ▶PROMPT … ◆ ◆
+
+▲MyVar             # → "▲sf_value" — the body, recalled verbatim
+▶MyVar ◆           # → the response — but only by re-reading sf_value now
+```
+
+The PROMPT result *was* captured—into the global `sf_value`. But `MyVar`'s body is the nine characters `▲sf_value`, a pointer at that one global slot. `▶MyVar ◆` gives the right answer only for as long as nothing else has written to `sf_value`.
+
+Nothing protects that slot. `sf_value` is a placeholder, so **the next call to `StoreField` rebinds it**—which is fatal in exactly the case dynamic naming is reached for:
+
+```losp
+▶StoreField Sunfish ▶PROMPT … ◆ ◆
+▶StoreField Ibex    ▶PROMPT … ◆ ◆
+▶StoreField Mole    ▶PROMPT … ◆ ◆
+
+▶Sunfish ◆         # → the Mole sentence
+▶Ibex ◆            # → the Mole sentence
+```
+
+All three bodies are the same nine characters, so all three resolve to whatever `sf_value` holds last. And anything that reads the stored value *directly* rather than executing it—`CORPUS`/`ADD`, `PERSIST`, a `SEARCH` index, `DESCRIBE`—sees the literal `▲sf_value` and never the text at all.
+
+#### Use APPEND to store a result
+
+**`APPEND` evaluates its content and stores the resulting text.** It takes the name as an expression, so the name can be computed too, and it creates the name if it does not exist:
+
+```losp
+▼StoreField □sf_name □sf_value ▶APPEND ▲sf_name ▲sf_value ◆ ◆
+
+▶StoreField Sunfish ▶PROMPT … ◆ ◆
+▶StoreField Ibex    ▶PROMPT … ◆ ◆
+
+▲Sunfish           # → the Sunfish sentence, as text
+▲Ibex              # → the Ibex sentence, as text
+```
+
+Each name now holds its own text, decoupled from `sf_value`, readable by retrieval and by every builtin that inspects stored values.
+
+This is the idiom for capturing any computed result—an LLM response, an HTTP body, a field pulled out of a row—under a name worked out at runtime. Reach for `▼` when defining behaviour to be recalled or run, and `APPEND` when recording a value.
 
 ### Dynamic Execute
 
@@ -633,17 +669,43 @@ Prompts describing a pattern using these ASCII names will output the correspondi
 
 These builtins let a program read, describe, and rewrite its own losp — the "ouroboros" loop where the language edits itself through plain language.
 
-**DESCRIBE**: `▶DESCRIBE code ◆` → plain-language description of losp code
+**DESCRIBE**: `▶DESCRIBE name ◆` → the expression's name, then a plain-language description
 
-The inverse of GENERATE. It puts the compact primer into context and asks the model to explain what the code does — its purpose, arguments, and result. Pass a retrieved expression as the argument:
+The inverse of GENERATE. It puts the compact primer into context and asks the model to explain what the code does — its purpose, arguments, and result.
+
+The result is **two parts**: the first line is the name, and everything after it is the description. That shape is fixed, so the halves can be taken positionally:
 
 ```losp
 ▼greet □_g Hello ▲_g ◆
-▶SAY ▶DESCRIBE ▲greet ◆ ◆
-# → "Defines an expression that prepends 'Hello ' to its argument..."
+▶SAY ▶DESCRIBE greet ◆ ◆
+# → "greet
+#    An expression named greet that takes one argument, a name, and returns..."
+
+▶SAY ▶FIRST ▶DESCRIBE greet ◆ ◆ ◆          # → "greet"
+▶SAY ▶SLICE 1 ▲EMPTY ▶DESCRIBE greet ◆ ◆ ◆ # → the description alone
 ```
 
-Returns EMPTY if the code is empty or no provider is configured. Because DESCRIBE returns plain text (no operators), its output can be fed safely back into other prompts — including judging or further editing of the code it describes.
+The name comes from the code, never from the model, so it is exact even when the description is not.
+
+**DESCRIBE works on a named expression.** Its argument is evaluated first, and the result is taken as the name to describe. A bare word is its own name, and a retrieval is expected to *yield* a name — which is what lets DESCRIBE be wrapped:
+
+```losp
+▶DESCRIBE greet ◆                      # by name
+▼Explain □_c ▶DESCRIBE ▲_c ◆ ◆        # ▲_c yields "greet"
+▶Explain greet ◆                       # identical result
+```
+
+Note that `▶DESCRIBE ▲greet ◆` does **not** describe `greet`: the retrieval yields `greet`'s body, not its name. Pass the name.
+
+When the evaluated argument is not the name of a live expression, it is treated as the code it is, which is how generated code is handled:
+
+```losp
+▶DESCRIBE ▶GENERATE Write an expression named Shrink that lowercases its argument. ◆ ◆
+# → "Shrink
+#    An expression named Shrink that takes one argument, some text, and returns..."
+```
+
+Code that defines nothing — a bare value, or a result rather than a definition — is named `ANONYMOUS`, so the two-part shape always holds. Returns EMPTY if the code is empty or no provider is configured.
 
 **SURVEY**: `▶SURVEY ◆` → a menu of documented expressions in the namespace
 
@@ -658,32 +720,77 @@ Lists every expression that has a companion `<name>_INFO` expression, together w
 
 Returns EMPTY when no eligible expressions exist. An `_INFO` whose base expression is absent is skipped.
 
-**AUTHOR**: `▶AUTHOR request ◆` → generated losp code, informed by the namespace
+**RELEVANT**: `▶RELEVANT request ◆` → the names from SURVEY worth knowing about, one per line
 
-Pure-losp porcelain over GENERATE, SURVEY, DESCRIBE, and PROMPT. It generates the code with the current SURVEY output as context, then describes that code and bakes a `<name>_INFO` companion into the live namespace from the description. Authors a single expression per call; for several cooperating expressions, drive AUTHOR once per expression. Like GENERATE, it **returns code as text** — splice it into a body with `▷` to run it:
+**BRIEF**: `▶BRIEF names ◆` → those names expanded back to `name: info` lines
 
-```losp
-▼_run ▷AUTHOR Write an expression named Greet that uses the existing greet expression to welcome a user. ◆ ◆
-▶_run ◆
-```
-
-**REVISE**: `▶REVISE code instruction ◆` → revised losp code
-
-Pure-losp porcelain over DESCRIBE and GENERATE. Given a retrieved expression and a plain-language instruction, it runs DESCRIBE to interpret the current code, then GENERATE to produce the revision. Returns the revised code as text:
+A pair for building context. SURVEY grows without bound as a program writes itself, and feeding all of it into every prompt crowds out the request. RELEVANT asks the model which existing expressions a request could build on, keeps only names that actually exist, and re-asks if the answer is unusable. BRIEF turns a name list into the `name: info` lines a prompt wants:
 
 ```losp
-▼_run ▷REVISE ▲greet
-Make it shout the greeting in uppercase. ◆ ◆
-▶_run ◆
+▶SAY ▶BRIEF ▶RELEVANT Surround a word in brackets and shout it ◆ ◆ ◆
+# → "Bracket: wraps its input in square brackets; INPUT is the text to wrap
+#    Shout: returns its input in upper case; INPUT is the text"
 ```
 
-Both AUTHOR and REVISE own their prompts; you supply only the request (and, for REVISE, the code to edit). They return code, never execute it — the caller decides when to splice and run.
+RELEVANT returns EMPTY when nothing is relevant, so BRIEF returns EMPTY too and the prompt simply carries no context.
+
+**AUTHOR**: two arguments — a name, then a request — each on its own line
+
+```losp
+▶AUTHOR
+Shoutify
+Take a word, convert it to upper case, and surround the result in square brackets.
+◆
+```
+
+Pure-losp porcelain over RELEVANT, BRIEF, PROMPT, GENERATE, DESCRIBE, and PARSE. A single request is often too much to translate into losp in one shot, so AUTHOR breaks it up:
+
+1. **Context** — RELEVANT and BRIEF gather only the existing expressions that bear on the request.
+2. **Plan** — one prompt breaks the request into a few small helper expressions and says how they fit together.
+3. **Names** — a second prompt lists the helper names, dropping any that already exist.
+4. **Chunks** — each helper is generated on its own, given the plan and the helpers written so far, then stored and documented with its own `_INFO`.
+5. **Composition** — a final generation writes the named expression using those helpers.
+6. **Check** — `▶PARSE name ◆` decides whether the named expression exists and is well formed. If not, AUTHOR loops: helpers that already succeeded are left alone and only what is missing is written again.
+
+Everything AUTHOR writes is **stored as it goes**, so the named expression is ready to run when the call returns:
+
+```losp
+▶AUTHOR
+Shoutify
+Take a word, convert it to upper case, and surround the result in square brackets.
+◆
+▶SAY ▶Shoutify hi ◆ ◆   # → [HI]
+```
+
+It **also returns the code as text**, every definition it wrote, so the result can be described, judged, or saved. Because the work is already stored, there is no need to splice the result to run it.
+
+`SYSTEM AUTHOR_ATTEMPTS` bounds the loop, defaulting to 5. When AUTHOR runs out of attempts it returns the sentinel `AUTHOR_FAILED` and puts an explanation in `AUTHOR_REASON`, leaving whatever it did manage to write in place:
+
+```losp
+▶SYSTEM
+AUTHOR_ATTEMPTS
+3
+◆
+```
+
+**REVISE**: two arguments — the name of an expression, then an instruction — each on its own line
+
+```losp
+▶REVISE
+greet
+Make it shout the greeting in uppercase.
+◆
+```
+
+Pure-losp porcelain over DESCRIBE and GENERATE. It takes the **name** of an existing expression, retrieves that expression's body for context, runs DESCRIBE on it to interpret what it currently does, then GENERATEs the revision under the same name together with an updated `_INFO`. Returns the revised code as text.
+
+Both AUTHOR and REVISE own their prompts; you supply only a name and a request. Both return code as text. REVISE never executes what it writes, so the caller decides when to put it into effect; AUTHOR has already stored its work by the time it returns.
 
 **PARSE**: `▶PARSE name ◆` → `TRUE` or `FALSE`
 
 Checks whether the body stored under `name` is structurally valid losp: every scope-opening operator has its `◆`, no `◆` closes more than the code opened, and every `▼ ▽ ▶ ▷ ▲ △ □` has a name. It does not evaluate the code, does not define anything, and does not fire immediate operators.
 
-**PARSE takes a name, never the code text.** A text argument would itself be scanned as losp, so the surplus `◆` that PARSE exists to find would close PARSE's own argument early and PARSE would see truncated-but-balanced text. Reading the stored body straight out of the namespace avoids that.
+**PARSE takes a name, never the code text.** A text argument would itself be scanned as losp, so the terminators in it would close PARSE's own argument early and PARSE would see truncated-but-balanced text. Reading the stored body straight out of the namespace avoids that. A terminator that closes nothing is not an error: the evaluator passes over it, and PARSE does the same.
 
 The explanation lives in `PARSE_REASON`, set on every call — the reason on `FALSE`, empty on `TRUE`. Reasons name operators in the ASCII shorthand (`DEF`, `RUN`, `ARG`, `END`) rather than the runes, because `▲PARSE_REASON` re-parses what it returns.
 
@@ -1437,17 +1544,19 @@ To use an execution result (from `▶READ`, `▶PROMPT`, etc.) in multiple place
 
 The `▶READ` executes during argument parsing. The result binds to `□input`, then `▲input` retrieves it for each use.
 
-For storing under a dynamic name:
+For recording the result under a dynamic name, use `APPEND`—it evaluates the content and stores the text, so the name holds the result itself rather than a reference to `value`:
 
 ```losp
-▼StoreResult □name □value ▼▲name ▲value ◆ ◆
+▼StoreResult □name □value ▶APPEND ▲name ▲value ◆ ◆
 
 ▶StoreResult
     MyVar
     ▶PROMPT system user ◆
 ◆
-▶MyVar ◆    # Execute to get the value
+▲MyVar      # The response text
 ```
+
+Using `▼▲name ▲value ◆` here would store the body `▲value`—a pointer at a global that the next call overwrites. See [Dynamic Naming](#dynamic-naming).
 
 ---
 
@@ -1751,9 +1860,11 @@ Every builtin returns a value. Understanding what each builtin returns is critic
 | `LOAD` | Empty | Always EMPTY — loads into namespace as a side effect |
 | `PROMPT` | Text | LLM response text, or EMPTY if no provider |
 | `GENERATE` | Text | Generated losp code text, or EMPTY if no provider |
-| `DESCRIBE` | Text or Empty | Plain-language description of the code, or EMPTY if code/provider absent |
+| `DESCRIBE` | Text or Empty | The name on the first line, then the description, or EMPTY if code/provider absent |
 | `SURVEY` | Text or Empty | `name: info` lines for documented expressions, or EMPTY if none |
-| `AUTHOR` | Text | Generated losp code informed by SURVEY, or EMPTY if no provider |
+| `RELEVANT` | Text or Empty | Names from SURVEY relevant to a request, or EMPTY if none |
+| `BRIEF` | Text or Empty | Those names as `name: info` lines, or EMPTY if none |
+| `AUTHOR` | Text | Every definition it wrote, all stored, or `AUTHOR_FAILED` with the reason in `AUTHOR_REASON` |
 | `REVISE` | Text | Revised losp code, or EMPTY if no provider |
 | `SYSTEM` | Text or Empty | Current setting value (getter) or EMPTY (setter) |
 | `ASYNC` | Text | Handle ID (e.g., `"_async_1"`), or EMPTY if expression missing |
@@ -1788,7 +1899,8 @@ Every builtin returns a value. Understanding what each builtin returns is critic
 |------------|-----|
 | Store expressions | `▼Name body ◆` |
 | Store expressions during parsing | `▽Name body ◆` |
-| Store with dynamic name | `▼▲NameVar value ◆` |
+| Define with dynamic name | `▼▲NameVar body ◆` |
+| Record a result under a dynamic name | `▶APPEND ▲NameVar ▲Value ◆` |
 | Retrieve at execution time | `▲Name` |
 | Retrieve now (parse time) | `△Name` |
 | Execute at execution time | `▶Name args ◆` (args are expressions) |
@@ -1800,10 +1912,11 @@ Every builtin returns a value. Understanding what each builtin returns is critic
 | Conditional | `▶IF cond then else ◆` (args are expressions) |
 | Iterate over items | `▶FOREACH items-expr body-name ◆` |
 | Prompt LLM | `▶PROMPT system user ◆` (args are expressions) |
-| Describe losp code | `▶DESCRIBE code ◆` → plain-language description |
+| Describe losp code | `▶DESCRIBE name ◆` → name line, then the description |
 | List documented expressions | `▶SURVEY ◆` → `name: info` lines |
-| Author code from plain language | `▶AUTHOR request ◆` → losp code (uses SURVEY context) |
-| Revise an expression | `▶REVISE code instruction ◆` → revised losp code |
+| Narrow that list to a request | `▶RELEVANT request ◆` → names, then `▶BRIEF names ◆` |
+| Author code from plain language | `▶AUTHOR name request ◆` (args are expressions) → stores it, returns the code |
+| Revise an expression | `▶REVISE name instruction ◆` (args are expressions) → revised losp code |
 | Check code is well-formed | `▶PARSE name ◆` → TRUE/FALSE (reason in `▲PARSE_REASON`) |
 | Extract labeled field | `▶EXTRACT LABEL ▲source ◆` |
 | Convert to uppercase | `▶UPPER expr... ◆` |

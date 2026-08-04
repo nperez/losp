@@ -1,0 +1,21 @@
+# EXPECTED: ▲sf_value
+# EXPECTED: sentence three
+# EXPECTED: sentence three
+# EXPECTED: sentence three
+▼StoreRef □sf_name □sf_value ▼▲sf_name ▲sf_value ◆ ◆
+▶StoreRef
+Sunfish
+sentence one
+◆
+▶StoreRef
+Ibex
+sentence two
+◆
+▶StoreRef
+Mole
+sentence three
+◆
+▶SAY ▲Sunfish ◆
+▶SAY ▶Sunfish ◆ ◆
+▶SAY ▶Ibex ◆ ◆
+▶SAY ▶Mole ◆ ◆
