@@ -168,7 +168,7 @@ The name slot can instead hold a single operator, for when the name has to be wo
 
 ## Builtins
 
-Builtin names are **ALL CAPS** and case-sensitive. Every builtin does its work when it is run: `▶NAME arguments ◆`. The three values `TRUE`, `FALSE` and `EMPTY` are the exception — they hold a value rather than doing work, so they are retrieved as `▲TRUE`, `▲FALSE`, `▲EMPTY`, and take no terminator.
+Builtin names are **ALL CAPS** and case-sensitive, and a builtin does its work when it is executed, as in `▶TRIM some text ◆`. An expression the program defines keeps the mixed-case name it was given and is executed the same way, as in `▶Tidy some text ◆`. Each name is written exactly as it is spelled where it is defined. The three values `TRUE`, `FALSE` and `EMPTY` are the exception — they hold a value rather than doing work, so they are retrieved as `▲TRUE`, `▲FALSE`, `▲EMPTY`, and take no terminator.
 
 Single-argument builtins:
 
@@ -867,13 +867,21 @@ A larger program is laid out the same way: one operator to a line, its arguments
     ◆
 ◆
 
+▼Clean
+    ▶TRIM ▲Rows ◆
+◆
+
+▼Recent
+    ▶SLICE
+        1
+        ▲EMPTY
+        ▶Clean ◆
+    ◆
+◆
+
 ▼Digest
     ▶FOREACH
-        ▶SLICE
-            1
-            ▲EMPTY
-            ▲Rows
-        ◆
+        ▶Recent ◆
         Entry
     ◆
 ◆
@@ -881,7 +889,11 @@ A larger program is laid out the same way: one operator to a line, its arguments
 
 `Entry` keeps the work for each part of the row under a name of its own, then executes those names where their values belong. `_EntryTopic` builds a line of text with `▶_EntryCode ◆` inside it, and `Blurb` receives that whole line as one argument, because `▶_EntryTopic ◆` is one operator and one argument. Every operator that opens a scope has one terminator directly below it at its own indentation, so each `◆` matches the operator it closes, and each definition carries all of its own terminators before the next begins.
 
-The two sizes of text are worth seeing side by side here. `Rows` is several lines, so it is already a list and `Digest` walks those lines. One row is a single line, so `Entry` uses `▶SPLIT` to reach the fields inside that line.
+The two sizes of text are worth seeing side by side here. `Rows` is several lines, so it is already a list. One row is a single line, so `Entry` uses `▶SPLIT` to reach the fields inside that line.
+
+The two ways of reaching a list sit side by side as well. `Rows` holds its lines as written, so `▲Rows` puts them into `Clean`. `Clean` and `Recent` work their lines out, so `▶Clean ◆` and `▶Recent ◆` pass them on. A name that holds work is executed in the list position exactly as it is anywhere else.
+
+`Clean` gives back several lines, and several lines are a list, so `Recent` holds a list of its own without splitting anything. `▶SPLIT` appears only inside `Entry`, where one line is opened up into its fields.
 
 An expression takes computed arguments the same way a builtin does. Given an expression named `Join` that takes two arguments:
 

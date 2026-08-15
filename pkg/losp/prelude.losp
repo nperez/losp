@@ -99,6 +99,35 @@ _ctx_ask
 
 ▼BRIEF □_ctx_names ▶FOREACH ▲_ctx_names _ctx_line ◆ ◆
 
+▼_ax_atomreq
+You are breaking a job into its smallest steps, before anyone plans it or writes it.
+
+Everything the job handles is text. A step reaches one value, works one value out from another, asks one question, or hands one piece of work on. Where the job does the same thing to every item of a list, write those steps once, for a single item. Say what comes back for that single item, and then say what comes back for every item.
+
+These expressions already exist and can be used by name. Write each name exactly as it appears here, keeping the same capitalisation:
+▲_ax_brief
+
+When one of the expressions listed above already holds data a step needs, that step names it as where the data comes from, and no step is needed to obtain it.
+
+Here is what the finished program has to do:
+▶_ax_req ◆
+
+List the steps in the order they happen, one step to a line, each short enough to say in one breath. Write no code.
+
+Here are the steps of an unrelated job, to show their size and manner. That job was: named DutyList, it takes nothing and returns a line for each person on the rota at http://host/rota.txt saying whether they are on duty today.
+
+download the text at http://host/rota.txt
+set its heading line aside
+take one line of the rota
+reach the person's name in that line
+reach the day that person works in that line
+say on duty when that day is today's date
+say off duty when it is not
+join the person's name to that word
+give back that joined line for the one line taken
+give back one such line for every line of the rota
+◆
+
 ▼_ax_planreq
 You are planning a small program before anyone writes it.
 
@@ -109,6 +138,9 @@ These expressions already exist and can be used by name. Write each name exactly
 
 Here is what the finished program has to do:
 ▶_ax_req ◆
+
+That job has already been broken into its smallest steps, in the order they happen:
+▲_ax_atoms
 
 The finished program must end up in one expression named ▶_ax_name ◆, which is the expression that will actually be run.
 
@@ -132,24 +164,51 @@ You are planning ▶_ax_name ◆. Write a block for ▶_ax_name ◆ itself, in t
 
 EXPRESSION: ▶_ax_name ◆
 TAKES: its one argument and what kind of text that is, or NOTHING
-RETURNS: what the request says ▶_ax_name ◆ gives back, which is always something, even where the point of it is an effect
+RETURNS: the text it gives back, named concretely; an expression that records or sends something gives text back too, so name that text
 DOES: short plain sentences, one thing to each, in the order things happen, covering everything the request asks for and naming any helper it hands work to
 
 Then a block below it, in that same shape, for each helper ▶_ax_name ◆ needs, so that every expression named in the plan has a block of its own. A name that only holds a value needs no block of its own.
+
+The block for ▶_ax_name ◆ says in one sentence how the work is handed to the blocks it gathers. What comes back from that handing is its RETURNS, so its DOES needs no step for collecting or returning anything.
 
 Here is such a plan, written for an unrelated request, to show the shape. That request was: named DutyList, it takes nothing and returns a line for each person on the rota at http://host/rota.txt saying whether they are on duty today.
 
 EXPRESSION: DutyList
 TAKES: NOTHING
 RETURNS: one line for every person on the rota
-DOES: it fetches the text at http://host/rota.txt as a list of lines, sets the heading line aside, and hands each of the remaining lines to RotaLine.
+DOES: it hands each line of RotaRows to RotaLine.
+
+EXPRESSION: RotaFeed
+TAKES: NOTHING
+RETURNS: the whole rota, as a list of lines
+DOES: it downloads the text at http://host/rota.txt.
+
+EXPRESSION: RotaRows
+TAKES: NOTHING
+RETURNS: the rota's lines without its heading line
+DOES: it gives back every line of RotaFeed after the first.
+
+EXPRESSION: RotaPerson
+TAKES: one line of the rota, whose fields are a person's name and the day they work
+RETURNS: the person's name
+DOES: it gives back the first field of the line.
+
+EXPRESSION: RotaDay
+TAKES: one line of the rota
+RETURNS: the day that person works
+DOES: it gives back the second field of the line.
+
+EXPRESSION: RotaStatus
+TAKES: one line of the rota
+RETURNS: the words on duty, or the words off duty
+DOES: it gives back on duty when RotaDay for that line is the same as today's date, and off duty when it is not.
 
 EXPRESSION: RotaLine
-TAKES: one line of the rota, whose fields are a person's name and the day they work
+TAKES: one line of the rota
 RETURNS: one line saying whether that person is on duty
-DOES: it gives back the first field of the line followed by on duty when the second field of the line is the same as today's date, and the first field of the line followed by off duty when it is not.
+DOES: it gives back RotaPerson for that line, then a space, then RotaStatus for that line.
 
-Give each expression one argument at most. Prefer simple expressions that compose: keep what each one does simple, and let named expressions hold the values that pass between them. Write no code.
+Give each expression one argument at most. Give every step above a block of its own, as the blocks here do, so that each block does one thing and stays short. A block that gathers work names the blocks it gathers rather than repeating what they do. Write no code.
 ◆
 
 ▼_ax_namereq
@@ -210,7 +269,7 @@ SPLIT_CHAR
 These expressions already exist and may be used. They are not builtins. Their names use mixed case and must be copied letter for letter, leaving lower case letters in lower case:
 ▶_ax_ctxall ◆
 
-Use these rather than writing again what they already do. Each one is executed by its name, with its arguments in the order its description lists them.
+Use these rather than writing again what they already do. Each one is executed by its name, spelled exactly as it is written above and keeping its own capitalisation, with its arguments in the order its description lists them.
 ◆
 ▼_ax_ctxblock
     ▶▶IF ▶COMPARE ▶TRIM ▶_ax_ctxall ◆ ◆ ▲EMPTY ◆
@@ -224,7 +283,7 @@ Here is the plan for a small program. Each block names one expression, what it t
 ▲_ax_plan
 ▶_ax_ctxblock ◆
 
-Define the expression named ▲_ac_name according to its block in the plan, and only that expression. Follow that block through in order, so it does what the block describes and gives back what the block says. Remember to use placeholders for arguments.
+Define the expression named ▲_ac_name according to its block in the plan, and only that expression. Follow its DOES through in order, and finish it by giving back what its RETURNS names. Remember to use placeholders for arguments.
 ◆
 
 ▼_ax_composereq
@@ -232,10 +291,7 @@ Here is the plan for a small program. Each block names one expression, what it t
 ▲_ax_plan
 ▶_ax_ctxblock ◆
 
-Here is what the finished program has to do:
-▶_ax_req ◆
-
-Define the expression named ▶_ax_name ◆ according to its own block in the plan, and only that expression. It does everything that block says it does, in that order. Executing it gives back the finished result. Remember to use placeholders for arguments.
+Define the expression named ▶_ax_name ◆ according to its own block in the plan, and only that expression. It does everything that block says it does, in that order. Executing it gives back the finished result. Its block names the expressions it gathers, and every one of those is written already, so it reaches their values by executing them by name. Remember to use placeholders for arguments.
 ◆
 
 ▼_ax_record
@@ -340,9 +396,13 @@ _ax_again
 ▼_ax_setup
     ▼_ax_brief ◆
     ▶APPEND _ax_brief ▶BRIEF ▶RELEVANT ▶_ax_req ◆ ◆ ◆ ◆
+    ▼_ax_atoms ◆
+    ▶APPEND _ax_atoms ▶PROMPT
+You break a job into its smallest steps and list them in plain language.
+▶_ax_atomreq ◆ ◆ ◆
     ▼_ax_plan ◆
     ▶APPEND _ax_plan ▶PROMPT
-You break a job into a few small steps and explain them in plain language.
+You gather small steps into a few named expressions and explain them in plain language.
 ▶_ax_planreq ◆ ◆ ◆
     ▼_ax_names ◆
     ▶APPEND _ax_names ▶_ax_namelist ◆ ◆

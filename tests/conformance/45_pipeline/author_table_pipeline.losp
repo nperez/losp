@@ -1,0 +1,28 @@
+# EXPECTED: sunfish
+# EXPECTED: mole
+# EXPECTED: heron
+# EXPECTED: recorded
+▶SYSTEM
+TEMPERATURE
+0
+◆
+▼CreatureTable
+name,habitat,trait
+sunfish,ocean,drifts on the surface
+mole,soil,digs long tunnels
+heron,marsh,stands very still
+◆
+▼CreatureTable_INFO a table of creatures, one per line, each line holding a name, a habitat and a trait separated by commas ◆
+▼Remember □_rm_name □_rm_text ▶APPEND ▲_rm_name ▲_rm_text ◆ ◆
+▼Remember_INFO records a sentence in the searchable collection under a creature name; INPUT is the creature name, then the sentence ◆
+
+▽_authored ▷AUTHOR
+FieldNotes
+Named FieldNotes, it takes no arguments and returns the name of every creature it recorded, one name on each line. It takes the lines of CreatureTable, sets aside the header line, and for each remaining line reads three comma separated fields: the creature name, its habitat and a trait. For each line it asks the model for one sentence about that creature and hands the creature name and that sentence to Remember.
+◆ ◆
+
+▶SAY ▶FieldNotes ◆ ◆
+▶SAY ▶IF ▶COMPARE ▲sunfish ▲EMPTY ◆
+missing
+recorded
+◆ ◆

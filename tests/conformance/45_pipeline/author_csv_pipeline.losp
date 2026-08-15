@@ -1,0 +1,21 @@
+# EXPECTED: Sunfish
+# EXPECTED: Ibex
+# EXPECTED: Mole
+# EXPECTED: recorded
+▶SYSTEM
+TEMPERATURE
+0
+◆
+▼Remember □_rm_name □_rm_text ▶APPEND ▲_rm_name ▲_rm_text ◆ ◆
+▼Remember_INFO records a sentence in the searchable collection under a creature name; INPUT is the creature name, then the sentence ◆
+
+▽_authored ▷AUTHOR
+FieldNotes
+Named FieldNotes, it takes no arguments and returns the name of every creature it recorded, one name on each line. It fetches the text at http://127.0.0.1:8473/creatures.csv, sets aside the header line, and for each remaining line reads three comma separated fields: the creature name, its habitat and a trait. For each line it asks the model for one sentence about that creature and hands the creature name and that sentence to Remember.
+◆ ◆
+
+▶SAY ▶FieldNotes ◆ ◆
+▶SAY ▶IF ▶COMPARE ▲Sunfish ▲EMPTY ◆
+missing
+recorded
+◆ ◆
